@@ -1,0 +1,27 @@
+{
+  "title_fr": "Recueil de formules pour l’examen radioamateur HAREC et NOVICE",
+  "title_de": "Formelsammelung für das HAREC und NOVICE Radioamateurexamen",
+  "dpi": 200,
+  "pages": [
+    {
+      "page": 177,
+      "path": "appendix/appendix_p177.png"
+    },
+    {
+      "page": 178,
+      "path": "appendix/appendix_p178.png"
+    },
+    {
+      "page": 179,
+      "path": "appendix/appendix_p179.png"
+    },
+    {
+      "page": 180,
+      "path": "appendix/appendix_p180.png"
+    },
+    {
+      "page": 181,
+      "path": "appendix/appendix_p181.png"
+    }
+  ]
+}

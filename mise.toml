@@ -1,0 +1,6 @@
+[tools]
+yq = "latest"
+
+[tasks.download-refs]
+description = "Download reference PDFs listed in reference/documents.yaml (skips files already present)"
+run = "./scripts/download-refs.sh"
