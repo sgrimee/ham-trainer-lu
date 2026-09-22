@@ -59,7 +59,17 @@ CASES = [
  ("448-para","fr","Que signifie le Q-code suivant : QRT?","Dois-je cesser la transmission ?",
   "Est-ce que je dois arrêter d'émettre ?","correct",None,
   "PARAPHRASE TEST: same meaning, different words"),
+ # Expectation revised 2026-09-22, after the fact and deliberately. It was first
+ # written as `partial` -- a guess that an examiner would give half marks for the
+ # right topic in the wrong form. Every model graded it `correct` until the
+ # speech-act rule went into the prompt, and all three then returned `incorrect`.
+ # `incorrect` is the better expectation: the question asks what the Q-code MEANS,
+ # the reference answer is one element, and the wrong form is the wrong meaning --
+ # QRT? asks "must I stop?", QRT tells the other station to stop. Getting the
+ # direction backwards is an operational error, not a wording slip. Awarding half
+ # would need the single element split into topic and form; whether it should be
+ # is open (specs/APP.md §13).
  ("448-form","fr","Que signifie le Q-code suivant : QRT?","Dois-je cesser la transmission ?",
-  "J'arrête l'émission.","partial",None,
-  "SUBTLETY: QRT? is interrogative; the statement form is QRT, so the answer misses the question sense"),
+  "J'arrête l'émission.","incorrect",None,
+  "SPEECH ACT: QRT? is interrogative; the statement form is QRT. Wrong form, wrong meaning"),
 ]

@@ -34,6 +34,7 @@ owns the Python dependencies. `mise install` once, then:
 ```sh
 mise run data     # extract, render the appendix, verify
 mise run verify   # run the validation gates on their own
+mise run eval-grader <model>...   # score grading models (needs LLM_API_KEY)
 mise tasks        # everything else
 ```
 

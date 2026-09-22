@@ -336,8 +336,16 @@ many elements are required.** Where a question asks for three items and the
 reference lists five possibilities, three valid ones are a complete answer and
 the surplus are not missing elements. Without that sentence, two of three models
 tested graded a correct answer to question 465 at 60% (§8.2); with it, all three
-were correct. Questions 465 and 469 have this shape. The working prompt lives in
-`tests/eval_grader.py`.
+were correct. Questions 465 and 469 have this shape.
+
+**The prompt must also require a paraphrase to preserve the speech act** — a
+question is not a statement, an obligation is not an act already performed.
+Without it, all three models accepted the statement form `QRT` as an answer to
+`QRT?` (§8.2).
+
+Both rules live with the prompt in `tests/grader_prompt.py`, which the
+application imports rather than copying, and `mise run eval-grader` measures
+that exact text (§8.3).
 
 **Scoring is then proportional.** A question worth `p` points where 3 of 4
 expected elements are present scores `0.75 × p`. Store the exact value —
@@ -451,11 +459,11 @@ quality ranking because they are checkable:
 golden cases in `tests/grading_fixtures.py`, twice each, with token counts and
 prices taken from the same runs:
 
-| Model | Verdicts | False statements caught | Median | $/1000 gradings | A BASE session |
-|---|---|---|---|---|---|
-| `openai/gpt-5.1` | 11/12 | 2/2 | 2.0 s | 2.01 | $0.05 |
-| `mistralai/mistral-medium-3.1` | 11/12 | 2/2 | 1.7 s | 0.42 | $0.01 |
-| `anthropic/claude-opus-5` | 11/12 | 2/2 | 5.3 s | 14.14 | $0.34 |
+| Model | Verdicts | False statements | Verdict stability | Median | $/1000 | A BASE session |
+|---|---|---|---|---|---|---|
+| `openai/gpt-5.1` | 12/12 | 2/2 | 100 % | 2.5 s | 2.01 | $0.05 |
+| `mistralai/mistral-medium-3.1` | 12/12 | 2/2 | 100 % | 2.3 s | 0.42 | $0.01 |
+| `anthropic/claude-opus-5` | 12/12 | 2/2 | 100 % | 4.8 s | 14.14 | $0.34 |
 
 **Default: `openai/gpt-5.1`.** Equal accuracy to a model seven times dearer, at
 a third of its latency — which matters because study mode grades inline.
@@ -476,12 +484,27 @@ certificate, and two valid bands plus a Citizens Band frequency — on every run
 That was the failure mode §7.2 was most concerned about, and it is not one that
 separates these models.
 
-All three also failed the same twelfth case, and it is worth recording rather
-than hiding: asked what `QRT?` means, all accepted *"J'arrête l'émission"*. The
-interrogative Q-code asks *"must I stop transmitting?"*; the statement form is
-plain `QRT`. A strict examiner would dock it. This is a real limitation of
-LLM grading on Q-code questions, and an argument for the re-grade button (§7.3)
-rather than for a different model.
+**The same held for the second failure, and it is the more interesting one.**
+Asked what `QRT?` means, all three originally accepted *"J'arrête l'émission"*.
+The interrogative Q-code asks *"must I stop transmitting?"*; the statement form
+is plain `QRT`, which tells the other station to stop. Getting the direction
+backwards is an operational error, not a wording slip — but a grader told to
+"judge meaning, not wording" reads the two as near-identical vocabulary and
+waves it through.
+
+The fix was again a prompt rule, not a better model: **a paraphrase must
+preserve what the reference answer *does*.** A question is not a statement, an
+obligation is not an act already performed, an instruction to someone else is
+not a description of yourself. With that paragraph all three models reject the
+wrong form, and all three now score **12/12**.
+
+Two honest notes on that case. Its expected verdict was revised from `partial`
+to `incorrect` *after* seeing the models agree on `incorrect` — the reasoning is
+recorded in `tests/grading_fixtures.py` rather than quietly applied. And the
+result is now all-or-nothing, because the reference answer is a single element:
+awarding half marks for the right topic in the wrong form would mean splitting
+that element into topic and form, which is a marking-scheme question (§13), not
+a model one.
 
 `mistralai/mistral-medium-3.1` matched on accuracy at a fifth of the price and
 is the obvious saving if cost ever matters. It is not the default because it was
@@ -489,9 +512,27 @@ the only one to return `429 — temporarily at capacity upstream`, and four of i
 twelve calls in one run took 17–18 seconds against a 2-second median. On the
 interaction path, an occasional 18-second stall is worse than a cent.
 
-Re-run the comparison with `mise run eval-grader <model>...` after any change to
-the grader prompt; a prompt edit is exactly the kind of change that silently
-regresses one case while fixing another.
+### 8.3 Re-running this
+
+Both prompt fixes above were found by measurement and would have been invisible
+to inspection, so the comparison is a repeatable operation rather than a
+one-off:
+
+```sh
+mise run eval-grader                                 # the configured LLM_MODEL
+mise run eval-grader openai/gpt-5.1 <other-model>    # compare candidates
+mise run eval-grader --runs 2 <model>                # also report stability
+```
+
+It prints a per-case table and a comparison summary, saves raw responses under
+`var/eval/`, and exits non-zero if any case fails — so it can gate a change.
+
+The grader prompt lives in `tests/grader_prompt.py`, which **the application
+imports rather than copying**, so the evaluation always measures the prompt that
+actually grades candidates. Every rule in it earned its place by failing a case
+first, and the comments say which, so none gets tidied away as redundant. Run
+this after every edit to that file: a prompt change that fixes one case
+routinely regresses another, which is exactly how both findings above surfaced.
 
 Model choice is configuration, not code (§8). Switching is an `LLM_MODEL` edit,
 and because `grade.model` records what produced each verdict (§5.2), a change of
@@ -670,6 +711,9 @@ Phases 1–4 are a usable BASE trainer. Everything after is leverage.
   upstream capacity refusal and 17–18 second latency spikes seen during testing.
   If those turn out to be transient, it is the better buy — worth re-measuring
   before phase 8, where grading cost starts to scale with users.
-- **Q-code questions are graded loosely** (§8.2). Every model tested accepted a
-  statement-form answer for an interrogative Q-code. Either the grader prompt
-  learns that distinction, or those questions carry a per-question note.
+- **Whether a right-topic, wrong-form answer deserves half marks** (§8.2). A
+  candidate who answers `QRT?` with the statement form now scores zero, because
+  the reference answer is a single element and the form is wrong. Splitting such
+  elements into topic and form would allow 50 %, which is kinder to a learner and
+  further from an exam. Same family of question as the other marking-scheme
+  assumptions above.
