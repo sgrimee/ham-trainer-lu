@@ -19,7 +19,7 @@ loading secrets from `.env` or a keychain — the app reads its configuration fr
 the process environment and says nothing about how it got there.
 
 **Deferred, not out of scope:** the target is a hosted, multi-user app in a
-Docker container (§11.8). Until then it runs single-user, and a second candidate
+Docker container (§12.8). Until then it runs single-user, and a second candidate
 is served by restarting it against a different attempts database (§5.1) — a
 stopgap that costs nothing and keeps the data model honest about ownership.
 
@@ -44,7 +44,7 @@ whichever of the two a candidate is aiming at.
 Two consequences that are easy to miss:
 
 - **Open questions are 31 % of the BASE exam.** LLM grading is on the critical
-  path of the simplest certificate, not a late refinement (§11).
+  path of the simplest certificate, not a late refinement (§12).
 - **BASE has no figures at all.** The first thing built and tested will silently
   skip both figure rendering paths. See §6.3.
 
@@ -90,7 +90,7 @@ Nothing says how a part's questions map onto its 60 points, and a part holds
 anywhere from 8 to 60 questions depending on the certificate. **Assume a flat
 weight: each question in a part is worth 60 ÷ (questions in that part)**, and
 open answers take a proportional share of that value (§7.2). It is an
-assumption, not a regulation (§12).
+assumption, not a regulation (§13).
 
 No exam duration is stated anywhere in the guide. Do not invent one — the timer
 is configurable and off by default (§6.1).
@@ -170,7 +170,7 @@ able to touch study history.
 `var/attempts.db` and created if absent. Pointing a restart at
 `var/alice.db` gives a second candidate their own history — crude multi-user, but
 it keeps each candidate's data in a file they own and can carry away, and it
-means §11.8's real multi-user phase is adding identity to an existing store
+means §12.8's real multi-user phase is adding identity to an existing store
 rather than retrofitting separation into a shared one.
 
 ### 5.2 Shape
@@ -340,7 +340,7 @@ nothing when it is not — the degenerate case falls out of the same rule.
 the half of the criterion (`PLAN.md` §8.1) that a pure element count would drop,
 and a candidate who recites the right answer and then adds something false has
 not given a correct answer. Whether one-for-one is the right exchange rate is
-open (§12).
+open (§13).
 
 The `verdict` stored in `grade` (§5.2) is derived for display, not an input:
 everything present and nothing wrong is `correct`, nothing present is
@@ -395,8 +395,14 @@ keeps a study session free and offline.
 |---|---|
 | `LLM_BASE_URL` | e.g. `https://api.openai.com/v1`, or a local endpoint |
 | `LLM_API_KEY` | may be absent (§7.3); never logged, never sent to the browser |
+| `LLM_API_KEY_FILE` | path to a file holding the key; **wins over `LLM_API_KEY`** (§11.3) |
 | `LLM_MODEL` | model identifier |
 | `LLM_TIMEOUT_S` | per-request timeout, default ~30 |
+| `ATTEMPTS_DB` | candidate store, default `var/attempts.db` (§5.1) |
+
+Locally these come from `.env`, which mise autoloads on entering the directory;
+`.env.example` documents them and is committed. In a container they come from
+the orchestrator, with the key as a mounted file (§11.3).
 
 Everything else (timeouts, retries, concurrency) has a sane default. Surface the
 configured model in the UI, so a candidate knows what graded them — and a
@@ -453,7 +459,82 @@ wrong answers per open question, asserted against the fake grader and spot-check
 against a real one), plus the invariants worth asserting at boot: 509 questions,
 one correct option per MCQ, every asset path resolving on disk.
 
-## 11. Phases
+## 11. Toolchain and packaging
+
+### 11.1 Who owns what
+
+**mise owns the toolchain, the environment and the task runner; uv owns Python
+dependencies.** One owner each, no overlap. `mise.toml` pins Python, `uv` and
+`yq`, declares the tasks, and autoloads `.env` on entering the directory;
+`pyproject.toml` plus `uv.lock` pin every package.
+
+The `Makefile` is gone — its four targets are mise tasks (`extract`, `appendix`,
+`verify`, and `data` which chains them). mise was already in the repo for
+`download-refs`, so this removes a build tool rather than adding one, and the
+tasks gain `mise tasks` as a self-describing index.
+
+**The dependency split matters for the container.** `pyproject.toml` keeps
+`pymupdf` in an `extract` group, apart from the runtime dependencies. The
+pipeline and the application share a repository but not a deployment: the image
+is built without that group and carries no PDF toolchain.
+
+### 11.2 The container
+
+The image is **the application and `data/`, nothing else**. `data/` is committed,
+immutable and a few megabytes, so it is copied into the image rather than
+mounted — no volume, no init step, no way for a running container to disagree
+with the catalogue it was built from. `reference/` (5.4 MB of PDFs) and
+`extract/` are excluded; a container that cannot re-extract is a feature.
+
+```
+builder   uv sync --frozen --no-default-groups           ->  /app/.venv
+runtime   python:3.13-slim + the venv + app/ + data/
+          non-root user, EXPOSE 8000, healthcheck on /healthz
+          VOLUME /var/lib/examen  (attempts.db, §5.1 -- the only writable state)
+```
+
+Three rules fall out of §5.1. The attempts database is **the only mutable
+state**, so it is the only volume; everything else can be recreated by rebuilding
+the image. The image **sets `ATTEMPTS_DB=/var/lib/examen/attempts.db`** so that
+state lands in the volume — the repo-relative default is for local development,
+and a container left on it would write attempts into a layer and lose them on
+the next restart. And the volume must be writable by the non-root user, which is
+the one thing that reliably breaks on first deploy: set the ownership in the
+image and document the `--user` that matches it.
+
+Deferred deliberately: the `Dockerfile` itself waits until there is an
+application to copy into it. A Dockerfile that cannot build is worse than none,
+and nothing above changes when it arrives.
+
+### 11.3 The API key: mounted file, with the variable as the fallback
+
+Asked directly: **a mounted file is better, and the app should support both.**
+
+Read `LLM_API_KEY_FILE` first and fall back to `LLM_API_KEY`. The `*_FILE`
+convention is what the Postgres and Redis images use, so it needs no explaining,
+and it means one binary serves both habitats without a build flag.
+
+| | Environment variable | Mounted file |
+|---|---|---|
+| Local dev | mise autoloads `.env` — nothing to arrange | needs a file to exist |
+| Exposure | `docker inspect`, `/proc/1/environ`, inherited by every child process | readable only by what opens it |
+| Crash reports | environments get serialised into dumps and error trackers by default | not in the environment at all |
+| Rotation | rewrite the container definition and restart | rewrite the file |
+| Orchestrators | universal, and all some PaaS offer | Docker/Podman secrets and Kubernetes secret volumes are files natively |
+
+The asymmetry is that a variable is *ambient*: every subprocess inherits it, and
+anything that dumps the environment leaks it. A file is read once, by the code
+that needs it. That is worth the small awkwardness of mounting something.
+
+So: **file in the container, variable in development.** The URL and the model
+name are not secrets and stay plain variables everywhere.
+
+Whichever route it arrives by, the key is read at startup, held in memory, never
+logged, never rendered into a page, and never included in an error response.
+Only the model name is surfaced in the UI (§8). Rotation-without-restart — re-read
+the file when it changes — is worth having eventually, but it is not phase 1.
+
+## 12. Phases
 
 1. **Catalogue in memory, one question on screen.** Loader, language selection
    with fallback (§4.3), MCQ rendering, figures in both positions (§6.3).
@@ -473,13 +554,13 @@ one correct option per MCQ, every asset path resolving on disk.
    print/export.
 7. **Study loop.** Cross-attempt history, wrong-only drill, weak-section view.
 8. **Hosted and multi-user.** Docker image, real accounts, per-user attempt
-   ownership, and a policy for who pays for grading (§12).
+   ownership, and a policy for who pays for grading (§13).
 
 Phases 1–4 are a usable BASE trainer. Everything after is leverage.
 
-## 12. Still to decide
+## 13. Still to decide
 
-- **What hosting multiple users costs** (§11.8). The target is decided — a Docker
+- **What hosting multiple users costs** (§12.8). The target is decided — a Docker
   container serving real accounts — but three things follow that have no answer
   yet: how people sign in, who pays for grading (one shared key with per-user
   rate limits, or bring-your-own-key), and whether republishing the ILR's

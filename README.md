@@ -19,6 +19,7 @@ Tags are nested: `BASE ⊂ NOVICE ⊂ HAREC`.
 ```
 reference/    source PDFs (not modified)
 extract/      the extraction pipeline
+specs/        design documents
 data/         canonical output, committed
   questions.jsonl   one question per line
   assets/           figures, referenced by path
@@ -27,12 +28,17 @@ data/         canonical output, committed
 
 ## Use
 
+[mise](https://mise.jdx.dev) provides the toolchain and runs the tasks; `uv`
+owns the Python dependencies. `mise install` once, then:
+
 ```sh
-make            # extract, render the appendix, verify
-make verify     # run the validation gates on their own
+mise run data     # extract, render the appendix, verify
+mise run verify   # run the validation gates on their own
+mise tasks        # everything else
 ```
 
-Needs `uv` (for `pymupdf`) and Python 3.11+. Nothing else.
+Entering the directory autoloads `.env` (see `.env.example`); it is gitignored
+and needed only for the training application's grader, not for extraction.
 
 Selecting an exam is one filter — tags nest, `BASE ⊂ NOVICE ⊂ HAREC`:
 
@@ -45,9 +51,14 @@ jq -c 'select(.tags[] == "base")' data/questions.jsonl
 `data/questions.jsonl` is the source of truth and is committed, so any change
 to the extractor shows up as a reviewable diff. Text is transcribed from the
 PDF span stream verbatim — typos included — with no LLM and no normalisation
-beyond joining soft-wrapped lines. `make verify` enforces this, ending with a
+beyond joining soft-wrapped lines. `mise run verify` enforces this, ending with a
 round-trip gate that re-reads the PDF through an independent text extractor and
 checks every stored string still appears there.
 
-See [PLAN.md](PLAN.md) for the document's structure and the decisions behind
-the schema.
+## Specs
+
+- [specs/PLAN.md](specs/PLAN.md) — the source document's structure, the
+  extraction method, and the decisions behind the data's shape.
+- [specs/APP.md](specs/APP.md) — the training application built on this
+  catalogue: exam blueprint and scoring, study and exam modes, LLM grading of
+  the open questions, toolchain and container.

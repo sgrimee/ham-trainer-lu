@@ -1,0 +1,23 @@
+[project]
+name = "examen-ilr"
+version = "0.1.0"
+description = "Training application for the ILR radioamateur exam (BASE / NOVICE / HAREC)"
+requires-python = ">=3.13"
+
+# Runtime dependencies: what ships in the container. The extraction pipeline is
+# deliberately absent here -- see the `extract` group.
+dependencies = [
+    "fastapi>=0.115",
+    "uvicorn[standard]>=0.34",
+    "jinja2>=3.1",
+    "httpx>=0.28",
+]
+
+[dependency-groups]
+# The PDF pipeline. Needed to rebuild data/, never to serve it, so the container
+# image is built with `--no-group extract` and carries no PDF toolchain at all.
+extract = ["pymupdf>=1.24"]
+dev = ["pytest>=8.3"]
+
+[tool.uv]
+default-groups = ["extract", "dev"]

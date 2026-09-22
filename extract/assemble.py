@@ -146,7 +146,7 @@ def lang_runs(lines):
 def parse_answer(lines):
     """Build answer items from the lines that follow an open question's stem.
 
-    Two shapes occur (PLAN.md section 5.1):
+    Two shapes occur (specs/PLAN.md section 5.1):
       * a plain answer -> one item, item_no 0, split by language;
       * a labelled list -> each label sits in the gutter column with its
         explanations in the sub-item column (question 448).

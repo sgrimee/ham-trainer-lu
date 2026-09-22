@@ -1,6 +1,43 @@
+# mise owns the toolchain, the environment and the task runner.
+# uv owns Python dependencies (pyproject.toml + uv.lock). One owner each.
+
 [tools]
-yq = "latest"
+python = "3.13"
+uv = "latest"
+yq = "latest"        # scripts/download-refs.sh
+
+[env]
+# Autoloaded on entering the directory. The file is gitignored and absent on a
+# fresh clone, which mise tolerates silently -- see .env.example for the keys.
+_.file = ".env"
+
+[tasks.setup]
+description = "Install Python dependencies into .venv"
+run = "uv sync"
+
+[tasks.extract]
+description = "PDF -> data/questions.jsonl + data/assets/"
+run = "uv run python extract/run.py"
+sources = ["reference/*.pdf", "extract/*.py"]
+outputs = ["data/questions.jsonl"]
+
+[tasks.appendix]
+description = "PDF -> data/appendix/ (exam-day formula sheet)"
+run = "uv run python extract/appendix.py"
+
+[tasks.verify]
+description = "Run every validation gate, including the round trip"
+run = "uv run python extract/validate.py"
+
+[tasks.data]
+description = "Rebuild data/ from the source PDFs and check it"
+depends = ["extract", "appendix"]
+run = "mise run verify"
 
 [tasks.download-refs]
 description = "Download reference PDFs listed in reference/documents.yaml (skips files already present)"
 run = "./scripts/download-refs.sh"
+
+[tasks.test]
+description = "Run the test suite"
+run = "uv run pytest"

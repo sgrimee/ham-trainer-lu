@@ -3,7 +3,7 @@ Column geometry and span-level primitives for the ILR question catalogue PDF.
 
 The document is a printed Word table. Every structural element sits in a fixed
 x-column, and the two languages are distinguished by typeface (roman = French,
-italic = German). Nothing here guesses: see PLAN.md section 2.
+italic = German). Nothing here guesses: see specs/PLAN.md section 2.
 """
 from __future__ import annotations
 
