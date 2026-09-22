@@ -157,6 +157,81 @@ The UI's own chrome (buttons, labels, results) also needs translating. Keep it i
 a flat message catalogue from day one, even if only French is filled in, so the
 question language and the interface language stay separable.
 
+### 4.4 Curated annotations: references, topics, notes
+
+A question can carry links into the reference documentation — "this is answered
+on page 8 of the guide" — plus topic tags and a study note. These are curated,
+by a person or by an agent matching questions against documents, and they are
+**not** extraction output.
+
+**They live in `data/annotations.jsonl`, not in `questions.jsonl`.** The reason
+is the same one that keeps candidate data out of `build/`: `mise run extract`
+rebuilds `questions.jsonl` from the PDF, so anything hand-added to it is
+destroyed on the next run. Annotations sit beside the catalogue and join on
+question id; the pipeline neither reads nor writes them.
+
+```json
+{"question_id": 495,
+ "topics": ["certificats-operateur", "reglementation-nationale"],
+ "note": "The three certificates are nested: BASE ⊂ NOVICE ⊂ HAREC.",
+ "references": [
+   {"doc": "ilr-guide-2023", "page": 8, "locator": "§2.1 Les certificats",
+    "comment": "Names all three, then describes each on pages 8–9.",
+    "status": "verified", "source": "human", "updated": "2026-09-22"}]}
+```
+
+Four decisions are worth stating, because they are what make this survive
+contact with a few hundred agent-generated rows.
+
+**A reference points at a document id, not a URL.** `doc` resolves through
+`reference/documents.yaml`, which already carries the URL and the filename, so
+when the ILR moves a PDF the fix is one line rather than five hundred. An
+external `url` is allowed for material not in the registry — a standards page,
+a Wikipedia article — and a reference carries exactly one of the two.
+
+**Where to look is stored apart from the link.** `page` and `locator` are data;
+the deep link is derived (`…#page=8` for a PDF, an anchor or text fragment for a
+web page). Storing a pre-built URL instead would bake the link syntax into every
+row and lose the page number the report needs.
+
+**`status` is the load-bearing field.** An agent matching 509 questions against
+several hundred pages will get some wrong, and a confidently wrong *"see page
+47"* is worse for a candidate than no reference at all. Only `verified` means a
+human has looked; the UI must show `suggested` links as unconfirmed, and never
+silently promote one. `source` records who or what added it (`human`,
+`agent:<name>`), so a bad batch can be found and removed by its origin.
+
+**The file is gated like any other data.** `mise run verify` runs
+`app/annotations.py`, which checks every question id exists, every `doc`
+resolves, every `page` falls inside that document's real page count, `status` is
+in the enum, and no field is misspelt. The validator is the same module the
+application loads with, so the contract cannot drift between the two.
+
+### 4.5 Do topics earn their place?
+
+Partly, and it is worth being precise about which half does the work.
+
+The catalogue already carries 26 sections, and §9's per-section breakdown
+already answers "where are you weak?". **Topics only add something when a
+weakness crosses sections** — decibels appear in 1.1, 1.4 and 1.8; impedance in
+1.3 and 1.6 — which section-level reporting splits into three small signals
+instead of one clear one.
+
+The half that does the real work is the **reference**. It is what turns "you are
+weak on antennas" into "read pages 111–120 of the guide", which is the report
+worth generating. Topics without references produce a better-worded diagnosis
+and no prescription.
+
+So: build both, but if only one gets populated, populate references. And keep
+`topics` a flat list of slugs rather than a hierarchy — the section numbers are
+already the hierarchy, and a second one that disagrees with the first is a
+liability.
+
+The study loop (§10) is the consumer: given the last *n* attempts, group the
+wrong answers by section and topic, take the references attached to them, and
+report the documents and pages that come up most. `grade` rows already carry
+everything needed on the attempt side (§5.2), so this is a query, not new state.
+
 ## 5. Candidate state
 
 ### 5.1 Candidate data is the app's alone
@@ -560,7 +635,9 @@ Below it, every question in order:
 - for open questions, the reference answer verbatim, plus the grader's comment
   and its `missing` / `incorrect` lists, labelled as machine-graded;
 - provenance: section, tags, and the **page number in the source PDF** — every
-  question carries `page`, and showing it turns a dispute into a lookup.
+  question carries `page`, and showing it turns a dispute into a lookup;
+- **where to read up on it**: any references annotated for that question (§4.4),
+  as deep links into the document, with unverified ones marked as such.
 
 Then a per-section breakdown, which is the actually useful artefact: it says
 "you are losing the technique part on antennas", which is what the next study
@@ -575,6 +652,13 @@ Things not in the original list that this data makes worth considering.
 repetition the whole game. Tracking performance per question across attempts
 unlocks a wrong-only drill and a weak-section view, and eventually simple spaced
 repetition. Cheap to add given §5.2 already stores every grade; high leverage.
+
+Once questions carry references (§4.4), the same data supports the report worth
+having: *given your last n attempts, these are the documents and pages to
+re-read*. Group the wrong answers by section and topic, collect the references
+hanging off them, rank by how often they come up. It is a query over `grade`
+rows and annotations — no new state, and it degrades gracefully, naming sections
+when references are thin and pages when they are not.
 
 **Offline.** A service worker caching the catalogue, assets and appendix makes
 the app usable on a train, and everything except LLM grading works offline
@@ -618,7 +702,7 @@ with the catalogue it was built from. `reference/` (5.4 MB of PDFs) and
 
 ```
 builder   uv sync --frozen --no-default-groups           ->  /app/.venv
-runtime   python:3.13-slim + the venv + app/ + data/
+runtime   python:3.13-slim + the venv + app/ + data/  (incl. annotations.jsonl)
           non-root user, EXPOSE 8000, healthcheck on /healthz
           VOLUME /var/lib/examen  (attempts.db, §5.1 -- the only writable state)
 ```

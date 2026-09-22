@@ -104,6 +104,11 @@ data/questions.jsonl      canonical, one question per line, committed to git
 data/assets/q131_fig.png  extracted figures, referenced by path
 ```
 
+`data/annotations.jsonl` sits beside them but is **not pipeline output**: it holds curated reference links
+and topic tags, joined on question id, and exists precisely because `mise run extract` overwrites
+`questions.jsonl` and would destroy anything hand-added to it. The extractor neither reads nor writes it.
+See `specs/APP.md` §4.4.
+
 > **Superseded, 2026-09-22.** The SQLite artifact and its builder were removed. The training application
 > (`APP.md` §4.1) loads `questions.jsonl` into memory — 509 questions is a list comprehension, not a query —
 > and no other consumer appeared, so `build/exam.db` was dead code. Everything below about JSONL as the

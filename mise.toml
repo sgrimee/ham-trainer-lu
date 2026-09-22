@@ -26,8 +26,11 @@ description = "PDF -> data/appendix/ (exam-day formula sheet)"
 run = "uv run python extract/appendix.py"
 
 [tasks.verify]
-description = "Run every validation gate, including the round trip"
-run = "uv run python extract/validate.py"
+description = "Run every validation gate: the extraction round trip, then the curated annotations"
+run = [
+  "uv run python extract/validate.py",
+  "uv run python -m app.annotations",
+]
 
 [tasks.data]
 description = "Rebuild data/ from the source PDFs and check it"

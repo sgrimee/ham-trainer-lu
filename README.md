@@ -19,9 +19,12 @@ Tags are nested: `BASE ⊂ NOVICE ⊂ HAREC`.
 ```
 reference/    source PDFs (not modified)
 extract/      the extraction pipeline
+app/          the training application
+tests/        golden cases for the grader
 specs/        design documents
 data/         canonical output, committed
-  questions.jsonl   one question per line
+  questions.jsonl   one question per line, extraction output
+  annotations.jsonl curated reference links and topics, joined on question id
   assets/           figures, referenced by path
   appendix/         formula sheet as page images
 ```

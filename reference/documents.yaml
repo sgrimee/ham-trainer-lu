@@ -5,21 +5,28 @@
 #   links     — web pages kept for reference only. Never downloaded.
 #
 # In `documents`, `filename` is load-bearing: it is the exact name on disk that the
-# rest of the pipeline expects (e.g. PLAN.md references the catalogue by this name).
-# Do not rename it to match a changed URL — add a new entry instead.
+# rest of the pipeline expects (e.g. specs/PLAN.md references the catalogue by this
+# name). Do not rename it to match a changed URL — add a new entry instead.
+#
+# `id` is equally load-bearing in the other direction: data/annotations.jsonl points
+# at documents by id, so a question's reference survives a moved URL or a renamed
+# file (specs/APP.md §10). Ids are permanent — never reuse or repurpose one.
 
 documents:
-  - name: Catalogue de questions Radioamateur
+  - id: ilr-catalogue-2024
+    name: Catalogue de questions Radioamateur
     description: Catalogue officiel des questions d'examen radioamateur, édition 2024 (509 questions).
     filename: ilr-fre-cat_202402-Catalogue-de-questions-dexamen-RA-_-Edition-2024.pdf
     url: https://www.ilr.lu/wp-content/uploads/frequences-radioelectriques/ilr-fre-cat_202402-Catalogue-de-questions-dexamen-RA-_-Edition-2024.pdf
 
-  - name: Brochure Radioamateur
+  - id: ilr-guide-2023
+    name: Brochure Radioamateur
     description: Guide du radioamateur — brochure d'information sur le service amateur au Luxembourg.
     filename: ilr-fre-pub-2023-01-01-service_amateur_guide_du_radioamateur.pdf
     url: https://www.ilr.lu/wp-content/uploads/publication/ilr-fre-pub-2023-01-01-service_amateur_guide_du_radioamateur.pdf
 
 links:
-  - name: Examen opérateur radioamateur (ILR)
+  - id: ilr-exam-page
+    name: Examen opérateur radioamateur (ILR)
     description: Page source de laquelle proviennent les documents ci-dessus.
     url: https://www.ilr.lu/secteurs-activites/frequences-radioelectriques/certificats/examen-operateur-radioamateur/

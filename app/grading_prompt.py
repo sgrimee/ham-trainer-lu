@@ -1,9 +1,10 @@
 """The open-answer grader's prompt and response schema (specs/APP.md §7.2).
 
-This is the single source of truth. The application imports it rather than
-keeping its own copy, so that `mise run eval-grader` always measures the prompt
-that actually grades candidates. Re-run the evaluation after every edit here:
-a prompt change that fixes one case routinely regresses another.
+This module belongs to the application and is the single source of truth.
+`tests/eval_grader.py` imports it, so `mise run eval-grader` always measures the
+prompt that actually grades candidates -- never a copy that has drifted. Re-run
+the evaluation after every edit here: a prompt change that fixes one case
+routinely regresses another, which is how both rules below were found.
 
 Each numbered rule below earned its place by failing a golden case first; the
 comments say which, so nobody removes one as redundant. See specs/APP.md §8.2.

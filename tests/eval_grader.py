@@ -9,7 +9,7 @@ Reads LLM_BASE_URL / LLM_API_KEY / LLM_MODEL from the environment, which mise
 autoloads from .env. Needs a key and spends a few cents per model, so it is
 deliberately not a pytest test. Raw responses land in var/eval/ for inspection.
 
-Run it after every change to tests/grader_prompt.py.
+Run it after every change to app/grading_prompt.py.
 """
 from __future__ import annotations
 
@@ -23,11 +23,14 @@ import urllib.error
 import urllib.request
 from concurrent.futures import ThreadPoolExecutor
 
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from grader_prompt import SCHEMA, SYSTEM
+HERE = pathlib.Path(__file__).resolve().parent
+sys.path.insert(0, str(HERE))          # the fixtures, alongside this file
+sys.path.insert(0, str(HERE.parent))   # the repo root, for the app package
+
+from app.grading_prompt import SCHEMA, SYSTEM   # the prompt the app itself uses
 from grading_fixtures import CASES
 
-OUT_DIR = pathlib.Path(__file__).resolve().parent.parent / "var" / "eval"
+OUT_DIR = HERE.parent / "var" / "eval"
 
 
 def grade(model: str, case) -> dict:
