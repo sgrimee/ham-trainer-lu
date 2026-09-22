@@ -38,6 +38,10 @@ run = "mise run verify"
 description = "Download reference PDFs listed in reference/documents.yaml (skips files already present)"
 run = "./scripts/download-refs.sh"
 
+[tasks.eval-grader]
+description = "Score a model against the golden grading cases (needs LLM_API_KEY, spends a little)"
+run = "uv run python tests/eval_grader.py"
+
 [tasks.test]
 description = "Run the test suite"
 run = "uv run pytest"

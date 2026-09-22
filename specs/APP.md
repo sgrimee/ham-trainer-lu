@@ -331,6 +331,14 @@ belong in the per-model configuration, never hard-coded in the grader:
 The element list is what makes the feedback useful and the score explainable; a
 bare verdict is not worth an API call.
 
+**The prompt must state that the question, not the reference answer, governs how
+many elements are required.** Where a question asks for three items and the
+reference lists five possibilities, three valid ones are a complete answer and
+the surplus are not missing elements. Without that sentence, two of three models
+tested graded a correct answer to question 465 at 60% (§8.2); with it, all three
+were correct. Questions 465 and 469 have this shape. The working prompt lives in
+`tests/eval_grader.py`.
+
 **Scoring is then proportional.** A question worth `p` points where 3 of 4
 expected elements are present scores `0.75 × p`. Store the exact value —
 `grade.points` is `REAL` and the 30-point threshold is compared on the part
@@ -421,59 +429,69 @@ mention the OpenRouter catalogue), so §8's four variables cover it unchanged:
 LLM_BASE_URL=https://inference-api.nousresearch.com/v1
 ```
 
-**Unverified, and worth checking first.** The catalogue at `/v1/models` lists 399
-models, but every id from it — including the ones recommended below — is refused
-by `/v1/chat/completions` as an unknown model when called without a key. So the
-listing and the routing disagree for anonymous callers, and which models a
-subscription actually reaches could not be established without the key. Confirm
-before building against a name:
-
-```sh
-curl -s https://inference-api.nousresearch.com/v1/chat/completions \
-  -H "Authorization: Bearer $LLM_API_KEY" -H "Content-Type: application/json" \
-  -d '{"model":"anthropic/claude-opus-5","messages":[{"role":"user","content":"ping"}],"max_tokens":5}'
-```
+**Verified.** The catalogue ids do resolve once a key is presented — the earlier
+anonymous "unknown model" refusals were an artefact of calling without one.
 
 ### 8.2 Which model grades
 
-Three hard constraints come out of the catalogue's own metadata, and they matter
-more than any quality ranking because they are checkable:
+Three hard constraints come out of the catalogue metadata, and they outrank any
+quality ranking because they are checkable:
 
 - **It must advertise `structured_outputs` / `response_format`.** §7.2's element
   decomposition depends on it. This rules out `anthropic/claude-sonnet-5` and
   `anthropic/claude-haiku-4.5`, which on this gateway expose only `reasoning`
-  and `tools` — a surprise worth knowing before picking on reputation.
+  and `tools` — worth knowing before picking on reputation.
 - **Never a `:batch` variant.** They are asynchronous. Study mode grades inside
   the interaction (§6.1), so a batch endpoint cannot serve it at any price.
 - **Prefer optional reasoning.** Models with `reasoning.mandatory` — the
   `gemini-3.5+`-flash line, `glm-5.3`, `gpt-5-mini` — put thinking latency on
-  every keystroke-to-feedback path in study mode.
+  the answer-to-feedback path.
 
-Cost is close to irrelevant here, which is worth stating plainly rather than
-optimising against. A grading call is roughly 800 tokens in and 300 out, and a
-full 24-question BASE session is 24 calls:
+**Measured, not assumed.** Three candidates were scored against the twelve
+golden cases in `tests/grading_fixtures.py`, twice each, with token counts and
+prices taken from the same runs:
 
-| Model | $/1000 gradings | A BASE session | Notes |
-|---|---|---|---|
-| `anthropic/claude-opus-5` | 11.50 | $0.28 | full parameter support incl. `temperature` |
-| `openai/gpt-5.1` | 4.00 | $0.10 | **no `temperature`** — use `reasoning_effort` |
-| `google/gemini-2.5-flash` | 0.99 | $0.02 | optional reasoning |
-| `mistralai/mistral-medium-3.1` | 0.92 | $0.02 | French vendor, no reasoning latency |
-| `deepseek/deepseek-v3.2` | 0.26 | $0.01 | cheapest credible |
+| Model | Verdicts | False statements caught | Median | $/1000 gradings | A BASE session |
+|---|---|---|---|---|---|
+| `openai/gpt-5.1` | 11/12 | 2/2 | 2.0 s | 2.01 | $0.05 |
+| `mistralai/mistral-medium-3.1` | 11/12 | 2/2 | 1.7 s | 0.42 | $0.01 |
+| `anthropic/claude-opus-5` | 11/12 | 2/2 | 5.3 s | 14.14 | $0.34 |
 
-**Default: `anthropic/claude-opus-5`.** A whole exam preparation — say thirty
-sessions, and fewer in practice once §7.2's cache absorbs the repeats — costs
-under ten dollars. At that scale, paying the most for the most capable judge
-removes model quality as a variable, which is the stated priority. The failure
-that matters is not a wrong verdict but a *lenient* one: a judge that accepts a
-recitation containing one false statement teaches the candidate something wrong,
-and that is the axis on which cheaper models slip first.
+**Default: `openai/gpt-5.1`.** Equal accuracy to a model seven times dearer, at
+a third of its latency — which matters because study mode grades inline.
 
-`openai/gpt-5.1` is the near-equal at a third of the price, and nothing measured
-here separates them on this task — if the fixtures show a tie, it is the better
-buy. `mistralai/mistral-medium-3.1` is the one to try if cost ever does matter:
-a French vendor grading French and German, with full parameter support and no
-reasoning latency, at a twelfth of the default.
+The result that decided it is not in the table. On a first, weaker prompt the
+three models scored 11, 10 and 10, and the two cheaper ones failed the *same*
+case: question 465 asks for three frequency bands, the reference answer lists
+five, and both graded a correct three-band answer at 60% by diffing against the
+reference instead of reading the question. Only Opus read the question. Adding
+one paragraph to the prompt — *the question governs the element count, not the
+reference* — closed the gap completely: all three now score 11/12. **The quality
+difference was in the prompt, not the model**, and paying seven times more to
+paper over a prompt bug would have been the expensive way to get the same answer.
+Questions 465 and 469 have that shape, and 469 is BASE-tagged.
+
+All three caught both leniency traps — a complete answer with an invented fourth
+certificate, and two valid bands plus a Citizens Band frequency — on every run.
+That was the failure mode §7.2 was most concerned about, and it is not one that
+separates these models.
+
+All three also failed the same twelfth case, and it is worth recording rather
+than hiding: asked what `QRT?` means, all accepted *"J'arrête l'émission"*. The
+interrogative Q-code asks *"must I stop transmitting?"*; the statement form is
+plain `QRT`. A strict examiner would dock it. This is a real limitation of
+LLM grading on Q-code questions, and an argument for the re-grade button (§7.3)
+rather than for a different model.
+
+`mistralai/mistral-medium-3.1` matched on accuracy at a fifth of the price and
+is the obvious saving if cost ever matters. It is not the default because it was
+the only one to return `429 — temporarily at capacity upstream`, and four of its
+twelve calls in one run took 17–18 seconds against a 2-second median. On the
+interaction path, an occasional 18-second stall is worse than a cent.
+
+Re-run the comparison with `mise run eval-grader <model>...` after any change to
+the grader prompt; a prompt edit is exactly the kind of change that silently
+regresses one case while fixing another.
 
 Model choice is configuration, not code (§8). Switching is an `LLM_MODEL` edit,
 and because `grade.model` records what produced each verdict (§5.2), a change of
@@ -647,7 +665,11 @@ Phases 1–4 are a usable BASE trainer. Everything after is leverage.
 - **The flat 60 ÷ n weighting** (§2.3) is an assumption, not a regulation. If the
   ILR's actual marking scheme surfaces, it and §7.2's proportional rule are the
   numbers to revisit.
-- **Whether the default model can be downgraded** (§8.2). `mistral-medium-3.1`
-  is twelve times cheaper than the default and may well grade this material just
-  as accurately. The §10 fixtures exist to answer that; until they say so, the
-  default stays on the more capable model.
+- **Whether `mistral-medium-3.1` can take over** (§8.2). It matched the default
+  on all twelve golden cases at a fifth of the price. It is held back only by an
+  upstream capacity refusal and 17–18 second latency spikes seen during testing.
+  If those turn out to be transient, it is the better buy — worth re-measuring
+  before phase 8, where grading cost starts to scale with users.
+- **Q-code questions are graded loosely** (§8.2). Every model tested accepted a
+  statement-form answer for an interrogative Q-code. Either the grader prompt
+  learns that distinction, or those questions carry a per-question note.
