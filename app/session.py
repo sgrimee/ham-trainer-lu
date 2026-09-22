@@ -160,11 +160,15 @@ async def _grade_open_item(grader: LLMGrader | None, qid: int, lang: str,
     try:
         result = await grader.grade(question_id=qid, lang="fr" if lang == "both" else lang,
                                     question=question_text, reference=reference, candidate=candidate)
+        fraction = scoring.element_fraction(result.elements, result.incorrect)
+        verdict = scoring.verdict_of(result.elements, result.incorrect)
     except Exception:
+        # A malformed response (e.g. `elements: null` despite the schema) is
+        # "the call failed" too, not just a transport/HTTP error -- scoring it
+        # must not be allowed to crash the request (specs/APP.md §7.3).
         return None
-    fraction = scoring.element_fraction(result.elements, result.incorrect)
     return {
-        "verdict": scoring.verdict_of(result.elements, result.incorrect),
+        "verdict": verdict,
         "points": item_weight * fraction,
         "detail": {"elements": result.elements, "incorrect": result.incorrect},
         "comment": result.comment, "source": result.source, "model": result.model,
