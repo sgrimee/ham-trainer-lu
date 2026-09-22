@@ -50,3 +50,7 @@ run = "uv run python tests/eval_grader.py"
 [tasks.test]
 description = "Run the test suite"
 run = "uv run pytest"
+
+[tasks.serve]
+description = "Run the training application (specs/APP.md §3)"
+run = "uv run uvicorn app.main:app --reload"

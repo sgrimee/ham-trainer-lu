@@ -1,0 +1,63 @@
+{% from "_macros.html" import cell %}
+{% set ans = response.answer if response else None %}
+{% if q.kind == 'mcq' %}
+  <ul class="options options--result">
+    {% for opt in q.options %}
+    <li class="{% if opt.letter == correct_letter %}correct{% endif %}{% if ans == opt.letter %} selected{% endif %}{% if ans == opt.letter and opt.letter != correct_letter %} wrong-selected{% endif %}">
+      <strong>{{ "abcd"[loop.index0] }})</strong>
+      {% for c in opt.cells %}{{ cell(c) }}{% endfor %}
+      {% if opt.asset %}<img src="/data/{{ opt.asset.path }}" alt="">{% endif %}
+    </li>
+    {% endfor %}
+  </ul>
+  {% if not ans %}<p class="no-answer">{{ t(ui, 'ungraded') }}</p>{% endif %}
+{% else %}
+  {% for item in q.sub_items %}
+    {% set g = grades_by_item.get(item.item_no) %}
+    <div class="open-item open-item--result{% if g %} verdict-{{ g.verdict }}{% endif %}">
+      {% if item.label %}<strong>{{ item.label }}</strong>{% endif %}
+      <p class="your-answer"><em>{{ t(ui, 'your_answer') }}:</em>
+        {{ (ans or {}).get(item.item_no|string, '') }}</p>
+      <p class="reference-answer"><em>{{ t(ui, 'reference_answer') }}:</em>
+        {% for c in item.cells %}{{ cell(c) }}{% endfor %}
+      </p>
+      {% if g and g.verdict != 'ungraded' %}
+        <p class="verdict-badge">{{ t(ui, g.verdict) }} — {{ '%.2f'|format(g.points) }} / {{ '%.2f'|format(weight / (q.sub_items|length)) }}</p>
+        {% if g.comment %}<p class="comment">{{ g.comment }}</p>{% endif %}
+        {% if g.detail %}
+          <ul class="elements">
+            {% for e in g.detail.elements %}
+              <li class="{{ 'present' if e.present else 'missing' }}">{{ e.element }}{% if e.note %} — {{ e.note }}{% endif %}</li>
+            {% endfor %}
+          </ul>
+          {% if g.detail.incorrect %}
+            <p class="incorrect-list">{{ t(ui, 'incorrect_statements') }}: {{ g.detail.incorrect|join('; ') }}</p>
+          {% endif %}
+        {% endif %}
+        <p class="source-tag">{% if g.source == 'llm' %}{{ t(ui, 'graded_by', model=g.model) }}{% else %}{{ t(ui, 'self_grade_prompt') }}{% endif %}</p>
+      {% endif %}
+    </div>
+  {% endfor %}
+
+  {% if show_self_grade %}
+    <form method="post" action="/attempts/{{ attempt.id }}/questions/{{ q.id }}/self-grade" class="self-grade">
+      <p>{{ t(ui, 'self_grade_prompt') }}</p>
+      <button name="correct" value="1" type="submit">{{ t(ui, 'self_correct') }}</button>
+      <button name="correct" value="0" type="submit">{{ t(ui, 'self_incorrect') }}</button>
+    </form>
+  {% endif %}
+{% endif %}
+
+{% if annotation.references %}
+  <div class="references">
+    <strong>{{ t(ui, 'references_label') }}:</strong>
+    <ul>
+    {% for ref in annotation.references %}
+      <li>{{ ref.doc or ref.url }}{% if ref.page %} p.{{ ref.page }}{% endif %}
+        {% if ref.status != 'verified' %}<em>({{ t(ui, 'suggested_reference') }})</em>{% endif %}
+        {% if ref.comment %} — {{ ref.comment }}{% endif %}
+      </li>
+    {% endfor %}
+    </ul>
+  </div>
+{% endif %}

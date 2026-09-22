@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="{{ ui }}">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% block title %}{{ t(ui, 'app_title') }}{% endblock %}</title>
+<link rel="stylesheet" href="/static/app.css">
+</head>
+<body>
+<header class="topbar">
+  <a class="brand" href="/">{{ t(ui, 'app_title') }}</a>
+  <nav>
+    <a href="/appendix?lang={{ ui }}" target="_blank" rel="noopener">{{ t(ui, 'appendix') }}</a>
+    {% if model_name %}
+      <span class="model-badge" title="{{ t(ui, 'graded_by', model=model_name) }}">{{ model_name }}</span>
+    {% else %}
+      <span class="model-badge model-badge--none">{{ t(ui, 'no_model_configured') }}</span>
+    {% endif %}
+  </nav>
+</header>
+<main>
+{% block content %}{% endblock %}
+</main>
+<script src="/static/app.js"></script>
+</body>
+</html>

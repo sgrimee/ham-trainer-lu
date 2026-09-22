@@ -27,7 +27,7 @@ HERE = pathlib.Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))          # the fixtures, alongside this file
 sys.path.insert(0, str(HERE.parent))   # the repo root, for the app package
 
-from app.grading_prompt import SCHEMA, SYSTEM   # the prompt the app itself uses
+from app.grading_prompt import request_body   # the exact body the app itself sends
 from grading_fixtures import CASES
 
 OUT_DIR = HERE.parent / "var" / "eval"
@@ -36,21 +36,7 @@ OUT_DIR = HERE.parent / "var" / "eval"
 def grade(model: str, case) -> dict:
     """One grading call. A failure is a result, not a crash."""
     cid, lang, question, reference, candidate = case[:5]
-    body = {
-        "model": model,
-        "messages": [
-            {"role": "system", "content": SYSTEM},
-            {"role": "user", "content": f'<question lang="{lang}">{question}</question>\n'
-                                        f"<reference_answer>{reference}</reference_answer>\n"
-                                        f"<candidate>{candidate}</candidate>"},
-        ],
-        "max_tokens": 4000,
-        "response_format": {"type": "json_schema",
-                            "json_schema": {"name": "grade", "strict": True, "schema": SCHEMA}},
-    }
-    # Not portable: the gpt-5 family rejects `temperature` outright (specs/APP.md §8.2).
-    if not model.startswith("openai/gpt-5"):
-        body["temperature"] = 0
+    body = request_body(model, lang, question, reference, candidate)
 
     req = urllib.request.Request(
         f"{os.environ['LLM_BASE_URL']}/chat/completions", method="POST",

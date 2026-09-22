@@ -1,0 +1,3 @@
+{% macro cell(c) -%}
+<span class="lang-{{ c.lang }}{% if c.fallback %} fallback{% endif %}">{% if c.fallback %}<span class="fallback-tag">{{ c.lang }}</span>{% endif %}{{ c.text }}</span>
+{%- endmacro %}

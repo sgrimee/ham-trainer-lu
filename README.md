@@ -37,12 +37,16 @@ owns the Python dependencies. `mise install` once, then:
 ```sh
 mise run data     # extract, render the appendix, verify
 mise run verify   # run the validation gates on their own
+mise run serve    # run the training application at http://127.0.0.1:8000
+mise run test     # unit tests
 mise run eval-grader <model>...   # score grading models (needs LLM_API_KEY)
 mise tasks        # everything else
 ```
 
 Entering the directory autoloads `.env` (see `.env.example`); it is gitignored
-and needed only for the training application's grader, not for extraction.
+and needed only for the training application's grader, not for extraction. With
+no key configured the app still runs: it shows the reference answer and lets
+you mark yourself right or wrong (specs/APP.md §7.3).
 
 Selecting an exam is one filter — tags nest, `BASE ⊂ NOVICE ⊂ HAREC`:
 

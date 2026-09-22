@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+{% block content %}
+
+{% if resumes %}
+<section class="card">
+  <h2>{{ t(ui, 'in_progress') }}</h2>
+  <ul class="resume-list">
+    {% for a in resumes %}
+    <li>
+      <a href="/attempts/{{ a.id }}/q/{{ a.next_n }}">
+        {{ a.tag|upper }} · {{ t(ui, 'mode_' + a.mode) }} · {{ a.lang|upper }}
+        — {{ a.answered }}/{{ a.total }}
+      </a>
+    </li>
+    {% endfor %}
+  </ul>
+</section>
+{% endif %}
+
+<section class="card">
+  <h2>{{ t(ui, 'new_session') }}</h2>
+  <form method="post" action="/attempts" id="new-session">
+    <fieldset>
+      <legend>{{ t(ui, 'choose_certificate') }}</legend>
+      {% for tag in tags %}
+      <label class="choice">
+        <input type="radio" name="tag" value="{{ tag }}" {% if tag == 'harec' %}checked{% endif %}>
+        {{ tag|upper }} ({{ counts[tag] }})
+      </label>
+      {% endfor %}
+    </fieldset>
+
+    <fieldset>
+      <legend>{{ t(ui, 'choose_mode') }}</legend>
+      <label class="choice"><input type="radio" name="mode" value="study" checked> {{ t(ui, 'mode_study') }}</label>
+      <label class="choice"><input type="radio" name="mode" value="exam"> {{ t(ui, 'mode_exam') }}</label>
+    </fieldset>
+
+    <fieldset>
+      <legend>{{ t(ui, 'choose_language') }}</legend>
+      <select name="lang">
+        <option value="fr">{{ t(ui, 'lang_fr') }}</option>
+        <option value="de">{{ t(ui, 'lang_de') }}</option>
+        <option value="both">{{ t(ui, 'lang_both') }}</option>
+      </select>
+    </fieldset>
+
+    <fieldset id="study-only">
+      <legend>{{ t(ui, 'choose_section') }}</legend>
+      <select name="section">
+        <option value="">{{ t(ui, 'all_sections') }}</option>
+        {% for s in sections %}
+        <option value="{{ s.code }}">{{ s.code }} — {{ s.fr }}</option>
+        {% endfor %}
+      </select>
+
+      <label>{{ t(ui, 'question_count') }}
+        <input type="text" name="count" value="all" size="4">
+      </label>
+    </fieldset>
+
+    <label class="choice">
+      <input type="checkbox" name="shuffle_options" checked> shuffle
+    </label>
+
+    <button type="submit">{{ t(ui, 'start') }}</button>
+  </form>
+</section>
+{% endblock %}

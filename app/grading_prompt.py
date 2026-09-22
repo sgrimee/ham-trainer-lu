@@ -56,3 +56,35 @@ SCHEMA = {
         "incorrect": {"type": "array", "items": {"type": "string"}},
         "comment": {"type": "string"}},
 }
+
+
+def build_messages(lang: str, question: str, reference: str, candidate: str) -> list[dict]:
+    """The exact user turn measured in tests/eval_grader.py -- do not reshape it
+    without re-running that evaluation; a different message shape is a
+    different, unmeasured prompt (specs/APP.md §8.3)."""
+    return [
+        {"role": "system", "content": SYSTEM},
+        {"role": "user", "content": f'<question lang="{lang}">{question}</question>\n'
+                                    f"<reference_answer>{reference}</reference_answer>\n"
+                                    f"<candidate>{candidate}</candidate>"},
+    ]
+
+
+def request_body(model: str, lang: str, question: str, reference: str, candidate: str,
+                  max_tokens: int = 4000) -> dict:
+    """The exact chat-completions body measured in tests/eval_grader.py.
+
+    Not portable: the gpt-5 family rejects `temperature` outright and exposes
+    `reasoning_effort` instead (specs/APP.md §8.2), so `temperature` is omitted
+    for that family rather than hard-coded.
+    """
+    body = {
+        "model": model,
+        "messages": build_messages(lang, question, reference, candidate),
+        "max_tokens": max_tokens,
+        "response_format": {"type": "json_schema",
+                            "json_schema": {"name": "grade", "strict": True, "schema": SCHEMA}},
+    }
+    if not model.startswith("openai/gpt-5"):
+        body["temperature"] = 0
+    return body

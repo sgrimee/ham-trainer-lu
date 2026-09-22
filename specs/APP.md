@@ -418,7 +418,7 @@ question is not a statement, an obligation is not an act already performed.
 Without it, all three models accepted the statement form `QRT` as an answer to
 `QRT?` (§8.2).
 
-Both rules live with the prompt in `tests/grader_prompt.py`, which the
+Both rules live with the prompt in `app/grading_prompt.py`, which the
 application imports rather than copying, and `mise run eval-grader` measures
 that exact text (§8.3).
 
@@ -602,7 +602,7 @@ mise run eval-grader --runs 2 <model>                # also report stability
 It prints a per-case table and a comparison summary, saves raw responses under
 `var/eval/`, and exits non-zero if any case fails — so it can gate a change.
 
-The grader prompt lives in `tests/grader_prompt.py`, which **the application
+The grader prompt lives in `app/grading_prompt.py`, which **the application
 imports rather than copying**, so the evaluation always measures the prompt that
 actually grades candidates. Every rule in it earned its place by failing a case
 first, and the comments say which, so none gets tidied away as redundant. Run

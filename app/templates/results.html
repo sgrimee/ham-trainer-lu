@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+{% from "_macros.html" import cell %}
+{% block content %}
+<h1>{{ t(ui, 'results') }}</h1>
+
+{% if attempt.mode == 'exam' %}
+  {% if result %}
+    <section class="card exam-verdict">
+      {% for name, part in result.parts.items() %}
+        <div class="part-bar">
+          <span class="part-name">{{ t(ui, name) }}</span>
+          <div class="bar"><div class="bar-fill{% if not part.passed %} failed{% endif %}"
+                                 style="width: {{ (part.points / part.max_points * 100)|round(1) }}%"></div></div>
+          <span class="part-score">{{ '%.1f'|format(part.points) }} / {{ part.max_points|int }}</span>
+        </div>
+      {% endfor %}
+      <p class="outcome outcome-{{ result.outcome }}">
+        {% if result.outcome == 'pass' %}{{ t(ui, 'outcome_pass') }}
+        {% elif result.outcome == 'retake_part' %}{{ t(ui, 'outcome_retake_part', parts=result.failed_parts|map('string')|join(', ')) }}
+        {% else %}{{ t(ui, 'outcome_retake_all') }}{% endif %}
+      </p>
+    </section>
+  {% else %}
+    <p><a href="/attempts/{{ attempt.id }}/q/1">{{ t(ui, 'submit') }} — {{ t(ui, 'resume') }}</a></p>
+  {% endif %}
+{% else %}
+  <section class="card study-recap">
+    <p>{{ recap.correct }} / {{ recap.answered }} ({{ recap.total }} {{ t(ui, 'questions_word') }})</p>
+    <table class="section-breakdown">
+      {% for section, s in recap.by_section.items() %}
+        <tr><td>{{ section }} — {{ s.section_fr }}</td><td>{{ s.correct }} / {{ s.total }}</td></tr>
+      {% endfor %}
+    </table>
+  </section>
+{% endif %}
+
+<div class="review-actions">
+  <form method="post" action="/attempts/{{ attempt.id }}/retry-wrong" style="display:inline">
+    <button type="submit">{{ t(ui, 'retry_wrong') }}</button>
+  </form>
+  <button type="button" onclick="window.print()">{{ t(ui, 'print_review') }}</button>
+</div>
+
+<section class="review">
+  {% for row in rows %}
+    {% set q = row.q %}
+    {% set response = row.response %}
+    {% set grades_by_item = row.grades_by_item %}
+    {% set correct_letter = row.correct_letter %}
+    {% set weight = row.weight %}
+    {% set show_self_grade = row.show_self_grade %}
+    {% set annotation = row.annotation %}
+    <article class="review-item">
+      <header class="q-meta">
+        <span>#{{ loop.index }}</span>
+        <span>{{ t(ui, 'section_label') }} {{ q.section }} — {{ q.section_fr }}</span>
+        <span>{{ t(ui, 'page_label') }} {{ q.page }}</span>
+      </header>
+      <div class="stem">
+        {% for c in q.stem %}
+          <p>{{ cell(c) }}</p>
+        {% endfor %}
+        {% for asset in q.assets %}<img src="/data/{{ asset.path }}" alt=""> {% endfor %}
+      </div>
+      {% include "_feedback.html" %}
+    </article>
+  {% endfor %}
+</section>
+{% endblock %}
