@@ -5,7 +5,9 @@ One FastAPI process, server-rendered templates, no build step. Run with
 """
 from __future__ import annotations
 
+import json
 import pathlib
+from urllib.parse import urlencode
 
 from fastapi import FastAPI, Form, HTTPException, Request
 from fastapi.responses import RedirectResponse
@@ -29,6 +31,33 @@ templates.env.globals["t"] = t
 cat = catalogue.load()
 store = Store()
 llm_grader = grader.from_env()
+templates.env.globals["grader_available"] = llm_grader is not None
+
+PREFS_COOKIE = "ilr_session_prefs"
+GITHUB_REPO = "sgrimee/ham-trainer-lu"
+
+
+def report_issue_url(request: Request, q: dict | None = None, attempt: dict | None = None,
+                     n: int | None = None) -> str:
+    """A GitHub "new issue" link pre-filled with whatever context is on
+    screen -- question id/section/page, question language, exam mode -- so a
+    report doesn't need the candidate to retype it (feedback.txt #9). Needs
+    the Markdown issue template, not a YAML issue form: forms key their
+    prefill off field ids and ignore `body` entirely."""
+    lines = [f"Page : {request.url.path}"]
+    if q is not None:
+        lines += [f"Question : {q['id']}", f"Section : {q['section']}", f"Page catalogue : {q['page']}"]
+    if attempt is not None:
+        lines += [f"Mode : {attempt['mode']}", f"Langue des questions : {attempt['lang']}"]
+    if n is not None:
+        lines.append(f"Numéro dans la session : {n}")
+    lines += ["", "Décrivez le problème ci-dessous :", ""]
+    params = {"template": "probleme.md", "title": "Problème sur " + request.url.path,
+             "body": "\n".join(lines)}
+    return f"https://github.com/{GITHUB_REPO}/issues/new?{urlencode(params)}"
+
+
+templates.env.globals["report_issue_url"] = report_issue_url
 
 
 @app.on_event("startup")
@@ -65,22 +94,51 @@ def _section_options() -> list[dict]:
     return sorted(seen.values(), key=lambda s: [int(p) for p in s["code"].split(".")])
 
 
+DEFAULT_PREFS = {"tag": "base", "mode": "study", "lang": "fr", "section": "", "count": "all",
+                 "shuffle_options": "on"}
+
+
+def _read_prefs(request: Request) -> dict:
+    raw = request.cookies.get(PREFS_COOKIE)
+    prefs = dict(DEFAULT_PREFS)
+    if raw:
+        try:
+            stored = json.loads(raw)
+        except json.JSONDecodeError:
+            stored = {}
+        if isinstance(stored, dict):
+            prefs.update({k: v for k, v in stored.items() if k in DEFAULT_PREFS})
+    if prefs["tag"] not in catalogue.TAGS:
+        prefs["tag"] = DEFAULT_PREFS["tag"]
+    if prefs["mode"] not in ("study", "exam"):
+        prefs["mode"] = DEFAULT_PREFS["mode"]
+    if prefs["lang"] not in ("fr", "de", "both"):
+        prefs["lang"] = DEFAULT_PREFS["lang"]
+    if prefs["section"] not in {"", *(s["code"] for s in _section_options())}:
+        prefs["section"] = ""
+    return prefs
+
+
 # -- home: pick a session, or resume one -------------------------------------
 
 @app.get("/")
 def home(request: Request, lang: str = "fr"):
     ui = ui_lang(lang)
+    section_names = {s["code"]: s[ui] for s in _section_options()}
     resumes = []
     for a in store.in_progress_attempts():
         responses = store.responses(a["id"])
         grades = store.grades(a["id"])
         done = grades if a["mode"] == "study" else responses
+        section = a["spec"].get("section")
         resumes.append({**a, "answered": len(done), "total": len(a["question_ids"]),
-                        "next_n": session.next_unanswered_n(a, responses, grades)})
+                        "next_n": session.next_unanswered_n(a, responses, grades),
+                        "section_label": section_names.get(section) or t(ui, "all_sections")})
     return templates.TemplateResponse(request=request, name="home.html", context={
         "ui": ui, "lang": lang, "tags": catalogue.TAGS,
         "counts": {tg: len(cat.filter(tg)) for tg in catalogue.TAGS},
         "sections": _section_options(), "resumes": resumes, "blueprint": BLUEPRINT,
+        "prefs": _read_prefs(request),
     })
 
 
@@ -101,11 +159,18 @@ def create_attempt(tag: str = Form(...), mode: str = Form(...), lang: str = Form
     if not question_ids:
         raise HTTPException(400, "no questions match that filter")
     option_order = session.build_option_order(cat, question_ids, shuffle)
+    # sample_exam ignores section, so don't record one the exam never applied.
+    stored_section = section if mode == "study" else None
     attempt_id = store.create_attempt(
         catalogue="ra-2024", tag=tag, mode=mode, lang=lang,
-        spec={"section": section, "shuffle_options": shuffle, "option_order": option_order},
+        spec={"section": stored_section, "shuffle_options": shuffle, "option_order": option_order},
         question_ids=question_ids)
-    return RedirectResponse(f"/attempts/{attempt_id}/q/1", status_code=303)
+    response = RedirectResponse(f"/attempts/{attempt_id}/q/1", status_code=303)
+    prefs = {"tag": tag, "mode": mode, "lang": lang, "section": section or "",
+             "count": count, "shuffle_options": shuffle_options}
+    response.set_cookie(PREFS_COOKIE, json.dumps(prefs), max_age=60 * 60 * 24 * 365,
+                        samesite="lax")
+    return response
 
 
 # -- one question -------------------------------------------------------------
@@ -151,8 +216,8 @@ def show_question(request: Request, attempt_id: str, n: int):
         "show_self_grade": show_self_grade, "weight": weight, "correct_letter": correct_letter,
         "grid": session.grid_status(attempt["question_ids"], responses, grades),
         "annotation": annotations_module.load().get(qid, {}),
-        "model_name": llm_grader.model if llm_grader else None,
         "submitted": bool(attempt["submitted_at"]),
+        "saved": request.query_params.get("saved") == "1",
     })
 
 
@@ -183,7 +248,17 @@ async def submit_answer(request: Request, attempt_id: str, n: int):
     else:
         store.put_response(attempt_id, qid, answer)
     store.set_flag(attempt_id, qid, flagged)
-    return RedirectResponse(f"/attempts/{attempt_id}/q/{n}", status_code=303)
+
+    # Exam mode: prev/next/finish all submit through this form (name="goto"
+    # or "finish") so leaving the question -- including via "Soumettre" on
+    # the last one -- never silently drops the edit (feedback.txt #2/#3).
+    if form.get("finish") == "1" and attempt["mode"] == "exam":
+        await session.submit_exam(store, llm_grader, cat, attempt_id)
+        return RedirectResponse(f"/attempts/{attempt_id}/results", status_code=303)
+    goto = form.get("goto")
+    if goto and goto.isdigit() and 1 <= int(goto) <= total:
+        return RedirectResponse(f"/attempts/{attempt_id}/q/{goto}", status_code=303)
+    return RedirectResponse(f"/attempts/{attempt_id}/q/{n}?saved=1", status_code=303)
 
 
 @app.post("/attempts/{attempt_id}/q/{n}/flag")
@@ -260,8 +335,7 @@ def results(request: Request, attempt_id: str):
         extra["recap"] = session.recap_study(store, cat, attempt)
 
     return templates.TemplateResponse(request=request, name="results.html", context={
-        "ui": ui_lang(attempt["lang"]), "attempt": attempt, "rows": rows,
-        "model_name": llm_grader.model if llm_grader else None, **extra,
+        "ui": ui_lang(attempt["lang"]), "attempt": attempt, "rows": rows, **extra,
     })
 
 
@@ -280,11 +354,17 @@ def retry_wrong(attempt_id: str):
     return RedirectResponse(f"/attempts/{new_id}/q/1", status_code=303)
 
 
+@app.post("/attempts/{attempt_id}/delete")
+def delete_attempt(attempt_id: str, lang: str = Form("fr")):
+    _load_attempt_or_404(attempt_id)
+    store.delete_attempt(attempt_id)
+    return RedirectResponse(f"/?lang={ui_lang(lang)}", status_code=303)
+
+
 # -- appendix (specs/APP.md §4.2) --------------------------------------------
 
 @app.get("/appendix")
 def appendix(request: Request, lang: str = "fr"):
-    import json
     index = json.loads((ROOT / "data" / "appendix" / "index.json").read_text())
     return templates.TemplateResponse(request=request, name="appendix.html", context={
         "ui": ui_lang(lang), "title": index["title_de"] if lang == "de" else index["title_fr"],

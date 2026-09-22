@@ -11,5 +11,8 @@
 {% for page in pages %}
   <img src="/data/{{ page.path }}" alt="page {{ page.page }}">
 {% endfor %}
+<footer class="footer">
+  <a href="{{ report_issue_url(request) }}" target="_blank" rel="noopener">{{ t(ui, 'report_problem') }}</a>
+</footer>
 </body>
 </html>

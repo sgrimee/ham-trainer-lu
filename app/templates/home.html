@@ -6,11 +6,17 @@
   <h2>{{ t(ui, 'in_progress') }}</h2>
   <ul class="resume-list">
     {% for a in resumes %}
-    <li>
+    <li class="resume-item">
       <a href="/attempts/{{ a.id }}/q/{{ a.next_n }}">
-        {{ a.tag|upper }} · {{ t(ui, 'mode_' + a.mode) }} · {{ a.lang|upper }}
+        {{ a.tag|upper }} · {{ t(ui, 'mode_' + a.mode + '_short') }} · {{ a.lang|upper }}
+        · {{ a.section_label }}
         — {{ a.answered }}/{{ a.total }}
       </a>
+      <form method="post" action="/attempts/{{ a.id }}/delete"
+            onsubmit="return confirm('{{ t(ui, 'confirm_abandon') }}')">
+        <input type="hidden" name="lang" value="{{ lang }}">
+        <button type="submit" class="link-button">{{ t(ui, 'abandon_session') }}</button>
+      </form>
     </li>
     {% endfor %}
   </ul>
@@ -24,7 +30,7 @@
       <legend>{{ t(ui, 'choose_certificate') }}</legend>
       {% for tag in tags %}
       <label class="choice">
-        <input type="radio" name="tag" value="{{ tag }}" {% if tag == 'harec' %}checked{% endif %}>
+        <input type="radio" name="tag" value="{{ tag }}" {% if tag == prefs.tag %}checked{% endif %}>
         {{ tag|upper }} ({{ counts[tag] }})
       </label>
       {% endfor %}
@@ -32,35 +38,35 @@
 
     <fieldset>
       <legend>{{ t(ui, 'choose_mode') }}</legend>
-      <label class="choice"><input type="radio" name="mode" value="study" checked> {{ t(ui, 'mode_study') }}</label>
-      <label class="choice"><input type="radio" name="mode" value="exam"> {{ t(ui, 'mode_exam') }}</label>
+      <label class="choice"><input type="radio" name="mode" value="study" {% if prefs.mode == 'study' %}checked{% endif %}> {{ t(ui, 'mode_study') }}</label>
+      <label class="choice"><input type="radio" name="mode" value="exam" {% if prefs.mode == 'exam' %}checked{% endif %}> {{ t(ui, 'mode_exam') }}</label>
     </fieldset>
 
     <fieldset>
       <legend>{{ t(ui, 'choose_language') }}</legend>
       <select name="lang">
-        <option value="fr">{{ t(ui, 'lang_fr') }}</option>
-        <option value="de">{{ t(ui, 'lang_de') }}</option>
-        <option value="both">{{ t(ui, 'lang_both') }}</option>
+        <option value="fr" {% if prefs.lang == 'fr' %}selected{% endif %}>{{ t(ui, 'lang_fr') }}</option>
+        <option value="de" {% if prefs.lang == 'de' %}selected{% endif %}>{{ t(ui, 'lang_de') }}</option>
+        <option value="both" {% if prefs.lang == 'both' %}selected{% endif %}>{{ t(ui, 'lang_both') }}</option>
       </select>
     </fieldset>
 
     <fieldset id="study-only">
       <legend>{{ t(ui, 'choose_section') }}</legend>
       <select name="section">
-        <option value="">{{ t(ui, 'all_sections') }}</option>
+        <option value="" {% if not prefs.section %}selected{% endif %}>{{ t(ui, 'all_sections') }}</option>
         {% for s in sections %}
-        <option value="{{ s.code }}">{{ s.code }} — {{ s.fr }}</option>
+        <option value="{{ s.code }}" {% if s.code == prefs.section %}selected{% endif %}>{{ s.code }} — {{ s[ui] }}</option>
         {% endfor %}
       </select>
 
       <label>{{ t(ui, 'question_count') }}
-        <input type="text" name="count" value="all" size="4">
+        <input type="text" name="count" value="{{ prefs.count }}" size="4">
       </label>
     </fieldset>
 
     <label class="choice">
-      <input type="checkbox" name="shuffle_options" checked> shuffle
+      <input type="checkbox" name="shuffle_options" {% if prefs.shuffle_options == 'on' %}checked{% endif %}> shuffle
     </label>
 
     <button type="submit">{{ t(ui, 'start') }}</button>

@@ -3,6 +3,28 @@
 Machine-readable extraction of the Luxembourg ILR amateur-radio exam question
 catalogue (February 2024 edition), for building exam practice applications.
 
+Everything in this repository is sourced from information the
+[ILR](https://www.ilr.lu) (Institut Luxembourgeois de Régulation) publishes on
+its [amateur-radio exam page](https://www.ilr.lu/secteurs-activites/frequences-radioelectriques/certificats/examen-operateur-radioamateur/):
+the [2024 question catalogue](https://www.ilr.lu/wp-content/uploads/frequences-radioelectriques/ilr-fre-cat_202402-Catalogue-de-questions-dexamen-RA-_-Edition-2024.pdf)
+and the [amateur-radio guide](https://www.ilr.lu/wp-content/uploads/publication/ilr-fre-pub-2023-01-01-service_amateur_guide_du_radioamateur.pdf)
+(see `reference/documents.yaml`). This project is not affiliated with the ILR.
+The ILR's own [legal notice](https://www.ilr.lu/informations-legales/mentions-legales)
+permits non-commercial reproduction of its site content provided the source
+is credited ("la reproduction des informations contenues sur ce site est
+autorisée à des fins non commerciales à condition que la source soit
+expressément mentionnée"), which this project does throughout. In case of any
+discrepancy, the ILR's own published documents are authoritative.
+
+## Disclaimer
+
+This project is provided "as is", with no guarantee of accuracy or fitness
+for any purpose. It is not an official study tool and is not endorsed by the
+ILR. The authors and contributors accept no responsibility for exam results,
+missed questions, extraction errors, or any other inconvenience arising from
+its use — see [LICENSE](LICENSE). Always cross-check against the ILR's own
+published material before an exam.
+
 **509 questions** — 447 multiple-choice, 62 open-ended — in French and German,
 with 185 figure placements and the exam-day formula appendix.
 
@@ -70,3 +92,10 @@ checks every stored string still appears there.
 - [specs/APP.md](specs/APP.md) — the training application built on this
   catalogue: exam blueprint and scoring, study and exam modes, LLM grading of
   the open questions, toolchain and container.
+
+## License
+
+The code (`app/`, `extract/`, `tests/`, `specs/`) is MIT-licensed — see
+[LICENSE](LICENSE). The exam content under `data/` and `reference/` is
+transcribed from ILR publications and is not covered by that license; it
+remains the ILR's own material, used here for personal study and reference.

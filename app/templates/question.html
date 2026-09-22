@@ -5,8 +5,13 @@
 
 <nav class="grid-nav">
   {% for cell in grid %}
-  <a class="grid-cell status-{{ cell.status }}{% if cell.flagged %} flagged{% endif %}{% if cell.n == n %} current{% endif %}"
-     href="/attempts/{{ attempt.id }}/q/{{ cell.n }}">{{ cell.n }}</a>
+    {% if attempt.mode == 'exam' and not read_only %}
+    <button type="submit" form="answer-form" name="goto" value="{{ cell.n }}"
+       class="grid-cell status-{{ cell.status }}{% if cell.flagged %} flagged{% endif %}{% if cell.n == n %} current{% endif %}">{{ cell.n }}</button>
+    {% else %}
+    <a class="grid-cell status-{{ cell.status }}{% if cell.flagged %} flagged{% endif %}{% if cell.n == n %} current{% endif %}"
+       href="/attempts/{{ attempt.id }}/q/{{ cell.n }}">{{ cell.n }}</a>
+    {% endif %}
   {% endfor %}
 </nav>
 
@@ -27,8 +32,10 @@
     {% endfor %}
   </div>
 
+  {% if saved %}<p class="saved-flash" role="status">{{ t(ui, 'saved') }}</p>{% endif %}
+
   {% if not read_only %}
-  <form method="post" action="/attempts/{{ attempt.id }}/q/{{ n }}/answer">
+  <form method="post" action="/attempts/{{ attempt.id }}/q/{{ n }}/answer" id="answer-form">
     {% if q.kind == 'mcq' %}
       <ul class="options">
         {% for opt in q.options %}
@@ -57,7 +64,18 @@
       <input type="checkbox" name="flag" {% if response and response.flagged %}checked{% endif %}>
       {{ t(ui, 'flag') }}
     </label>
-    <button type="submit">{{ t(ui, 'check') if attempt.mode == 'study' else t(ui, 'next') }}</button>
+
+    {% if attempt.mode == 'exam' %}
+      <div class="answer-actions">
+        {% if n > 1 %}<button type="submit" name="goto" value="{{ n - 1 }}" id="prev-link" class="btn-secondary">&larr; {{ t(ui, 'previous') }}</button>{% endif %}
+        <button type="submit">{{ t(ui, 'validate') }}</button>
+        {% if n < total %}<button type="submit" name="goto" value="{{ n + 1 }}" id="next-link" class="btn-secondary">{{ t(ui, 'next') }} &rarr;</button>{% endif %}
+        <button type="submit" name="finish" value="1" class="btn-secondary"
+                onclick="return confirm('{{ t(ui, 'confirm_submit') }}')">{{ t(ui, 'submit') }}</button>
+      </div>
+    {% else %}
+      <button type="submit">{{ t(ui, 'check') }}</button>
+    {% endif %}
   </form>
 
   {% else %}
@@ -65,13 +83,9 @@
   {% endif %}
 
   <nav class="prev-next">
-    {% if n > 1 %}<a id="prev-link" href="/attempts/{{ attempt.id }}/q/{{ n - 1 }}">&larr; {{ t(ui, 'previous') }}</a>{% endif %}
-    {% if n < total %}<a id="next-link" href="/attempts/{{ attempt.id }}/q/{{ n + 1 }}">{{ t(ui, 'next') }} &rarr;</a>{% endif %}
-    {% if attempt.mode == 'exam' and not submitted %}
-      <form method="post" action="/attempts/{{ attempt.id }}/submit"
-            onsubmit="return confirm('{{ t(ui, 'confirm_submit') }}')">
-        <button type="submit">{{ t(ui, 'submit') }}</button>
-      </form>
+    {% if attempt.mode != 'exam' or read_only %}
+      {% if n > 1 %}<a id="prev-link" href="/attempts/{{ attempt.id }}/q/{{ n - 1 }}">&larr; {{ t(ui, 'previous') }}</a>{% endif %}
+      {% if n < total %}<a id="next-link" href="/attempts/{{ attempt.id }}/q/{{ n + 1 }}">{{ t(ui, 'next') }} &rarr;</a>{% endif %}
     {% endif %}
     {% if submitted %}<a href="/attempts/{{ attempt.id }}/results">{{ t(ui, 'results') }}</a>{% endif %}
   </nav>

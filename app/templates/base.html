@@ -11,9 +11,7 @@
   <a class="brand" href="/">{{ t(ui, 'app_title') }}</a>
   <nav>
     <a href="/appendix?lang={{ ui }}" target="_blank" rel="noopener">{{ t(ui, 'appendix') }}</a>
-    {% if model_name %}
-      <span class="model-badge" title="{{ t(ui, 'graded_by', model=model_name) }}">{{ model_name }}</span>
-    {% else %}
+    {% if not grader_available %}
       <span class="model-badge model-badge--none">{{ t(ui, 'no_model_configured') }}</span>
     {% endif %}
   </nav>
@@ -21,6 +19,10 @@
 <main>
 {% block content %}{% endblock %}
 </main>
+<footer class="footer">
+  <a href="{{ report_issue_url(request, q=q|default(none), attempt=attempt|default(none), n=n|default(none)) }}"
+     target="_blank" rel="noopener">{{ t(ui, 'report_problem') }}</a>
+</footer>
 <script src="/static/app.js"></script>
 </body>
 </html>

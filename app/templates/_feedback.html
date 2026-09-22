@@ -34,7 +34,7 @@
             <p class="incorrect-list">{{ t(ui, 'incorrect_statements') }}: {{ g.detail.incorrect|join('; ') }}</p>
           {% endif %}
         {% endif %}
-        <p class="source-tag">{% if g.source == 'llm' %}{{ t(ui, 'graded_by', model=g.model) }}{% else %}{{ t(ui, 'self_grade_prompt') }}{% endif %}</p>
+        <p class="source-tag">{% if g.source == 'llm' %}{{ t(ui, 'graded_by') }}{% else %}{{ t(ui, 'self_grade_prompt') }}{% endif %}</p>
       {% endif %}
     </div>
   {% endfor %}

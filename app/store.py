@@ -119,6 +119,15 @@ class Store:
             con.execute("UPDATE attempt SET submitted_at = ? WHERE id = ?",
                         (now(), attempt_id))
 
+    def delete_attempt(self, attempt_id: str) -> None:
+        """No FK enforcement (no PRAGMA foreign_keys=ON) and `grade` carries no
+        FK at all, so responses and grades are deleted explicitly here rather
+        than relying on cascade."""
+        with self._connect() as con:
+            con.execute("DELETE FROM grade WHERE attempt_id = ?", (attempt_id,))
+            con.execute("DELETE FROM response WHERE attempt_id = ?", (attempt_id,))
+            con.execute("DELETE FROM attempt WHERE id = ?", (attempt_id,))
+
     # -- responses ----------------------------------------------------------
 
     def put_response(self, attempt_id: str, question_id: int, answer, flagged: bool = False) -> None:
