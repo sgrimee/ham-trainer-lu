@@ -70,6 +70,7 @@ def localize_question(q: dict, lang: str, option_order: list[str] | None) -> dic
     out = {
         "id": q["id"], "kind": q["kind"], "section": q["section"],
         "section_fr": q["section_fr"], "section_de": q["section_de"],
+        "part": part_of(q["section"]),
         "page": q["page"], "tags": q["tags"],
         "stem": localized(q["text"], lang),
         "assets": [a for a in q["assets"] if a["option_letter"] is None],
@@ -105,8 +106,12 @@ def next_unanswered_n(attempt: dict, responses: dict[int, dict],
     return len(attempt["question_ids"])
 
 
-def grid_status(question_ids: list[int], responses: dict[int, dict],
+def grid_status(cat: Catalogue, question_ids: list[int], responses: dict[int, dict],
                 grades: dict[int, list[dict]]) -> list[dict]:
+    """One row per question, tagged with its exam part (specs/APP.md §2.2) so
+    the grid can be grouped into the three blocks the real exam is sat as
+    separate sessions -- see BLUEPRINT/`sample_exam`, which already samples
+    one contiguous block per part in that order."""
     out = []
     for i, qid in enumerate(question_ids, start=1):
         resp = responses.get(qid)
@@ -126,6 +131,7 @@ def grid_status(question_ids: list[int], responses: dict[int, dict],
         else:
             status = "unanswered"
         out.append({"n": i, "question_id": qid, "status": status,
+                    "part": part_of(cat.get(qid)["section"]),
                     "flagged": bool(resp and resp.get("flagged"))})
     return out
 

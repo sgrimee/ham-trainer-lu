@@ -50,6 +50,9 @@
     {% set weight = row.weight %}
     {% set show_self_grade = row.show_self_grade %}
     {% set annotation = row.annotation %}
+    {% if loop.first or q.part != rows[loop.index0 - 1].q.part %}
+    <h2 class="review-part-heading">{{ t(ui, 'part') }} — {{ t(ui, q.part) }}</h2>
+    {% endif %}
     <article class="review-item">
       <header class="q-meta">
         <span>#{{ loop.index }}</span>

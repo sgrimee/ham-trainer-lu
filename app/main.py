@@ -214,7 +214,7 @@ def show_question(request: Request, attempt_id: str, n: int):
         "response": resp, "grades": rows, "grades_by_item": {r["item_no"]: r for r in rows},
         "graded": graded, "read_only": read_only,
         "show_self_grade": show_self_grade, "weight": weight, "correct_letter": correct_letter,
-        "grid": session.grid_status(attempt["question_ids"], responses, grades),
+        "grid": session.grid_status(cat, attempt["question_ids"], responses, grades),
         "annotation": annotations_module.load().get(qid, {}),
         "submitted": bool(attempt["submitted_at"]),
         "saved": request.query_params.get("saved") == "1",

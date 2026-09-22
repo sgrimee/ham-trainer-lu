@@ -79,9 +79,16 @@ textarea { max-width: 100%; }
 .grid-cell.status-partial { background: #fff7e0; color: var(--partial); }
 .grid-cell.status-ungraded { background: #f0f0f0; }
 .grid-cell.flagged { box-shadow: inset 0 0 0 2px #d97706; }
+.grid-part-label {
+  flex-basis: 100%; font-size: 0.75rem; font-weight: 600; text-transform: uppercase;
+  letter-spacing: 0.03em; color: var(--muted); margin-top: 0.5rem; padding-top: 0.4rem;
+  border-top: 1px solid var(--border);
+}
+.grid-part-label:first-child { margin-top: 0; padding-top: 0; border-top: none; }
 
 .question { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.25rem; box-shadow: var(--shadow); }
 .q-meta { display: flex; flex-wrap: wrap; gap: 0.75rem; font-size: 0.85rem; color: var(--muted); margin-bottom: 0.5rem; }
+.q-meta .q-part { font-weight: 600; color: var(--accent); }
 .stem img, .open-item img { max-width: 100%; margin: 0.5rem 0; border-radius: 6px; }
 .stem p { margin: 0.3rem 0; }
 .stem { font-size: 1.05rem; margin-bottom: 1rem; }
@@ -133,6 +140,11 @@ textarea { max-width: 100%; }
 .section-breakdown td { padding: 0.3rem 0.5rem; border-bottom: 1px solid var(--border); }
 
 .review-item { border-top: 1px solid var(--border); padding-top: 1rem; margin-top: 1rem; }
+.review-part-heading {
+  font-size: 1rem; text-transform: uppercase; letter-spacing: 0.03em; color: var(--muted);
+  margin: 1.5rem 0 0.25rem; padding-bottom: 0.25rem; border-bottom: 2px solid var(--accent);
+}
+.review-part-heading:first-child { margin-top: 0; }
 .references { margin-top: 0.5rem; font-size: 0.85rem; }
 
 .appendix-page { max-width: 900px; margin: 0 auto; padding: 1rem; }

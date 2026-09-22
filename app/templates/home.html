@@ -40,6 +40,7 @@
       <legend>{{ t(ui, 'choose_mode') }}</legend>
       <label class="choice"><input type="radio" name="mode" value="study" {% if prefs.mode == 'study' %}checked{% endif %}> {{ t(ui, 'mode_study') }}</label>
       <label class="choice"><input type="radio" name="mode" value="exam" {% if prefs.mode == 'exam' %}checked{% endif %}> {{ t(ui, 'mode_exam') }}</label>
+      <p class="hint" style="text-align: left; margin: 0.3rem 0 0;">{{ t(ui, 'exam_sessions_note') }}</p>
     </fieldset>
 
     <fieldset>

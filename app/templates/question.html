@@ -5,6 +5,9 @@
 
 <nav class="grid-nav">
   {% for cell in grid %}
+    {% if loop.first or cell.part != grid[loop.index0 - 1].part %}
+    <span class="grid-part-label">{{ t(ui, cell.part) }}</span>
+    {% endif %}
     {% if attempt.mode == 'exam' and not read_only %}
     <button type="submit" form="answer-form" name="goto" value="{{ cell.n }}"
        class="grid-cell status-{{ cell.status }}{% if cell.flagged %} flagged{% endif %}{% if cell.n == n %} current{% endif %}">{{ cell.n }}</button>
@@ -18,6 +21,7 @@
 <article class="question">
   <header class="q-meta">
     <span>{{ t(ui, 'question_of', n=n, total=total) }}</span>
+    <span class="q-part">{{ t(ui, 'part') }} {{ t(ui, q.part) }}</span>
     <span>{{ t(ui, 'section_label') }} {{ q.section }} — {{ q.section_fr }}</span>
     <span>{{ t(ui, 'page_label') }} {{ q.page }}</span>
     <span>{{ q.tags|join(', ') }}</span>
