@@ -23,24 +23,21 @@ data/         canonical output, committed
   questions.jsonl   one question per line
   assets/           figures, referenced by path
   appendix/         formula sheet as page images
-build/exam.db  generated SQLite, gitignored
 ```
 
 ## Use
 
 ```sh
-make            # extract, render the appendix, verify, build the database
+make            # extract, render the appendix, verify
 make verify     # run the validation gates on their own
 ```
 
 Needs `uv` (for `pymupdf`) and Python 3.11+. Nothing else.
 
-Generating an exam is one query:
+Selecting an exam is one filter — tags nest, `BASE ⊂ NOVICE ⊂ HAREC`:
 
-```sql
-SELECT q.* FROM question q
-  JOIN question_tag t ON t.question_id = q.id
- WHERE t.tag = 'base';
+```sh
+jq -c 'select(.tags[] == "base")' data/questions.jsonl
 ```
 
 ## Fidelity

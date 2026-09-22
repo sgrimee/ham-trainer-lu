@@ -97,13 +97,18 @@ span stream. This is the only way to honour "no word change".
 
 ## 3. Storage recommendation
 
-**JSONL in git as the source of truth; SQLite as the built artifact; images as files on disk.**
+**JSONL in git as the source of truth; images as files on disk.**
 
 ```
 data/questions.jsonl      canonical, one question per line, committed to git
 data/assets/q131_fig.png  extracted figures, referenced by path
-build/exam.db             generated SQLite, gitignored, rebuilt by `make db`
 ```
+
+> **Superseded, 2026-09-22.** The SQLite artifact and its builder were removed. The training application
+> (`APP.md` §4.1) loads `questions.jsonl` into memory — 509 questions is a list comprehension, not a query —
+> and no other consumer appeared, so `build/exam.db` was dead code. Everything below about JSONL as the
+> fidelity mechanism still holds and is now the whole storage story. The relational schema that follows is
+> kept as documentation of the data's shape, which the JSONL mirrors field for field.
 
 Reasoning, briefly:
 
@@ -207,7 +212,7 @@ These are the rules that make "matches the PDF exactly" checkable rather than as
    `JULLIET`, `www.itu.org` which should be `itu.int`). Content text is **never** corrected. The parse key
    (`question_tag`) is normalised, but `raw_tag` preserves the original string, and suspicions go in `notes`.
 2. **No LLM pass anywhere in the extraction pipeline** — not for cleanup, not for language pairing, not for
-   "improving" anything. Deterministic extraction only, from PDF to `questions.jsonl` to `exam.db`.
+   "improving" anything. Deterministic extraction only, from PDF to `questions.jsonl`.
 
    This rule is about **extraction**, and it does not constrain the practice app. Confirmed in review, the
    app *will* use an LLM at runtime to grade open answers (§8.1). That is a different thing: the graders'
@@ -314,7 +319,7 @@ The build fails if any of these does not hold. They are the contract, and they r
 | 3 | Figure extraction by placement; assign to question or option | `data/assets/`, asset rows |
 | 4 | Validation gates (§6), including the round-trip diff | `make verify` — red or green |
 | 5 | Work the §5 manual list; record decisions in `notes` | verified JSONL |
-| 6 | SQLite builder + the three exam queries | `build/exam.db`, `make db` |
+| 6 | ~~SQLite builder + the three exam queries~~ — built, then removed as dead code (§3) | — |
 | 7 | Formula appendix (pages 177–181) as reference material — §8.2 | `data/appendix/` |
 
 Phases 1–4 are the real work and are mechanical. Phase 5 is the only one that needs your eyes, and the
@@ -322,8 +327,7 @@ review has already cleared six of its seven categories.
 
 ### Tooling
 
-`pymupdf` (already validated against this document, via `uv run --with pymupdf`) and Python's stdlib
-`sqlite3`. No other dependencies. Note that `pdftotext`, `pdfimages` and `mutool` are **not** installed on
+`pymupdf` (already validated against this document, via `uv run --with pymupdf`). No other dependencies. Note that `pdftotext`, `pdfimages` and `mutool` are **not** installed on
 this machine and are not needed.
 
 ## 8. Decisions from review (2026-09-21)
