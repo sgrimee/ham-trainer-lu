@@ -53,7 +53,17 @@
     <strong>{{ t(ui, 'references_label') }}:</strong>
     <ul>
     {% for ref in annotation.references %}
-      <li>{{ ref.doc or ref.url }}{% if ref.page %} p.{{ ref.page }}{% endif %}
+      {% set doc = doc_files.get(ref.doc) if ref.doc else None %}
+      <li>
+        {% if doc and doc.filename %}
+          <a href="/reference/{{ doc.filename }}{% if ref.page %}#page={{ ref.page }}{% endif %}" target="_blank" rel="noopener">
+            {{ doc.name or ref.doc }}{% if ref.page %} p.{{ ref.page }}{% endif %}{% if ref.locator %} — {{ ref.locator }}{% endif %}
+          </a>
+        {% elif ref.url %}
+          <a href="{{ ref.url }}" target="_blank" rel="noopener">{{ ref.locator or ref.url }}</a>
+        {% else %}
+          {{ ref.doc }}{% if ref.page %} p.{{ ref.page }}{% endif %}{% if ref.locator %} — {{ ref.locator }}{% endif %}
+        {% endif %}
         {% if ref.status != 'verified' %}<em>({{ t(ui, 'suggested_reference') }})</em>{% endif %}
         {% if ref.comment %} — {{ ref.comment }}{% endif %}
       </li>

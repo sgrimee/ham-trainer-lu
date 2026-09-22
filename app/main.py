@@ -25,6 +25,7 @@ ROOT = pathlib.Path(__file__).resolve().parent.parent
 app = FastAPI(title="ILR exam trainer")
 app.mount("/data", StaticFiles(directory=ROOT / "data"), name="data")
 app.mount("/static", StaticFiles(directory=ROOT / "app" / "static"), name="static")
+app.mount("/reference", StaticFiles(directory=ROOT / "reference"), name="reference")
 templates = Jinja2Templates(directory=ROOT / "app" / "templates")
 templates.env.globals["t"] = t
 
@@ -32,6 +33,7 @@ cat = catalogue.load()
 store = Store()
 llm_grader = grader.from_env()
 templates.env.globals["grader_available"] = llm_grader is not None
+templates.env.globals["doc_files"] = annotations_module.documents()
 
 PREFS_COOKIE = "ilr_session_prefs"
 GITHUB_REPO = "sgrimee/ham-trainer-lu"

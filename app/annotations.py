@@ -68,6 +68,27 @@ def document_ids(path: pathlib.Path = REGISTRY) -> set[str]:
     return set(re.findall(r"^\s*-?\s*id:\s*(\S+)\s*$", path.read_text(), re.M))
 
 
+def documents(path: pathlib.Path = REGISTRY) -> dict[str, dict[str, str]]:
+    """Document metadata (name, filename, url) keyed by id, from reference/documents.yaml.
+
+    Regex-based like `document_ids`, so the application can build a `doc` deep
+    link (`/reference/<filename>#page=N`) without a `pyyaml` runtime dependency.
+    """
+    if not path.exists():
+        return {}
+    entries = re.findall(r"^\s*-\s*id:\s*(\S+)$(.*?)(?=^\s*-\s*id:|\Z)",
+                         path.read_text(), re.M | re.S)
+    docs: dict[str, dict[str, str]] = {}
+    for doc_id, block in entries:
+        fields = {}
+        for key in ("name", "filename", "url"):
+            m = re.search(rf"^\s*{key}:\s*(.+?)\s*$", block, re.M)
+            if m:
+                fields[key] = m.group(1)
+        docs[doc_id] = fields
+    return docs
+
+
 def page_counts() -> dict[str, int]:
     """Page count per document id, for documents present on disk. Best effort."""
     counts: dict[str, int] = {}
