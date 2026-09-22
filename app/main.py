@@ -90,10 +90,35 @@ def _load_attempt_or_404(attempt_id: str) -> dict:
 
 
 def _section_options() -> list[dict]:
-    seen: dict[str, dict] = {}
+    """Sections grouped by exam part, so the home form can offer either a
+    whole part (section='1', matched as a prefix by Catalogue.filter) or one
+    of its subsections (section='1.2')."""
+    parts: dict[str, dict] = {}
+    subsections: dict[str, dict[str, dict]] = {}
     for q in cat.questions:
-        seen.setdefault(q["section"], {"code": q["section"], "fr": q["section_fr"], "de": q["section_de"]})
-    return sorted(seen.values(), key=lambda s: [int(p) for p in s["code"].split(".")])
+        part_code = q["section"].split(".", 1)[0]
+        parts.setdefault(part_code, {"code": part_code, "part_name": catalogue.PART_NAMES[part_code]})
+        subsections.setdefault(part_code, {}).setdefault(
+            q["section"], {"code": q["section"], "fr": q["section_fr"], "de": q["section_de"]})
+    out = []
+    for part_code in sorted(parts, key=int):
+        part = dict(parts[part_code])
+        part["subsections"] = sorted(subsections[part_code].values(),
+                                     key=lambda s: [int(p) for p in s["code"].split(".")])
+        out.append(part)
+    return out
+
+
+def _section_labels(ui: str) -> dict[str, str]:
+    """Flat code -> localized label, covering both part-level and
+    subsection-level codes, for anywhere a stored section needs a display
+    name (the resume list, prefs validation)."""
+    labels: dict[str, str] = {}
+    for part in _section_options():
+        labels[part["code"]] = t(ui, part["part_name"])
+        for s in part["subsections"]:
+            labels[s["code"]] = s[ui]
+    return labels
 
 
 DEFAULT_PREFS = {"tag": "base", "mode": "study", "lang": "fr", "section": "", "count": "all",
@@ -116,7 +141,11 @@ def _read_prefs(request: Request) -> dict:
         prefs["mode"] = DEFAULT_PREFS["mode"]
     if prefs["lang"] not in ("fr", "de", "both"):
         prefs["lang"] = DEFAULT_PREFS["lang"]
-    if prefs["section"] not in {"", *(s["code"] for s in _section_options())}:
+    valid_sections = {""}
+    for part in _section_options():
+        valid_sections.add(part["code"])
+        valid_sections.update(s["code"] for s in part["subsections"])
+    if prefs["section"] not in valid_sections:
         prefs["section"] = ""
     return prefs
 
@@ -126,7 +155,7 @@ def _read_prefs(request: Request) -> dict:
 @app.get("/")
 def home(request: Request, lang: str = "fr"):
     ui = ui_lang(lang)
-    section_names = {s["code"]: s[ui] for s in _section_options()}
+    section_names = _section_labels(ui)
     resumes = []
     for a in store.in_progress_attempts():
         responses = store.responses(a["id"])

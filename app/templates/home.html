@@ -56,8 +56,13 @@
       <legend>{{ t(ui, 'choose_section') }}</legend>
       <select name="section">
         <option value="" {% if not prefs.section %}selected{% endif %}>{{ t(ui, 'all_sections') }}</option>
-        {% for s in sections %}
-        <option value="{{ s.code }}" {% if s.code == prefs.section %}selected{% endif %}>{{ s.code }} — {{ s[ui] }}</option>
+        {% for part in sections %}
+        <optgroup label="{{ part.code }} — {{ t(ui, part.part_name) }}">
+          <option value="{{ part.code }}" {% if part.code == prefs.section %}selected{% endif %}>{{ t(ui, 'whole_part') }}</option>
+          {% for s in part.subsections %}
+          <option value="{{ s.code }}" {% if s.code == prefs.section %}selected{% endif %}>{{ s.code }} — {{ s[ui] }}</option>
+          {% endfor %}
+        </optgroup>
         {% endfor %}
       </select>
 
