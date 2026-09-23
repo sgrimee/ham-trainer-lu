@@ -17,16 +17,19 @@ run = "uv sync"
 
 [tasks.extract]
 description = "PDF -> data/questions.jsonl + data/assets/"
+depends = ["download-refs"]
 run = "uv run python extract/run.py"
 sources = ["reference/*.pdf", "extract/*.py"]
 outputs = ["data/questions.jsonl"]
 
 [tasks.appendix]
 description = "PDF -> data/appendix/ (exam-day formula sheet)"
+depends = ["download-refs"]
 run = "uv run python extract/appendix.py"
 
 [tasks.verify]
 description = "Run every validation gate: the extraction round trip, then the curated annotations"
+depends = ["download-refs"]   # validate.py re-reads the catalogue PDF
 run = [
   "uv run python extract/validate.py",
   "uv run python -m app.annotations",
@@ -40,6 +43,11 @@ run = "mise run verify"
 [tasks.download-refs]
 description = "Download reference PDFs listed in reference/documents.yaml (skips files already present)"
 run = "./scripts/download-refs.sh"
+
+[tasks.docker-build]
+description = "Build the container image (Dockerfile); the reference PDFs it copies are downloaded first"
+depends = ["download-refs"]
+run = "docker build -t examen-ilr ."
 
 [tasks.eval-grader]
 description = "Score models against the golden grading cases -- run after any grader-prompt change"
@@ -60,4 +68,5 @@ run = [
 
 [tasks.serve]
 description = "Run the training application (specs/TRAINER.md §3)"
+depends = ["download-refs"]   # the app serves reference/<filename> for question-to-guide links
 run = "uv run uvicorn app.main:app --reload"

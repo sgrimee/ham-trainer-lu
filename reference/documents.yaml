@@ -8,6 +8,11 @@
 # rest of the pipeline expects (e.g. specs/EXTRACTION.md references the catalogue by this
 # name). Do not rename it to match a changed URL — add a new entry instead.
 #
+# `sha256` pins the exact bytes. The extractor is positional and validated against
+# one specific file, and the ILR re-uploads under the same URL, so a download
+# that does not match is rejected rather than silently changing data/. When the
+# ILR publishes a new version on purpose, re-extract and update the hash.
+#
 # `id` is equally load-bearing in the other direction: data/annotations.jsonl points
 # at documents by id, so a question's reference survives a moved URL or a renamed
 # file (specs/TRAINER.md §10). Ids are permanent — never reuse or repurpose one.
@@ -17,13 +22,22 @@ documents:
     name: Catalogue de questions Radioamateur
     description: Catalogue officiel des questions d'examen radioamateur, édition 2024 (509 questions).
     filename: ilr-fre-cat_202402-Catalogue-de-questions-dexamen-RA-_-Edition-2024.pdf
+    sha256: c05d7200dc8ea62e65f76476e04cc24a78b43995cee5c29dd64a0271e17a8751
     url: https://www.ilr.lu/wp-content/uploads/frequences-radioelectriques/ilr-fre-cat_202402-Catalogue-de-questions-dexamen-RA-_-Edition-2024.pdf
 
   - id: ilr-guide-2023
     name: Brochure Radioamateur
     description: Guide du radioamateur — brochure d'information sur le service amateur au Luxembourg.
     filename: ilr-fre-pub-2023-01-01-service_amateur_guide_du_radioamateur.pdf
+    sha256: bd58af135aa14ba7c3410f40069510d23f9952662b70fda3cb7abf76442db03a
     url: https://www.ilr.lu/wp-content/uploads/publication/ilr-fre-pub-2023-01-01-service_amateur_guide_du_radioamateur.pdf
+
+  - id: ilr-reglement-f24-1
+    name: Règlement ILR/F24/1
+    description: Règlement ILR/F24/1 du 26 janvier 2024 sur les procédures et les modalités d'obtention et de reconnaissance des certificats d'opérateur radioamateur (Mémorial A n° 51 du 12 février 2024).
+    filename: eli-etat-leg-rilr-2024-01-26-a51-jo-fr-pdfa.pdf
+    sha256: 107c05c353f083bc05e35b3965bd3b022dc96e3fff62287b91486c2b64a4933d
+    url: https://legilux.public.lu/filestore/eli/etat/leg/rilr/2024/01/26/a51/jo/fr/pdfa/eli-etat-leg-rilr-2024-01-26-a51-jo-fr-pdfa.pdf
 
 links:
   - id: ilr-exam-page

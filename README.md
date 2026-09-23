@@ -39,7 +39,7 @@ Tags are nested: `BASE ⊂ NOVICE ⊂ HAREC`.
 ## Layout
 
 ```
-reference/    source PDFs (not modified)
+reference/    documents.yaml; the source PDFs are downloaded, not committed
 extract/      the extraction pipeline
 app/          the training application
 tests/        golden cases for the grader
@@ -61,9 +61,16 @@ mise run data     # extract, render the appendix, verify
 mise run verify   # run the validation gates on their own
 mise run serve    # run the training application at http://127.0.0.1:8000
 mise run test     # unit tests
+mise run docker-build             # build the container image
 mise run eval-grader <model>...   # score grading models (needs LLM_API_KEY)
 mise tasks        # everything else
 ```
+
+The ILR's PDFs are not committed. Tasks that need them (`extract`, `appendix`,
+`verify`, `serve`, `docker-build`) first run `mise run download-refs`, which
+fetches whatever is missing from `reference/documents.yaml` and checks every
+file, new or already present, against the sha256 pinned there. With the files in
+place it is a no-op of a fraction of a second.
 
 Entering the directory autoloads `.env` (see `.env.example`); it is gitignored
 and needed only for the training application's grader, not for extraction. With
