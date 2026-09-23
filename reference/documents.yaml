@@ -5,12 +5,12 @@
 #   links     — web pages kept for reference only. Never downloaded.
 #
 # In `documents`, `filename` is load-bearing: it is the exact name on disk that the
-# rest of the pipeline expects (e.g. specs/PLAN.md references the catalogue by this
+# rest of the pipeline expects (e.g. specs/EXTRACTION.md references the catalogue by this
 # name). Do not rename it to match a changed URL — add a new entry instead.
 #
 # `id` is equally load-bearing in the other direction: data/annotations.jsonl points
 # at documents by id, so a question's reference survives a moved URL or a renamed
-# file (specs/APP.md §10). Ids are permanent — never reuse or repurpose one.
+# file (specs/TRAINER.md §10). Ids are permanent — never reuse or repurpose one.
 
 documents:
   - id: ilr-catalogue-2024

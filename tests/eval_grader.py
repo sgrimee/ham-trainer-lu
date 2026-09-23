@@ -1,4 +1,4 @@
-"""Score one or more models against the golden grading cases (specs/APP.md §8.2).
+"""Score one or more models against the golden grading cases (specs/TRAINER.md §8.2).
 
     mise run eval-grader                                  # the configured LLM_MODEL
     mise run eval-grader openai/gpt-5.1                   # one candidate
@@ -69,7 +69,7 @@ def grade(model: str, case) -> dict:
 
 
 def verdict(result: dict) -> tuple[str, float]:
-    """Derive the displayed verdict and the proportional score (specs/APP.md §7.2)."""
+    """Derive the displayed verdict and the proportional score (specs/TRAINER.md §7.2)."""
     elements = result.get("elements", [])
     found = sum(1 for e in elements if e["present"])
     total = len(elements)

@@ -1,4 +1,4 @@
-"""Golden cases for the open-answer grader (specs/APP.md §7.2, §10).
+"""Golden cases for the open-answer grader (specs/TRAINER.md §7.2, §10).
 
 Each case is a real catalogue question with a synthetic candidate answer whose
 correct verdict a human examiner can state independently. They exist to answer
@@ -72,7 +72,7 @@ CASES = [
  # QRT? asks "must I stop?", QRT tells the other station to stop. Getting the
  # direction backwards is an operational error, not a wording slip. Awarding half
  # would need the single element split into topic and form; whether it should be
- # is open (specs/APP.md §13).
+ # is open (specs/TRAINER.md §13).
  ("448-form","fr","Que signifie le Q-code suivant : QRT?","Dois-je cesser la transmission ?",
   "J'arrête l'émission.","incorrect",None,
   "SPEECH ACT: QRT? is interrogative; the statement form is QRT. Wrong form, wrong meaning"),

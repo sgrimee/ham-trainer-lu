@@ -1,4 +1,4 @@
-"""The ILR exam training application (specs/APP.md §3).
+"""The ILR exam training application (specs/TRAINER.md §3).
 
 One FastAPI process, server-rendered templates, no build step. Run with
 `mise run serve` (see mise.toml) or `uvicorn app.main:app`.
@@ -250,7 +250,7 @@ def show_question(request: Request, attempt_id: str, n: int, store: Store = Depe
     graded = bool(rows)
 
     # Not "and llm_grader is None": an answered open question with no grade
-    # rows also means the call failed (specs/APP.md §7.3 -- "request failed"
+    # rows also means the call failed (specs/TRAINER.md §7.3 -- "request failed"
     # is a survivable state, not just "no key"). Either way, self-grade it.
     pending_self = (not graded and q["kind"] == "open" and attempt["mode"] == "study"
                    and resp is not None and resp.get("answer") is not None)
@@ -361,7 +361,7 @@ async def submit_exam(attempt_id: str, store: Store = Depends(get_store),
     return RedirectResponse(f"/attempts/{attempt_id}/results", status_code=303)
 
 
-# -- results and review (specs/APP.md §9) ------------------------------------
+# -- results and review (specs/TRAINER.md §9) ------------------------------------
 
 @app.get("/attempts/{attempt_id}/results")
 def results(request: Request, attempt_id: str, store: Store = Depends(get_store)):
@@ -425,7 +425,7 @@ def delete_attempt(attempt_id: str, lang: str = Form("fr"), store: Store = Depen
     return RedirectResponse(f"/?lang={ui_lang(lang)}", status_code=303)
 
 
-# -- appendix (specs/APP.md §4.2) --------------------------------------------
+# -- appendix (specs/TRAINER.md §4.2) --------------------------------------------
 
 @app.get("/appendix")
 def appendix(request: Request, lang: str = "fr"):

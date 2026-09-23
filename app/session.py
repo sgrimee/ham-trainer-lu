@@ -13,7 +13,7 @@ from .catalogue import BLUEPRINT, Catalogue, localized, part_of
 from .grader import LLMGrader, SelfGrader
 from .store import Store
 
-# -- sampling (specs/APP.md §6.1, §2.2) --------------------------------------
+# -- sampling (specs/TRAINER.md §6.1, §2.2) --------------------------------------
 
 def sample_study(cat: Catalogue, tag: str, section: str | None, count: str | int) -> list[int]:
     pool = cat.filter(tag, section)
@@ -30,7 +30,7 @@ def sample_study(cat: Catalogue, tag: str, section: str | None, count: str | int
 
 def sample_exam(cat: Catalogue, tag: str) -> list[int]:
     """One block per part, in blueprint order, each block shuffled. A part
-    short of its blueprint count (BASE part 3: 8 of 10, specs/APP.md §2.2)
+    short of its blueprint count (BASE part 3: 8 of 10, specs/TRAINER.md §2.2)
     just draws everything it has."""
     ids: list[int] = []
     for part_name, wanted in BLUEPRINT[tag].items():
@@ -65,7 +65,7 @@ def part_counts_for_ids(cat: Catalogue, question_ids: list[int]) -> dict[str, in
 
 def localize_question(q: dict, lang: str, option_order: list[str] | None) -> dict:
     """A template-ready view of one question: stem, options/items in display
-    order, each cell carrying its own fallback flag (specs/APP.md §4.3)."""
+    order, each cell carrying its own fallback flag (specs/TRAINER.md §4.3)."""
     out = {
         "id": q["id"], "kind": q["kind"], "section": q["section"],
         "section_fr": q["section_fr"], "section_de": q["section_de"],
@@ -107,7 +107,7 @@ def next_unanswered_n(attempt: dict, responses: dict[int, dict],
 
 def grid_status(cat: Catalogue, question_ids: list[int], responses: dict[int, dict],
                 grades: dict[int, list[dict]]) -> list[dict]:
-    """One row per question, tagged with its exam part (specs/APP.md §2.2) so
+    """One row per question, tagged with its exam part (specs/TRAINER.md §2.2) so
     the grid can be grouped into the three blocks the real exam is sat as
     separate sessions -- see BLUEPRINT/`sample_exam`, which already samples
     one contiguous block per part in that order."""
@@ -135,7 +135,7 @@ def grid_status(cat: Catalogue, question_ids: list[int], responses: dict[int, di
     return out
 
 
-# -- grading orchestration (specs/APP.md §7) ---------------------------------
+# -- grading orchestration (specs/TRAINER.md §7) ---------------------------------
 
 def ref_text(value: dict, lang: str) -> str:
     return localized(value, "fr" if lang == "both" else lang)[0]["text"]
@@ -152,7 +152,7 @@ async def _grade_open_item(grader: LLMGrader | None, qid: int, lang: str,
                            item_weight: float) -> dict | None:
     """None means grading didn't happen -- no grader configured, or the call
     failed. Either way the caller leaves the item ungraded, pending a
-    self-verdict (specs/APP.md §7.3): "API down, request failed" is named
+    self-verdict (specs/TRAINER.md §7.3): "API down, request failed" is named
     there as a state the app must survive, not just "no key"."""
     if grader is None:
         return None
@@ -164,7 +164,7 @@ async def _grade_open_item(grader: LLMGrader | None, qid: int, lang: str,
     except Exception:
         # A malformed response (e.g. `elements: null` despite the schema) is
         # "the call failed" too, not just a transport/HTTP error -- scoring it
-        # must not be allowed to crash the request (specs/APP.md §7.3).
+        # must not be allowed to crash the request (specs/TRAINER.md §7.3).
         return None
     return {
         "verdict": verdict,
@@ -176,7 +176,7 @@ async def _grade_open_item(grader: LLMGrader | None, qid: int, lang: str,
 
 async def grade_open_question(grader: LLMGrader | None, q: dict, lang: str,
                               weight: float, answer) -> list[tuple[dict, dict | None]]:
-    """One grader call per sub-item, run concurrently (specs/APP.md §7.2)."""
+    """One grader call per sub-item, run concurrently (specs/TRAINER.md §7.2)."""
     items = q["answer"]
     item_weight = weight / len(items)
     tasks = []
@@ -194,7 +194,7 @@ async def grade_open_question(grader: LLMGrader | None, q: dict, lang: str,
 async def grade_study_answer(store: Store, grader: LLMGrader | None, cat: Catalogue,
                              attempt: dict, qid: int, answer) -> None:
     """Study mode: immediate grading at flat weight 1.0 -- there is no exam
-    blueprint in play, only "right or wrong" (specs/APP.md §9)."""
+    blueprint in play, only "right or wrong" (specs/TRAINER.md §9)."""
     store.put_response(attempt["id"], qid, answer)
     q = cat.get(qid)
     if q["kind"] == "mcq":
@@ -224,7 +224,7 @@ def self_grade_question(store: Store, attempt_id: str, qid: int, weight: float,
 async def submit_exam(store: Store, grader: LLMGrader | None, cat: Catalogue,
                       attempt_id: str) -> None:
     """Exam mode grades everything at submission, open answers in parallel
-    across the whole paper (specs/APP.md §7.2) -- serial calls on a 100-item
+    across the whole paper (specs/TRAINER.md §7.2) -- serial calls on a 100-item
     HAREC sitting would take minutes."""
     attempt = store.get_attempt(attempt_id)
     assert attempt is not None, "caller already validated attempt_id (main._load_attempt_or_404)"
@@ -255,7 +255,7 @@ async def submit_exam(store: Store, grader: LLMGrader | None, cat: Catalogue,
     store.submit_attempt(attempt_id)
 
 
-# -- recap and review (specs/APP.md §9) --------------------------------------
+# -- recap and review (specs/TRAINER.md §9) --------------------------------------
 
 def recap_study(store: Store, cat: Catalogue, attempt: dict) -> dict:
     grades = store.grades(attempt["id"])

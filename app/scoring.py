@@ -1,4 +1,4 @@
-"""Scoring rules (specs/APP.md §2.3, §7.2).
+"""Scoring rules (specs/TRAINER.md §2.3, §7.2).
 
 Three independent concerns live here: how many points a single question is
 worth within its part, how an open answer's element list turns into a
@@ -15,12 +15,12 @@ PART_MAX = 60.0
 
 
 def question_weight(part_question_count: int) -> float:
-    """specs/APP.md §2.3: a flat 60 / n across the part's own questions."""
+    """specs/TRAINER.md §2.3: a flat 60 / n across the part's own questions."""
     return PART_MAX / part_question_count
 
 
 def element_fraction(elements: list[dict], incorrect: list[str]) -> float:
-    """Proportional score in [0, 1] for one open-answer grade (specs/APP.md §7.2).
+    """Proportional score in [0, 1] for one open-answer grade (specs/TRAINER.md §7.2).
 
     Elements present score their equal share; each incorrect statement cancels
     one present element, one-for-one, floored at zero. A question with a
@@ -34,7 +34,7 @@ def element_fraction(elements: list[dict], incorrect: list[str]) -> float:
 
 
 def verdict_of(elements: list[dict], incorrect: list[str]) -> str:
-    """Derived for display, never stored as an input (specs/APP.md §7.2)."""
+    """Derived for display, never stored as an input (specs/TRAINER.md §7.2)."""
     present = sum(1 for e in elements if e.get("present"))
     if present == len(elements) and not incorrect:
         return "correct"
@@ -60,7 +60,7 @@ class ExamResult:
 
     @property
     def outcome(self) -> str:
-        """'pass' | 'retake_part' | 'retake_all' (specs/APP.md §2.3)."""
+        """'pass' | 'retake_part' | 'retake_all' (specs/TRAINER.md §2.3)."""
         failed = [p for p in self.parts.values() if not p.passed]
         if not failed:
             return "pass"

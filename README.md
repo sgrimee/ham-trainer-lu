@@ -43,7 +43,7 @@ reference/    source PDFs (not modified)
 extract/      the extraction pipeline
 app/          the training application
 tests/        golden cases for the grader
-specs/        design documents
+specs/        specifications
 data/         canonical output, committed
   questions.jsonl   one question per line, extraction output
   annotations.jsonl curated reference links and topics, joined on question id
@@ -68,7 +68,7 @@ mise tasks        # everything else
 Entering the directory autoloads `.env` (see `.env.example`); it is gitignored
 and needed only for the training application's grader, not for extraction. With
 no key configured the app still runs: it shows the reference answer and lets
-you mark yourself right or wrong (specs/APP.md §7.3).
+you mark yourself right or wrong (specs/TRAINER.md §7.3).
 
 Selecting an exam is one filter — tags nest, `BASE ⊂ NOVICE ⊂ HAREC`:
 
@@ -87,9 +87,10 @@ checks every stored string still appears there.
 
 ## Specs
 
-- [specs/PLAN.md](specs/PLAN.md) — the source document's structure, the
-  extraction method, and the decisions behind the data's shape.
-- [specs/APP.md](specs/APP.md) — the training application built on this
+- [specs/EXTRACTION.md](specs/EXTRACTION.md) — the extraction pipeline: the
+  source document's structure, the extraction method, the output format and
+  its validation gates.
+- [specs/TRAINER.md](specs/TRAINER.md) — the training application built on this
   catalogue: exam blueprint and scoring, study and exam modes, LLM grading of
   the open questions, toolchain and container.
 

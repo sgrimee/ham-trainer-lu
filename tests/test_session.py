@@ -1,4 +1,4 @@
-"""Unit tests for the study/exam grading glue (specs/APP.md §7.2-7.3)."""
+"""Unit tests for the study/exam grading glue (specs/TRAINER.md §7.2-7.3)."""
 from __future__ import annotations
 
 import asyncio

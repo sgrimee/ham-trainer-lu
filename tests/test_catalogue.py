@@ -1,4 +1,4 @@
-"""Boot-time invariants and language fallback (specs/APP.md §4, §10)."""
+"""Boot-time invariants and language fallback (specs/TRAINER.md §4, §10)."""
 from __future__ import annotations
 
 import pathlib

@@ -1,4 +1,4 @@
-"""Candidate state: attempts, responses, grades (specs/APP.md §5).
+"""Candidate state: attempts, responses, grades (specs/TRAINER.md §5).
 
 The only SQLite in this project is the app's own, kept apart from `data/` so
 `mise run data` can never touch study history. Path is `ATTEMPTS_DB`, default
@@ -203,7 +203,7 @@ class Store:
 
     def clear_grade(self, attempt_id: str, question_id: int) -> None:
         """Used before a self-grade replaces per-item placeholder rows with
-        one aggregate verdict (specs/APP.md §7.3)."""
+        one aggregate verdict (specs/TRAINER.md §7.3)."""
         with self._connect() as con:
             con.execute("DELETE FROM grade WHERE attempt_id = ? AND question_id = ?",
                         (attempt_id, question_id))

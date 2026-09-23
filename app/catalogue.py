@@ -1,4 +1,4 @@
-"""In-memory catalogue (specs/APP.md §4).
+"""In-memory catalogue (specs/TRAINER.md §4).
 
 Loaded once at startup and held in memory: 509 questions is small enough that
 filtering by tag or section is a list comprehension, not a query layer.
@@ -16,7 +16,7 @@ ASSETS_DIR = ROOT / "data"
 TAGS = ("base", "novice", "harec")
 PART_NAMES = {"1": "technique", "2": "procedures", "3": "reglementation"}
 
-# specs/APP.md §2.2. The guide gives procedures/reglementation as ranges for
+# specs/TRAINER.md §2.2. The guide gives procedures/reglementation as ranges for
 # NOVICE/HAREC (12-15, 20-25); a single blueprint count is picked from the
 # middle of each so exam mode has a fixed length to sample.
 BLUEPRINT = {
@@ -35,7 +35,7 @@ def localized(value: dict, lang: str) -> list[dict]:
     """Render a bilingual cell for the requested language(s).
 
     `lang` is 'fr', 'de' or 'both'. A missing language falls back to whichever
-    exists (specs/APP.md §4.3) rather than showing a blank; `fallback` tells
+    exists (specs/TRAINER.md §4.3) rather than showing a blank; `fallback` tells
     the template to dim it, so the gap reads as a property of the source
     rather than a bug. Returns one entry per requested language.
     """
@@ -75,7 +75,7 @@ class Catalogue:
         return list(seen)
 
     def check_invariants(self) -> list[str]:
-        """Boot-time sanity checks (specs/APP.md §10). Non-empty means unfit to serve."""
+        """Boot-time sanity checks (specs/TRAINER.md §10). Non-empty means unfit to serve."""
         problems = []
         if len(self.questions) != 509:
             problems.append(f"expected 509 questions, loaded {len(self.questions)}")

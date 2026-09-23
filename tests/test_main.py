@@ -1,4 +1,4 @@
-"""Endpoint tests for the FastAPI app (specs/APP.md §6, §9): the routes
+"""Endpoint tests for the FastAPI app (specs/TRAINER.md §6, §9): the routes
 themselves, not the grading/session logic already covered elsewhere."""
 from __future__ import annotations
 
@@ -55,7 +55,7 @@ def test_mcq_answer_grades_correct_and_shows_in_results(client, store: Store):
 
 
 def test_open_answer_without_grader_is_self_graded(client, store: Store):
-    """No LLM configured (specs/APP.md §7.3): the answer is stored, no grade
+    """No LLM configured (specs/TRAINER.md §7.3): the answer is stored, no grade
     row appears yet, and the candidate's own verdict is what commits one."""
     attempt_id = _create_study_attempt(client)
     attempt = store.get_attempt(attempt_id)

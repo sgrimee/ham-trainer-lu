@@ -1,4 +1,4 @@
-"""The open-answer grader's prompt and response schema (specs/APP.md §7.2).
+"""The open-answer grader's prompt and response schema (specs/TRAINER.md §7.2).
 
 This module belongs to the application and is the single source of truth.
 `tests/eval_grader.py` imports it, so `mise run eval-grader` always measures the
@@ -7,7 +7,7 @@ the evaluation after every edit here: a prompt change that fixes one case
 routinely regresses another, which is how both rules below were found.
 
 Each numbered rule below earned its place by failing a golden case first; the
-comments say which, so nobody removes one as redundant. See specs/APP.md §8.2.
+comments say which, so nobody removes one as redundant. See specs/TRAINER.md §8.2.
 """
 
 SYSTEM = """You grade answers to the Luxembourg ILR amateur-radio examination.
@@ -61,7 +61,7 @@ SCHEMA = {
 def build_messages(lang: str, question: str, reference: str, candidate: str) -> list[dict]:
     """The exact user turn measured in tests/eval_grader.py -- do not reshape it
     without re-running that evaluation; a different message shape is a
-    different, unmeasured prompt (specs/APP.md §8.3)."""
+    different, unmeasured prompt (specs/TRAINER.md §8.3)."""
     return [
         {"role": "system", "content": SYSTEM},
         {"role": "user", "content": f'<question lang="{lang}">{question}</question>\n'
@@ -75,7 +75,7 @@ def request_body(model: str, lang: str, question: str, reference: str, candidate
     """The exact chat-completions body measured in tests/eval_grader.py.
 
     Not portable: the gpt-5 family rejects `temperature` outright and exposes
-    `reasoning_effort` instead (specs/APP.md §8.2), so `temperature` is omitted
+    `reasoning_effort` instead (specs/TRAINER.md §8.2), so `temperature` is omitted
     for that family rather than hard-coded.
     """
     body = {

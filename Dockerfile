@@ -1,9 +1,8 @@
-# The application and data/, nothing else (specs/APP.md §11.2). extract/ and
-# its PyMuPDF dependency never ship -- the image serves data/, it doesn't
-# rebuild it. reference/ does ship despite what that section says: the
-# question-to-guide links (app/templates/_feedback.html) serve those PDFs
-# straight from disk at /reference/<filename>, a feature added after §11.2
-# was written.
+# The application, data/ and the reference PDFs, nothing else (specs/TRAINER.md
+# §11.2). extract/ and its PyMuPDF dependency never ship -- the image serves
+# data/, it doesn't rebuild it. reference/ ships because the question-to-guide
+# links (app/templates/_feedback.html) serve those PDFs straight from disk at
+# /reference/<filename>.
 
 FROM python:3.13-slim AS builder
 
@@ -28,7 +27,7 @@ COPY reference/*.pdf reference/
 ENV PATH="/app/.venv/bin:${PATH}" \
     ATTEMPTS_DB=/var/lib/examen/attempts.db
 
-# The only writable state (specs/APP.md §5.1); owned by the user that runs
+# The only writable state (specs/TRAINER.md §5.1); owned by the user that runs
 # the process, which is what reliably breaks on first deploy otherwise.
 RUN mkdir -p /var/lib/examen && chown examen:examen /var/lib/examen
 VOLUME /var/lib/examen

@@ -1,4 +1,4 @@
-"""Unit tests for the scoring rules (specs/APP.md §2.3, §7.2)."""
+"""Unit tests for the scoring rules (specs/TRAINER.md §2.3, §7.2)."""
 from __future__ import annotations
 
 import pathlib
@@ -10,7 +10,7 @@ from app import scoring
 
 
 def test_question_weight_flat_split():
-    assert scoring.question_weight(8) == 7.5   # BASE part 3, specs/APP.md §2.2
+    assert scoring.question_weight(8) == 7.5   # BASE part 3, specs/TRAINER.md §2.2
     assert scoring.question_weight(60) == 1.0
 
 

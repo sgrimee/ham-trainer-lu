@@ -1,4 +1,4 @@
-"""UI chrome message catalogue (specs/APP.md §4.3).
+"""UI chrome message catalogue (specs/TRAINER.md §4.3).
 
 Kept flat and separate from the question language: a candidate reading
 questions in German still needs French menu labels to work, or vice versa,

@@ -1,4 +1,4 @@
-// Keyboard shortcuts for the question view (specs/APP.md §6.2):
+// Keyboard shortcuts for the question view (specs/TRAINER.md §6.2):
 // a-d pick an option, arrows navigate, f flags, enter checks/advances.
 document.addEventListener("keydown", (e) => {
   if (e.target.tagName === "TEXTAREA" || (e.target.tagName === "INPUT" && e.target.type === "text")) return;

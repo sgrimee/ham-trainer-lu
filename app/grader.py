@@ -1,4 +1,4 @@
-"""The open-answer grader: one seam, two paths (specs/APP.md §7.2-7.3).
+"""The open-answer grader: one seam, two paths (specs/TRAINER.md §7.2-7.3).
 
 `from_env()` returns an `LLMGrader` when a model is configured, or `None`
 otherwise -- "no key present" is a normal runtime state, not an error. `None`
@@ -35,7 +35,7 @@ def _normalise(text: str) -> str:
 
 
 def read_api_key() -> str | None:
-    """`LLM_API_KEY_FILE` wins over `LLM_API_KEY` (specs/APP.md §11.3)."""
+    """`LLM_API_KEY_FILE` wins over `LLM_API_KEY` (specs/TRAINER.md §11.3)."""
     key_file = os.environ.get("LLM_API_KEY_FILE")
     if key_file:
         return pathlib.Path(key_file).read_text().strip()
@@ -47,7 +47,7 @@ class LLMGrader:
 
     Holds a shared `httpx.AsyncClient` -- built once in the app's lifespan and
     handed in here, not one per call -- so a HAREC exam submission (dozens of
-    concurrent `grade()` calls, specs/APP.md §7.2) reuses connections instead
+    concurrent `grade()` calls, specs/TRAINER.md §7.2) reuses connections instead
     of paying a fresh TCP+TLS handshake per sub-item.
     """
 
@@ -58,7 +58,7 @@ class LLMGrader:
         self.model = model
         self.timeout = timeout
         self.client = client
-        # (question_id, model, normalised answer) -> result (specs/APP.md §7.2).
+        # (question_id, model, normalised answer) -> result (specs/TRAINER.md §7.2).
         # The pool is fixed and candidates repeat it, so this is most of the
         # spend avoided; process-lifetime is enough for a single-user app.
         self._cache: dict[tuple[int, str, str], GradeResult] = {}
@@ -69,7 +69,7 @@ class LLMGrader:
         if key in self._cache:
             return self._cache[key]
         # The candidate's text is untrusted input, delimited and never
-        # executed (specs/APP.md §7.2); `request_body` wraps it in <candidate>.
+        # executed (specs/TRAINER.md §7.2); `request_body` wraps it in <candidate>.
         body = request_body(self.model, lang, question, reference, candidate)
         resp = await self.client.post(
             f"{self.base_url}/chat/completions", json=body,
@@ -85,7 +85,7 @@ class LLMGrader:
 
 class SelfGrader:
     """No LLM in play: the candidate marks their own answer against the
-    reference (specs/APP.md §7.3). There is no `grade()` -- the UI shows the
+    reference (specs/TRAINER.md §7.3). There is no `grade()` -- the UI shows the
     reference answer and posts the candidate's verdict straight to this."""
 
     model = None
