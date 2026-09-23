@@ -49,6 +49,18 @@ description = "Build the container image (Dockerfile); the reference PDFs it cop
 depends = ["download-refs"]
 run = "docker build -t examen-ilr ."
 
+[tasks.serve-docker]
+description = "Build and run the container image at http://127.0.0.1:8000"
+depends = ["docker-build"]
+# The LLM_* names come from the environment mise loaded from .env (bare -e passes
+# them through when set). Attempts persist in the examen-ilr-data named volume.
+run = """
+docker run --rm -p 8000:8000 \
+  -e LLM_BASE_URL -e LLM_API_KEY -e LLM_MODEL \
+  -v examen-ilr-data:/var/lib/examen \
+  examen-ilr
+"""
+
 [tasks.eval-grader]
 description = "Score models against the golden grading cases -- run after any grader-prompt change"
 # Extra arguments are appended: `mise run eval-grader --runs 2 openai/gpt-5.1 <other>`.
