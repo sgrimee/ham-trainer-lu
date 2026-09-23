@@ -18,7 +18,21 @@ dependencies = [
 # The PDF pipeline. Needed to rebuild data/, never to serve it, so the container
 # image is built with `--no-group extract` and carries no PDF toolchain at all.
 extract = ["pymupdf>=1.24"]
-dev = ["pytest>=8.3"]
+dev = [
+    "pytest>=8.3",
+    "ruff>=0.16.8",
+    "ty>=0.0.83",
+]
 
 [tool.uv]
 default-groups = ["extract", "dev"]
+
+[tool.ruff]
+line-length = 110
+target-version = "py313"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+
+[tool.ty.environment]
+python-version = "3.13"

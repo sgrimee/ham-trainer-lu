@@ -27,8 +27,9 @@ HERE = pathlib.Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))          # the fixtures, alongside this file
 sys.path.insert(0, str(HERE.parent))   # the repo root, for the app package
 
-from app.grading_prompt import request_body   # the exact body the app itself sends
-from grading_fixtures import CASES
+from grading_fixtures import CASES  # noqa: E402
+
+from app.grading_prompt import request_body  # noqa: E402  (the exact body the app itself sends)
 
 OUT_DIR = HERE.parent / "var" / "eval"
 
@@ -64,6 +65,7 @@ def grade(model: str, case) -> dict:
                 time.sleep(10)
                 continue
             return {"case": cid, "error": str(e)[:200]}
+    raise AssertionError("unreachable: the last loop iteration always returns")
 
 
 def verdict(result: dict) -> tuple[str, float]:
@@ -111,7 +113,7 @@ def report(model: str, runs: list[dict[str, dict]]) -> dict:
     stable = drift = None
     if len(runs) > 1:
         pairs = [(verdict(a[c]), verdict(b[c]))
-                 for a, b in zip(runs, runs[1:]) for c in a
+                 for a, b in zip(runs, runs[1:], strict=False) for c in a
                  if "error" not in a[c] and "error" not in b[c]]
         stable = sum(x[0] == y[0] for x, y in pairs) / len(pairs) if pairs else 0
         drift = sum(abs(x[1] - y[1]) for x, y in pairs) / len(pairs) if pairs else 0

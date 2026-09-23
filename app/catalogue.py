@@ -5,11 +5,9 @@ filtering by tag or section is a list comprehension, not a query layer.
 """
 from __future__ import annotations
 
-import pathlib
-from dataclasses import dataclass
-from functools import lru_cache
-
 import json
+import pathlib
+from functools import lru_cache
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 QUESTIONS = ROOT / "data" / "questions.jsonl"
@@ -43,14 +41,14 @@ def localized(value: dict, lang: str) -> list[dict]:
     """
     langs = ("fr", "de") if lang == "both" else (lang,)
     out = []
-    for l in langs:
-        text = value.get(l)
+    for lg in langs:
+        text = value.get(lg)
         fallback = False
         if not text:
-            other = "de" if l == "fr" else "fr"
+            other = "de" if lg == "fr" else "fr"
             text = value.get(other, "")
             fallback = bool(text)
-        out.append({"lang": l, "text": text, "fallback": fallback})
+        out.append({"lang": lg, "text": text, "fallback": fallback})
     return out
 
 

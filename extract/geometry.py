@@ -9,8 +9,6 @@ from __future__ import annotations
 
 import re
 
-import pymupdf
-
 # ---------------------------------------------------------------- page bands
 FIRST_PAGE, LAST_PAGE = 5, 176      # 1-based inclusive; question body pages
 APPENDIX_FIRST = 177                # formula appendix, reference material
@@ -148,14 +146,14 @@ def iter_lines(doc, first=FIRST_PAGE, last=LAST_PAGE):
                 if not "".join(s["text"] for s in line["spans"]).strip():
                     continue
                 raw.append(Line(pno, line["bbox"], line["spans"]))
-        raw.sort(key=lambda l: (l.y, l.x))
+        raw.sort(key=lambda ln: (ln.y, ln.x))
         band, band_y = [], None
         for line in raw:
             if band_y is None or abs(line.y - band_y) <= 3.0:
                 band.append(line)
                 band_y = line.y if band_y is None else band_y
             else:
-                yield from sorted(band, key=lambda l: l.x)
+                yield from sorted(band, key=lambda ln: ln.x)
                 band, band_y = [line], line.y
         if band:
-            yield from sorted(band, key=lambda l: l.x)
+            yield from sorted(band, key=lambda ln: ln.x)

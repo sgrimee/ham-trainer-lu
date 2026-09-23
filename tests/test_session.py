@@ -18,12 +18,14 @@ class _MalformedGrader:
     `strict` on nested schemas, so this is a real, observed shape."""
 
     async def grade(self, **kwargs):
-        return GradeResult(elements=None, incorrect=[], comment="", source="llm", model="fake")
+        # Deliberately schema-violating, per the class docstring.
+        return GradeResult(elements=None, incorrect=[], comment="", source="llm",  # type: ignore
+                           model="fake")
 
 
 def test_malformed_grader_response_degrades_to_ungraded_instead_of_crashing():
     result = asyncio.run(_grade_open_item(
-        _MalformedGrader(), qid=442, lang="fr",
+        _MalformedGrader(), qid=442, lang="fr",  # type: ignore  (duck-typed grader, see above)
         question_text="Comment épelle-t-on le mot Barcelona ?",
         reference="BRAVO ALPHA ROMEO CHARLIE ECHO LIMA OSCAR NOVEMBER ALPHA",
         candidate="BRAVO ALPHA ROMEO CHARLIE ECHO LIMA OSCAR NOVEMBER ALPHA",

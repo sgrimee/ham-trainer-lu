@@ -10,6 +10,7 @@ import pathlib
 from urllib.parse import urlencode
 
 from fastapi import FastAPI, Form, HTTPException, Request
+from fastapi.datastructures import FormData
 from fastapi.responses import RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -77,9 +78,18 @@ def not_found(detail: str = "not found") -> HTTPException:
     return HTTPException(status_code=404, detail=detail)
 
 
+def form_str(form: FormData, key: str, default: str = "") -> str:
+    """A form field as text. `FormData.get` can also return `UploadFile` (for
+    a file input), which none of this app's fields are -- treat that case as
+    absent rather than letting `.strip()`/`.isdigit()` raise on it."""
+    value = form.get(key)
+    return value if isinstance(value, str) else default
+
+
 @app.get("/healthz")
 def healthz():
-    return {"status": "ok", "questions": len(cat.questions), "model": llm_grader.model if llm_grader else None}
+    return {"status": "ok", "questions": len(cat.questions),
+            "model": llm_grader.model if llm_grader else None}
 
 
 def _load_attempt_or_404(attempt_id: str) -> dict:
@@ -179,10 +189,10 @@ def create_attempt(tag: str = Form(...), mode: str = Form(...), lang: str = Form
                    shuffle_options: str = Form("")):
     if tag not in catalogue.TAGS:
         raise HTTPException(400, "unknown tag")
-    section = section or None
+    section_filter = section or None
     shuffle = shuffle_options == "on"
     if mode == "study":
-        question_ids = session.sample_study(cat, tag, section, count)
+        question_ids = session.sample_study(cat, tag, section_filter, count)
     elif mode == "exam":
         question_ids = session.sample_exam(cat, tag)
     else:
@@ -191,7 +201,7 @@ def create_attempt(tag: str = Form(...), mode: str = Form(...), lang: str = Form
         raise HTTPException(400, "no questions match that filter")
     option_order = session.build_option_order(cat, question_ids, shuffle)
     # sample_exam ignores section, so don't record one the exam never applied.
-    stored_section = section if mode == "study" else None
+    stored_section = section_filter if mode == "study" else None
     attempt_id = store.create_attempt(
         catalogue="ra-2024", tag=tag, mode=mode, lang=lang,
         spec={"section": stored_section, "shuffle_options": shuffle, "option_order": option_order},
@@ -270,7 +280,7 @@ async def submit_answer(request: Request, attempt_id: str, n: int):
     if q["kind"] == "mcq":
         answer = form.get("answer") or None
     else:
-        answer = {str(item["item_no"]): (form.get(f"item_{item['item_no']}") or "").strip()
+        answer = {str(item["item_no"]): form_str(form, f"item_{item['item_no']}").strip()
                  for item in q["answer"]}
     flagged = form.get("flag") == "on"
 
@@ -286,8 +296,8 @@ async def submit_answer(request: Request, attempt_id: str, n: int):
     if form.get("finish") == "1" and attempt["mode"] == "exam":
         await session.submit_exam(store, llm_grader, cat, attempt_id)
         return RedirectResponse(f"/attempts/{attempt_id}/results", status_code=303)
-    goto = form.get("goto")
-    if goto and goto.isdigit() and 1 <= int(goto) <= total:
+    goto = form_str(form, "goto")
+    if goto.isdigit() and 1 <= int(goto) <= total:
         return RedirectResponse(f"/attempts/{attempt_id}/q/{goto}", status_code=303)
     return RedirectResponse(f"/attempts/{attempt_id}/q/{n}?saved=1", status_code=303)
 

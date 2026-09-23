@@ -9,10 +9,9 @@ import asyncio
 import random
 
 from . import scoring
-from .catalogue import Catalogue, BLUEPRINT, part_of, localized
-from .grader import GradeResult, LLMGrader, SelfGrader
+from .catalogue import BLUEPRINT, Catalogue, localized, part_of
+from .grader import LLMGrader, SelfGrader
 from .store import Store
-
 
 # -- sampling (specs/APP.md §6.1, §2.2) --------------------------------------
 
@@ -80,9 +79,9 @@ def localize_question(q: dict, lang: str, option_order: list[str] | None) -> dic
         letters = option_order or list(by_letter)
         asset_by_letter = {a["option_letter"]: a for a in q["assets"] if a["option_letter"]}
         out["options"] = [
-            {"letter": l, "cells": localized(by_letter[l]["text"], lang),
-             "asset": asset_by_letter.get(l)}
-            for l in letters
+            {"letter": letter, "cells": localized(by_letter[letter]["text"], lang),
+             "asset": asset_by_letter.get(letter)}
+            for letter in letters
         ]
     else:
         # Not "items": a plain dict's own .items() method would shadow the
@@ -189,7 +188,7 @@ async def grade_open_question(grader: LLMGrader | None, q: dict, lang: str,
         tasks.append(_grade_open_item(grader, q["id"], lang, question_text, reference,
                                       candidate, item_weight))
     results = await asyncio.gather(*tasks)
-    return list(zip(items, results))
+    return list(zip(items, results, strict=True))
 
 
 async def grade_study_answer(store: Store, grader: LLMGrader | None, cat: Catalogue,
@@ -228,6 +227,7 @@ async def submit_exam(store: Store, grader: LLMGrader | None, cat: Catalogue,
     across the whole paper (specs/APP.md §7.2) -- serial calls on a 100-item
     HAREC sitting would take minutes."""
     attempt = store.get_attempt(attempt_id)
+    assert attempt is not None, "caller already validated attempt_id (main._load_attempt_or_404)"
     responses = store.responses(attempt_id)
     counts = part_counts_for_ids(cat, attempt["question_ids"])
     open_tasks, open_qids = [], []
@@ -244,7 +244,7 @@ async def submit_exam(store: Store, grader: LLMGrader | None, cat: Catalogue,
             open_tasks.append(grade_open_question(grader, q, attempt["lang"], weight, answer))
             open_qids.append(qid)
     if open_tasks:
-        for qid, pairs in zip(open_qids, await asyncio.gather(*open_tasks)):
+        for qid, pairs in zip(open_qids, await asyncio.gather(*open_tasks), strict=True):
             for item, result in pairs:
                 if result is None:
                     store.put_grade(attempt_id, qid, item["item_no"], verdict="ungraded",

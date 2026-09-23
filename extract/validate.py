@@ -21,8 +21,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 import pymupdf
-
-from geometry import FIRST_PAGE, LAST_PAGE, FOOTER_Y, map_symbols
+from geometry import FIRST_PAGE, FOOTER_Y, LAST_PAGE, map_symbols
 
 ROOT = Path(__file__).resolve().parent.parent
 PDF = ROOT / "reference" / "ilr-fre-cat_202402-Catalogue-de-questions-dexamen-RA-_-Edition-2024.pdf"
@@ -79,7 +78,7 @@ def strings_of(row):
 
 
 def main():
-    rows = [json.loads(l) for l in (DATA / "questions.jsonl").open(encoding="utf-8")]
+    rows = [json.loads(line) for line in (DATA / "questions.jsonl").open(encoding="utf-8")]
     doc = pymupdf.open(PDF)
 
     # --- structure -------------------------------------------------------

@@ -40,11 +40,15 @@ CASES = [
   "Die Zertifikate sind : das Grundzertifikat, das NOVICE-Zertifikat und HAREC-Zertifikat.",
   "Grundzertifikat, NOVICE und HAREC","correct",None,"German, all three"),
 
- ("465-THREE","fr","Énumérez trois bandes de fréquences à utilisation primaires en dessous de 30MHz pour le service radioamateur !",
+ ("465-THREE","fr",
+  "Énumérez trois bandes de fréquences à utilisation primaires en dessous de 30MHz "
+  "pour le service radioamateur !",
   "7000 – 7100kHz 14000 – 14250kHz 21000 – 21450kHz 24890 – 24990kHz 28000 – 29700kHz",
   "7000-7100 kHz, 14000-14250 kHz et 21000-21450 kHz","correct",None,
   "OVER-STRICTNESS TEST: question asks for three; reference lists five. Naive element-counting gives 60%."),
- ("465-TRAP","fr","Énumérez trois bandes de fréquences à utilisation primaires en dessous de 30MHz pour le service radioamateur !",
+ ("465-TRAP","fr",
+  "Énumérez trois bandes de fréquences à utilisation primaires en dessous de 30MHz "
+  "pour le service radioamateur !",
   "7000 – 7100kHz 14000 – 14250kHz 21000 – 21450kHz 24890 – 24990kHz 28000 – 29700kHz",
   "7000-7100 kHz, 14000-14250 kHz et la bande CB 26965-27405 kHz","partial","CB",
   "two valid, third is Citizens Band, not an amateur allocation"),

@@ -42,7 +42,8 @@ def test_verdict_partial_and_incorrect():
 
 
 def test_exam_outcome_pass():
-    parts = {p: scoring.PartResult(name=p, points=40.0) for p in ("technique", "procedures", "reglementation")}
+    parts = {p: scoring.PartResult(name=p, points=40.0)
+             for p in ("technique", "procedures", "reglementation")}
     assert scoring.ExamResult(parts=parts).outcome == "pass"
 
 

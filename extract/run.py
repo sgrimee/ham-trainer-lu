@@ -15,9 +15,8 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-import pymupdf
-
 import figures
+import pymupdf
 from assemble import CATALOGUE, TAG_ORDER, assemble, by_lang, split_cell
 
 ROOT = Path(__file__).resolve().parent.parent

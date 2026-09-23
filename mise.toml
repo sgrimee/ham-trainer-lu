@@ -51,6 +51,13 @@ run = "uv run python tests/eval_grader.py"
 description = "Run the test suite"
 run = "uv run pytest"
 
+[tasks.lint]
+description = "Ruff lint + ty type check"
+run = [
+  "uv run ruff check .",
+  "uv run ty check .",
+]
+
 [tasks.serve]
 description = "Run the training application (specs/APP.md §3)"
 run = "uv run uvicorn app.main:app --reload"

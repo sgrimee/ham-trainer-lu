@@ -48,7 +48,7 @@ def extract(doc, questions, out_dir):
         placements.sort()
 
         marks = anchors.get(pno, [])
-        for y0, rect, xref in placements:
+        for _y0, rect, xref in placements:
             centre = (rect.y0 + rect.y1) / 2
             owner = None
             for mark in marks:

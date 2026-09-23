@@ -10,7 +10,7 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass, field
 
-from geometry import OPT_RE, QSTART_RE, SECTION_RE, iter_lines
+from geometry import OPT_RE, QSTART_RE, SECTION_RE, Line, iter_lines
 
 CATALOGUE = "ra-2024"
 TAG_ORDER = ("base", "novice", "harec")
@@ -22,7 +22,7 @@ def join_lines(lines) -> str:
     A soft wrap in the PDF renders as a word gap, so lines join with a single
     space. Words are never altered; only wrap whitespace is normalised.
     """
-    parts = [l.text.strip() for l in lines]
+    parts = [ln.text.strip() for ln in lines]
     return " ".join(p for p in parts if p)
 
 
@@ -56,14 +56,14 @@ def split_cell(lines):
     """
     if not lines:
         return [], [], None
-    voting = [(i, l) for i, l in enumerate(lines) if _has_text(l)]
-    if any(l.lang == "de" for _, l in voting):
+    voting = [(i, ln) for i, ln in enumerate(lines) if _has_text(ln)]
+    if any(ln.lang == "de" for _, ln in voting):
         # Normal case: the German half is italicised. Pick the boundary that
         # best separates roman-before from italic-after.
         best, best_k = None, len(lines)
         for k in range(len(lines) + 1):
-            score = (sum(1 for i, l in voting if i < k and l.lang == "fr")
-                     + sum(1 for i, l in voting if i >= k and l.lang == "de"))
+            score = (sum(1 for i, ln in voting if i < k and ln.lang == "fr")
+                     + sum(1 for i, ln in voting if i >= k and ln.lang == "de"))
             if best is None or score > best:
                 best, best_k = score, k
         return lines[:best_k], lines[best_k:], None
@@ -77,7 +77,7 @@ def split_cell(lines):
     # do not occur in French.
     for i, line in enumerate(lines):
         if i and DE_WORDS.search(line.text):
-            rest = " ".join(l.text for l in lines[i:])
+            rest = " ".join(ln.text for ln in lines[i:])
             if len(DE_WORDS.findall(rest)) >= 2:
                 best_k = i
             break
@@ -132,14 +132,14 @@ def lang_runs(lines):
     Lines with no language of their own (symbol-only) attach to the run in
     progress rather than starting one.
     """
-    runs = []
+    runs: list[tuple[str, list[Line]]] = []
     for line in lines:
         if line.lang is None and runs:
             runs[-1][1].append(line)
         elif runs and runs[-1][0] == line.lang:
             runs[-1][1].append(line)
         else:
-            runs.append([line.lang or "fr", [line]])
+            runs.append((line.lang or "fr", [line]))
     return runs
 
 
@@ -160,7 +160,7 @@ def parse_answer(lines):
 
 def columns(lines, tol=5.0):
     """Cluster lines into x-columns."""
-    cols = {}
+    cols: dict[float, list[Line]] = {}
     for line in lines:
         for x in cols:
             if abs(line.x - x) <= tol:
@@ -187,13 +187,16 @@ def as_table(lines):
     cols = columns(lines)
     if len(cols) != 2:
         return None
-    labels, bodies = sorted(cols.values(), key=len)
+    by_size: list[list[Line]] = sorted(cols.values(), key=lambda c: len(c))
+    labels, bodies = by_size[0], by_size[1]
     if len(labels) < 2 or len(bodies) != 2 * len(labels):
         return None
-    labels.sort(key=lambda l: l.y)
-    buckets = {id(l): [] for l in labels}
+    labels.sort(key=lambda lab: lab.y)
+    buckets = {id(lab): [] for lab in labels}
     for line in bodies:
-        buckets[id(min(labels, key=lambda L: abs(L.y - line.y)))].append(line)
+        def _distance(lab: Line, target: Line = line) -> float:
+            return abs(lab.y - target.y)
+        buckets[id(min(labels, key=_distance))].append(line)
     if any(len(v) != 2 for v in buckets.values()):
         return None
     return [
@@ -204,7 +207,7 @@ def as_table(lines):
 
 def parse_heading(lines):
     """A section heading: number, then 'French title / German title'."""
-    text = " ".join(l.text.strip() for l in lines if l.text.strip())
+    text = " ".join(ln.text.strip() for ln in lines if ln.text.strip())
     m = SECTION_RE.match(text)
     if not m:
         return None
@@ -246,6 +249,7 @@ def assemble(doc):
 
         elif line.kind == "qstart":
             m = QSTART_RE.match(line.text.strip())
+            assert m is not None, "line.kind == 'qstart' was classified against this same regex"
             if pending_tag is None:
                 raise ValueError(f"question {m.group(1)} on page {line.page} has no tag line")
             q = Question(
@@ -269,8 +273,9 @@ def assemble(doc):
         elif line.kind == "option":
             if q is None:
                 raise ValueError(f"option on page {line.page} before any question")
-            opt = Option(letter=OPT_RE.match(line.text.strip()).group(1),
-                         y=line.y, page=line.page)
+            opt_m = OPT_RE.match(line.text.strip())
+            assert opt_m is not None, "line.kind == 'option' was classified against this same regex"
+            opt = Option(letter=opt_m.group(1), y=line.y, page=line.page)
             q.options.append(opt)
             cell = opt.lines
 
@@ -301,7 +306,7 @@ def rebalance_options(q: Question):
     for i, opt in enumerate(q.options[:-1]):
         runs = lang_runs(opt.lines)
         if len(runs) >= 3 and runs[-1][0] == "fr" and any(r[0] == "de" for r in runs[:-1]):
-            opt.lines = [l for r in runs[:-1] for l in r[1]]
+            opt.lines = [ln for r in runs[:-1] for ln in r[1]]
             q.options[i + 1].lines = runs[-1][1] + q.options[i + 1].lines
             q.notes.append(f"option {q.options[i + 1].letter}: text precedes its letter in the PDF")
 
@@ -330,7 +335,7 @@ def finish(q: Question):
         # French lead-in in italics) is still an answer, and its column says so.
         head, tail = _stem_head(runs[1][1])
         stem_lines = runs[0][1] + head
-        answer_lines = tail + [l for r in runs[2:] for l in r[1]]
+        answer_lines = tail + [ln for r in runs[2:] for ln in r[1]]
     elif len(runs) == 2 and runs[1][0] == "de":
         stem_lines, answer_lines = runs[0][1] + runs[1][1], []
         q.notes.append("no answer text found")
