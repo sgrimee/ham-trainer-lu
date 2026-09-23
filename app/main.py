@@ -11,7 +11,7 @@ from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from urllib.parse import urlencode
 
-import httpx
+import httpx2 as httpx
 from fastapi import Depends, FastAPI, Form, HTTPException, Request
 from fastapi.datastructures import FormData
 from fastapi.responses import RedirectResponse

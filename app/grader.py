@@ -14,7 +14,7 @@ import pathlib
 import re
 from dataclasses import dataclass
 
-import httpx
+import httpx2 as httpx
 
 from .grading_prompt import request_body
 
