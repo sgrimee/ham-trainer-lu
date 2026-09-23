@@ -43,13 +43,21 @@ def read_api_key() -> str | None:
 
 
 class LLMGrader:
-    """Grades via an OpenAI-compatible chat-completions endpoint."""
+    """Grades via an OpenAI-compatible chat-completions endpoint.
 
-    def __init__(self, base_url: str, api_key: str, model: str, timeout: float):
+    Holds a shared `httpx.AsyncClient` -- built once in the app's lifespan and
+    handed in here, not one per call -- so a HAREC exam submission (dozens of
+    concurrent `grade()` calls, specs/APP.md §7.2) reuses connections instead
+    of paying a fresh TCP+TLS handshake per sub-item.
+    """
+
+    def __init__(self, base_url: str, api_key: str, model: str, timeout: float,
+                 client: httpx.AsyncClient):
         self.base_url = base_url.rstrip("/")
         self.api_key = api_key
         self.model = model
         self.timeout = timeout
+        self.client = client
         # (question_id, model, normalised answer) -> result (specs/APP.md §7.2).
         # The pool is fixed and candidates repeat it, so this is most of the
         # spend avoided; process-lifetime is enough for a single-user app.
@@ -63,10 +71,9 @@ class LLMGrader:
         # The candidate's text is untrusted input, delimited and never
         # executed (specs/APP.md §7.2); `request_body` wraps it in <candidate>.
         body = request_body(self.model, lang, question, reference, candidate)
-        async with httpx.AsyncClient(timeout=self.timeout) as client:
-            resp = await client.post(
-                f"{self.base_url}/chat/completions", json=body,
-                headers={"Authorization": f"Bearer {self.api_key}"})
+        resp = await self.client.post(
+            f"{self.base_url}/chat/completions", json=body,
+            headers={"Authorization": f"Bearer {self.api_key}"}, timeout=self.timeout)
         resp.raise_for_status()
         content = resp.json()["choices"][0]["message"]["content"]
         parsed = json.loads(content)
@@ -90,11 +97,11 @@ class SelfGrader:
             incorrect=[], comment="", source="self", model=None)
 
 
-def from_env() -> LLMGrader | None:
+def from_env(client: httpx.AsyncClient) -> LLMGrader | None:
     base_url = os.environ.get("LLM_BASE_URL")
     model = os.environ.get("LLM_MODEL")
     api_key = read_api_key()
     if not (base_url and model and api_key):
         return None
     timeout = float(os.environ.get("LLM_TIMEOUT_S", "30"))
-    return LLMGrader(base_url, api_key, model, timeout)
+    return LLMGrader(base_url, api_key, model, timeout, client)

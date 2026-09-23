@@ -7,9 +7,12 @@ from __future__ import annotations
 
 import json
 import pathlib
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
 from urllib.parse import urlencode
 
-from fastapi import FastAPI, Form, HTTPException, Request
+import httpx
+from fastapi import Depends, FastAPI, Form, HTTPException, Request
 from fastapi.datastructures import FormData
 from fastapi.responses import RedirectResponse
 from fastapi.staticfiles import StaticFiles
@@ -18,26 +21,46 @@ from fastapi.templating import Jinja2Templates
 from . import annotations as annotations_module
 from . import catalogue, grader, scoring, session
 from .catalogue import BLUEPRINT
+from .grader import LLMGrader
 from .i18n import t
 from .store import Store
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
+cat = catalogue.load()
 
-app = FastAPI(title="ILR exam trainer")
+
+@asynccontextmanager
+async def lifespan(app: FastAPI) -> AsyncIterator[None]:
+    problems = cat.check_invariants()
+    if problems:
+        raise RuntimeError("catalogue failed boot invariants:\n" + "\n".join(problems))
+    async with httpx.AsyncClient() as client:
+        app.state.store = Store()
+        app.state.llm_grader = grader.from_env(client)
+        # Jinja2's Environment.globals is typed to its own built-ins (range,
+        # dict, ...); a custom key is a legitimate use the stubs don't model.
+        templates.env.globals["grader_available"] = app.state.llm_grader is not None  # type: ignore
+        yield
+
+
+app = FastAPI(title="ILR exam trainer", lifespan=lifespan)
 app.mount("/data", StaticFiles(directory=ROOT / "data"), name="data")
 app.mount("/static", StaticFiles(directory=ROOT / "app" / "static"), name="static")
 app.mount("/reference", StaticFiles(directory=ROOT / "reference"), name="reference")
 templates = Jinja2Templates(directory=ROOT / "app" / "templates")
-templates.env.globals["t"] = t
-
-cat = catalogue.load()
-store = Store()
-llm_grader = grader.from_env()
-templates.env.globals["grader_available"] = llm_grader is not None
-templates.env.globals["doc_files"] = annotations_module.documents()
+templates.env.globals["t"] = t  # type: ignore
+templates.env.globals["doc_files"] = annotations_module.documents()  # type: ignore
 
 PREFS_COOKIE = "ilr_session_prefs"
 GITHUB_REPO = "sgrimee/ham-trainer-lu"
+
+
+def get_store(request: Request) -> Store:
+    return request.app.state.store
+
+
+def get_llm_grader(request: Request) -> LLMGrader | None:
+    return request.app.state.llm_grader
 
 
 def report_issue_url(request: Request, q: dict | None = None, attempt: dict | None = None,
@@ -60,14 +83,7 @@ def report_issue_url(request: Request, q: dict | None = None, attempt: dict | No
     return f"https://github.com/{GITHUB_REPO}/issues/new?{urlencode(params)}"
 
 
-templates.env.globals["report_issue_url"] = report_issue_url
-
-
-@app.on_event("startup")
-def _check_catalogue() -> None:
-    problems = cat.check_invariants()
-    if problems:
-        raise RuntimeError("catalogue failed boot invariants:\n" + "\n".join(problems))
+templates.env.globals["report_issue_url"] = report_issue_url  # type: ignore
 
 
 def ui_lang(lang: str) -> str:
@@ -87,12 +103,12 @@ def form_str(form: FormData, key: str, default: str = "") -> str:
 
 
 @app.get("/healthz")
-def healthz():
+def healthz(llm_grader: LLMGrader | None = Depends(get_llm_grader)):
     return {"status": "ok", "questions": len(cat.questions),
             "model": llm_grader.model if llm_grader else None}
 
 
-def _load_attempt_or_404(attempt_id: str) -> dict:
+def _load_attempt_or_404(store: Store, attempt_id: str) -> dict:
     attempt = store.get_attempt(attempt_id)
     if attempt is None:
         raise not_found("no such attempt")
@@ -163,7 +179,7 @@ def _read_prefs(request: Request) -> dict:
 # -- home: pick a session, or resume one -------------------------------------
 
 @app.get("/")
-def home(request: Request, lang: str = "fr"):
+def home(request: Request, lang: str = "fr", store: Store = Depends(get_store)):
     ui = ui_lang(lang)
     section_names = _section_labels(ui)
     resumes = []
@@ -186,7 +202,7 @@ def home(request: Request, lang: str = "fr"):
 @app.post("/attempts")
 def create_attempt(tag: str = Form(...), mode: str = Form(...), lang: str = Form(...),
                    section: str = Form(""), count: str = Form("all"),
-                   shuffle_options: str = Form("")):
+                   shuffle_options: str = Form(""), store: Store = Depends(get_store)):
     if tag not in catalogue.TAGS:
         raise HTTPException(400, "unknown tag")
     section_filter = section or None
@@ -217,8 +233,8 @@ def create_attempt(tag: str = Form(...), mode: str = Form(...), lang: str = Form
 # -- one question -------------------------------------------------------------
 
 @app.get("/attempts/{attempt_id}/q/{n}")
-def show_question(request: Request, attempt_id: str, n: int):
-    attempt = _load_attempt_or_404(attempt_id)
+def show_question(request: Request, attempt_id: str, n: int, store: Store = Depends(get_store)):
+    attempt = _load_attempt_or_404(store, attempt_id)
     total = len(attempt["question_ids"])
     if not 1 <= n <= total:
         raise not_found("no such question in this attempt")
@@ -263,8 +279,10 @@ def show_question(request: Request, attempt_id: str, n: int):
 
 
 @app.post("/attempts/{attempt_id}/q/{n}/answer")
-async def submit_answer(request: Request, attempt_id: str, n: int):
-    attempt = _load_attempt_or_404(attempt_id)
+async def submit_answer(request: Request, attempt_id: str, n: int,
+                        store: Store = Depends(get_store),
+                        llm_grader: LLMGrader | None = Depends(get_llm_grader)):
+    attempt = _load_attempt_or_404(store, attempt_id)
     total = len(attempt["question_ids"])
     if not 1 <= n <= total:
         raise not_found("no such question in this attempt")
@@ -303,8 +321,11 @@ async def submit_answer(request: Request, attempt_id: str, n: int):
 
 
 @app.post("/attempts/{attempt_id}/q/{n}/flag")
-async def toggle_flag(request: Request, attempt_id: str, n: int):
-    attempt = _load_attempt_or_404(attempt_id)
+async def toggle_flag(request: Request, attempt_id: str, n: int,
+                      store: Store = Depends(get_store)):
+    attempt = _load_attempt_or_404(store, attempt_id)
+    if not 1 <= n <= len(attempt["question_ids"]):
+        raise not_found("no such question in this attempt")
     qid = attempt["question_ids"][n - 1]
     form = await request.form()
     store.set_flag(attempt_id, qid, form.get("flagged") == "1")
@@ -312,8 +333,9 @@ async def toggle_flag(request: Request, attempt_id: str, n: int):
 
 
 @app.post("/attempts/{attempt_id}/questions/{qid}/self-grade")
-async def self_grade(request: Request, attempt_id: str, qid: int):
-    attempt = _load_attempt_or_404(attempt_id)
+async def self_grade(request: Request, attempt_id: str, qid: int,
+                     store: Store = Depends(get_store)):
+    attempt = _load_attempt_or_404(store, attempt_id)
     if qid not in attempt["question_ids"]:
         raise not_found("no such question in this attempt")
     form = await request.form()
@@ -329,8 +351,9 @@ async def self_grade(request: Request, attempt_id: str, qid: int):
 
 
 @app.post("/attempts/{attempt_id}/submit")
-async def submit_exam(attempt_id: str):
-    attempt = _load_attempt_or_404(attempt_id)
+async def submit_exam(attempt_id: str, store: Store = Depends(get_store),
+                      llm_grader: LLMGrader | None = Depends(get_llm_grader)):
+    attempt = _load_attempt_or_404(store, attempt_id)
     if attempt["mode"] != "exam":
         raise HTTPException(400, "only exam attempts are submitted")
     if not attempt["submitted_at"]:
@@ -341,8 +364,8 @@ async def submit_exam(attempt_id: str):
 # -- results and review (specs/APP.md §9) ------------------------------------
 
 @app.get("/attempts/{attempt_id}/results")
-def results(request: Request, attempt_id: str):
-    attempt = _load_attempt_or_404(attempt_id)
+def results(request: Request, attempt_id: str, store: Store = Depends(get_store)):
+    attempt = _load_attempt_or_404(store, attempt_id)
     ann = annotations_module.load()
     grades = store.grades(attempt_id)
     responses = store.responses(attempt_id)
@@ -381,8 +404,8 @@ def results(request: Request, attempt_id: str):
 
 
 @app.post("/attempts/{attempt_id}/retry-wrong")
-def retry_wrong(attempt_id: str):
-    attempt = _load_attempt_or_404(attempt_id)
+def retry_wrong(attempt_id: str, store: Store = Depends(get_store)):
+    attempt = _load_attempt_or_404(store, attempt_id)
     ids = session.wrong_question_ids(store, attempt)
     if not ids:
         return RedirectResponse(f"/attempts/{attempt_id}/results", status_code=303)
@@ -396,8 +419,8 @@ def retry_wrong(attempt_id: str):
 
 
 @app.post("/attempts/{attempt_id}/delete")
-def delete_attempt(attempt_id: str, lang: str = Form("fr")):
-    _load_attempt_or_404(attempt_id)
+def delete_attempt(attempt_id: str, lang: str = Form("fr"), store: Store = Depends(get_store)):
+    _load_attempt_or_404(store, attempt_id)
     store.delete_attempt(attempt_id)
     return RedirectResponse(f"/?lang={ui_lang(lang)}", status_code=303)
 

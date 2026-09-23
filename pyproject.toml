@@ -34,5 +34,9 @@ target-version = "py313"
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B"]
 
+[tool.ruff.lint.flake8-bugbear]
+# FastAPI's DI idiom: `param: X = Depends(...)` calls Depends() in the default.
+extend-immutable-calls = ["fastapi.Depends"]
+
 [tool.ty.environment]
 python-version = "3.13"
