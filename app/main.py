@@ -6,6 +6,7 @@ One FastAPI process, server-rendered templates, no build step. Run with
 from __future__ import annotations
 
 import json
+import logging
 import pathlib
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
@@ -20,6 +21,7 @@ from fastapi.templating import Jinja2Templates
 
 from . import annotations as annotations_module
 from . import catalogue, grader, scoring, session
+from . import course as course_module
 from .catalogue import BLUEPRINT
 from .grader import LLMGrader
 from .i18n import t
@@ -27,6 +29,7 @@ from .store import Store
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 cat = catalogue.load()
+log = logging.getLogger(__name__)
 
 
 @asynccontextmanager
@@ -34,6 +37,14 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     problems = cat.check_invariants()
     if problems:
         raise RuntimeError("catalogue failed boot invariants:\n" + "\n".join(problems))
+    # specs/LEARN.md §3.2: the container never runs `mise run verify`, so a
+    # half-valid course must fail the deploy here rather than render as a
+    # broken page in front of a learner.
+    course_problems = course_module.validate(questions=cat.questions)
+    if course_problems:
+        for p in course_problems:
+            log.error("course: %s", p)
+        raise course_module.CourseError(course_problems)
     async with httpx.AsyncClient() as client:
         app.state.store = Store()
         app.state.llm_grader = grader.from_env(client)

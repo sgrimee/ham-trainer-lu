@@ -28,11 +28,12 @@ depends = ["download-refs"]
 run = "uv run python extract/appendix.py"
 
 [tasks.verify]
-description = "Run every validation gate: the extraction round trip, then the curated annotations"
+description = "Run every validation gate: the extraction round trip, the curated annotations, then the course"
 depends = ["download-refs"]   # validate.py re-reads the catalogue PDF
 run = [
   "uv run python extract/validate.py",
   "uv run python -m app.annotations",
+  "uv run python -m app.course",
 ]
 
 [tasks.data]
@@ -43,6 +44,10 @@ run = "mise run verify"
 [tasks.download-refs]
 description = "Download reference PDFs listed in reference/documents.yaml (skips files already present)"
 run = "./scripts/download-refs.sh"
+
+[tasks.course-report]
+description = "Validate the course and print its authoring review report (specs/LEARN.md §3.2)"
+run = "uv run python -m app.course --report"
 
 [tasks.docker-build]
 description = "Build the container image (Dockerfile); the reference PDFs it copies are downloaded first"
