@@ -43,15 +43,6 @@
       <p class="hint" style="text-align: left; margin: 0.3rem 0 0;">{{ t(ui, 'exam_sessions_note') }}</p>
     </fieldset>
 
-    <fieldset>
-      <legend>{{ t(ui, 'choose_language') }}</legend>
-      <select name="lang">
-        <option value="fr" {% if prefs.lang == 'fr' %}selected{% endif %}>{{ t(ui, 'lang_fr') }}</option>
-        <option value="de" {% if prefs.lang == 'de' %}selected{% endif %}>{{ t(ui, 'lang_de') }}</option>
-        <option value="both" {% if prefs.lang == 'both' %}selected{% endif %}>{{ t(ui, 'lang_both') }}</option>
-      </select>
-    </fieldset>
-
     <fieldset id="study-only">
       <legend>{{ t(ui, 'choose_section') }}</legend>
       <select name="section">
@@ -69,6 +60,15 @@
       <label>{{ t(ui, 'question_count') }}
         <input type="text" name="count" value="{{ prefs.count }}" size="4">
       </label>
+    </fieldset>
+
+    <fieldset>
+      <legend>{{ t(ui, 'choose_language') }}</legend>
+      <select name="lang">
+        <option value="fr" {% if prefs.lang == 'fr' %}selected{% endif %}>{{ t(ui, 'lang_fr') }}</option>
+        <option value="de" {% if prefs.lang == 'de' %}selected{% endif %}>{{ t(ui, 'lang_de') }}</option>
+        <option value="both" {% if prefs.lang == 'both' %}selected{% endif %}>{{ t(ui, 'lang_both') }}</option>
+      </select>
     </fieldset>
 
     <label class="choice">

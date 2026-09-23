@@ -24,3 +24,16 @@ document.addEventListener("keydown", (e) => {
     if (form) form.requestSubmit();
   }
 });
+
+// The section/count choice only applies to study mode -- sample_exam always
+// draws from the full question pool, so hide it once "exam" is selected.
+const modeRadios = document.querySelectorAll('#new-session input[name=mode]');
+const studyOnly = document.getElementById("study-only");
+if (modeRadios.length && studyOnly) {
+  const syncStudyOnly = () => {
+    const checked = document.querySelector('#new-session input[name=mode]:checked');
+    studyOnly.hidden = !!checked && checked.value !== "study";
+  };
+  modeRadios.forEach((r) => r.addEventListener("change", syncStudyOnly));
+  syncStudyOnly();
+}
