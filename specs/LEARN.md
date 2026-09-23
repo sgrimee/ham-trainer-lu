@@ -40,10 +40,12 @@ regulatory text into something more digestible than a PDF, the way this plan
 does for section 1's missing textbook) is plausible future work and is why §10
 reserves the URL space for it now rather than assuming section 1 is the only
 part that ever gets one. Rewriting the exam trainer itself is also out of
-scope, with two exceptions: the identity §6 designs for both apps to share,
-and moving the MCQ options markup out of `question.html` into a shared macro
-so both apps render it (§5). The exam trainer's behaviour must not change
-with that refactor; its existing tests are the check.
+scope, with three exceptions: the identity §6 designs for both apps to share;
+moving the MCQ options markup out of `question.html` into a shared macro
+so both apps render it (§5); and a new landing page at `/` that introduces
+both apps, which moves the exam trainer's home to `/exam` (§10.1). The exam
+trainer's behaviour must not change with these; its existing tests are the
+check, with the one home-page test pointed at `/exam` instead of `/`.
 
 **Deferred, not out of scope:** German translation of the course prose
 (§4.3 fixes the mechanism, but only French is written first); the gamification
@@ -61,7 +63,8 @@ figures at all".) Two consequences:
   belongs on this path — say so explicitly, so nobody wires the grader in
   later "for consistency" with the exam trainer. It also means practice works
   fully offline and instantly, no spinner, no timeout, no cache.
-- **Feedback is just right or wrong** — there is no rubric to render, no
+- **Feedback is right or wrong**, plus at most a short hand-written note
+  once the question is answered (§4.4) — there is no rubric to render, no
   element list, no grader comment. Simpler than the exam trainer's
   open-question feedback, not a subset of it.
 
@@ -113,8 +116,9 @@ A module is an ordered list of **steps**. Each step is one page with one
   (possibly empty): lessons build on earlier concepts too, and the same rule
   applies to them.
 - **`practice`** — one catalogue question. Declares `question_id` (never
-  question text — see §4.1) and a non-empty `requires`. It has no prose of its
-  own and no slug of its own: its address is `q<question_id>`.
+  question text — see §4.1) and a non-empty `requires`. It has no slug of its
+  own: its address is `q<question_id>`. Its only prose is an optional
+  answer note (§4.4), shown once the question is answered.
 - **`learn-more`** — the curated links that close every module (§4.2.1).
   Introduces and requires nothing.
 
@@ -178,11 +182,19 @@ checks:
 6. **Module shape.** Every module has at least one practice step and ends
    with exactly one `learn-more` step, which appears nowhere else.
 7. **Files.** Every lesson and learn-more step has its `.fr.md` file (§4.1);
-   no Markdown file under `data/course/base/` is left without a step;
+   an answer note `q<id>.fr.md` (§4.4) is optional but, when present, sits in
+   the module that holds practice step `q<id>`; no Markdown file under
+   `data/course/base/` is left without a step;
    frontmatter carries only known keys; every URL is well-formed; every image
-   a lesson references exists on disk. A module's `.de.md` files exist for
-   all of its lesson and learn-more steps (plus a `de` module title) or for
-   none (§4.3).
+   a lesson references exists on disk and is written as a bare filename
+   (§4.2). A module's `.de.md` files exist for all of its lesson, learn-more
+   and answer-note files (plus a `de` module title) or for none (§4.3).
+
+**At startup the app runs the same checks and refuses to start** if any
+fails, logging every problem. The container never runs `mise run verify`,
+and a half-valid course (a practice step pointing at a missing question, a
+lesson without its file) would surface as a broken page in front of a kid
+instead of a failed deploy.
 
 What the validator **cannot** check is that a question appears *as soon as*
 it becomes answerable — only that it never appears *before*. That half stays
@@ -246,8 +258,10 @@ anything hand-added to it would be destroyed:
   `data/course/base/<module-slug>/<lesson-slug>.fr.md`, Markdown with a small
   YAML frontmatter holding only `title` and `sources` (§4.2). Each module's
   `learn-more` step is `data/course/base/<module-slug>/en-savoir-plus.fr.md`,
-  with a `links` list in its frontmatter (§4.2.1). A `.de.md` sibling arrives
-  with the translation (§4.3).
+  with a `links` list in its frontmatter (§4.2.1). A practice step's optional
+  answer note (§4.4) is `data/course/base/<module-slug>/q<id>.fr.md`, a body
+  with no frontmatter. A `.de.md` sibling arrives with the translation
+  (§4.3).
 - **Practice steps carry no question text at all**, only `question_id`. The
   renderer joins against `questions.jsonl` exactly like the exam trainer does.
   This is the same reasoning as `TRAINER.md` §4.4, restated for a second consumer
@@ -272,7 +286,13 @@ Otherwise it is optional: it credits a page the lesson drew on, and is not a
 citation requirement for every fact taught. The validator (§3.2, check 7)
 checks every URL is well-formed and every referenced image exists on disk.
 Image files, when there are any, live next to the lesson under
-`data/course/base/<module-slug>/` and are served from there.
+`data/course/base/<module-slug>/` and are served by the existing `/data`
+static mount (`app/main.py`), at `/data/course/base/<module-slug>/<file>`.
+In the Markdown an image is written as a bare filename (`![](dipole.svg)`)
+and the renderer rewrites it to that absolute path: left relative, it would
+resolve under the lesson's own URL, `/learn/base/technique/<module>/`, and
+hit the locked-step redirect (§7). The validator rejects any other image
+path form (§3.2, check 7).
 
 Diagram policy, in order of preference:
 
@@ -358,18 +378,58 @@ German — that is what "no option" means. From then on a fr/de switch
 appears on the dashboard and on the pages of translated modules only, and it
 writes the same preference cookie.
 
+### 4.4 When the catalogue's answer is simplified or wrong
+
+The course teaches to pass the exam, so the catalogue's `is_correct` is the
+answer the learner must pick — but some expected answers are simplified to
+the point of being wrong. The clearest case is **Q92** ("Un signal FM a :"),
+which expects "Pas de bandes latérales", while an FM signal in fact has, in
+theory, infinitely many sidebands (option d) — and **Q294**, in the same
+module, expects the learner to know that FM bandwidth depends on the
+modulation frequency and the deviation, which is sideband theory. A learner
+taught correctly would pick d on Q92 and be told only "wrong".
+
+Two authoring rules, applied when the prose is written (phase 5, §11):
+
+1. **The lesson says so plainly, before the question.** A lesson that
+   prepares such a question states the physics correctly *and* names the
+   answer the exam expects, in its own words: "à l'examen, la réponse
+   attendue est … ; en réalité …". The course never teaches the simplification
+   as if it were true, and never lets the learner meet the discrepancy for
+   the first time as a red "wrong".
+2. **The practice step carries an answer note.** `q<id>.fr.md` (§4.1) is a
+   short Markdown body shown under the question once it has been answered
+   correctly — and on revisits after a pick (§5.1) — restating in a line or
+   two why the expected answer is the expected one. Notes are optional and
+   not reserved for wrong answers: any question whose answer benefits from a
+   one-line "why" may have one.
+
+Phase 1 checks every one of the 44 expected answers against the physics and
+lists each one that needs rule 1, not just Q92.
+
 ## 5. Rendering: reusing the exam engine, not its lifecycle
 
-A practice step reuses two things from the exam trainer and nothing else:
+A practice step reuses three things from the exam trainer and nothing else:
 
+- **The question view model.** The template does not render catalogue rows
+  directly: `session.localize_question(q, lang, option_order)` turns one into
+  `q.stem` and per-option `cells`, each carrying the language-fallback flag
+  (`TRAINER.md` §4.3). The course calls it with the page's effective language
+  (§4.3) and `option_order=None`, which keeps catalogue order.
 - **The MCQ options markup.** Today it is written inline in
   `app/templates/question.html`, inside a form that posts to
   `/attempts/{id}/q/{n}/answer`, so it cannot be reused as is. Phase 3 (§11)
   first moves it into a macro in `app/templates/_macros.html`, next to the
   existing `cell()` — something like `mcq_options(q, selected, marks)`, where
-  the calling template owns the `<form>` and its `action`. `question.html`
-  switches to the macro with no visible change, so a practice question looks
-  exactly like a real exam question, which is the point.
+  the calling template owns the `<form>` and its `action`. `marks` maps an
+  option letter to `wrong` (shown marked and disabled) or `correct` (shown
+  marked); the exam trainer always passes none, so those states exist only
+  for the course. The macro keeps the current split between the letter shown,
+  which is positional (`"abcd"[loop.index0]`), and the value submitted, which
+  is `opt.letter`: identical in catalogue order, distinct when the exam
+  trainer shuffles. `question.html` switches to the macro with no visible
+  change, so a practice question looks exactly like a real exam question,
+  which is the point.
 - **The `is_correct` comparison.** Nothing else — no grader, no LLM, no cache
   (§2 already established there is no open-question path to reuse).
 
@@ -397,8 +457,10 @@ submit; the server grades it and redirects back to the same step
   derived from the curriculum, never hand-written. With four options and
   exactly one correct (§3.2, check 5), the learner is correct after at most
   four submissions, so nobody can get stuck.
-- **Correct:** the option is marked correct, the step is **completed**, and
-  "Next" becomes available.
+- **Correct:** the option is marked correct, the step is **completed**, the
+  answer note appears if the step has one (§4.4), and "Next" becomes
+  available. On a practice step "Next" is a plain link, not a form post:
+  completion was already recorded by the answer submission.
 
 Wrong choices are remembered server-side (§8), so reloading the page or
 coming back tomorrow shows the same disabled options instead of a fresh
@@ -409,7 +471,8 @@ be practiced again. Answers given on a revisit get the same right/wrong
 feedback but change nothing stored: completion, attempt counts and XP are
 decided by the first pass only. Because nothing is stored, the redirect
 carries the picked letter in the query string (`…/q15?picked=b`) and the GET
-renders the right/wrong result from it. A `picked` parameter is ignored on a
+renders the right/wrong result from it, with the answer note (§4.4) shown
+once the picked option is the correct one. A `picked` parameter is ignored on a
 step that is not yet completed, where the stored `wrong_letters` are the
 only source of truth.
 
@@ -573,9 +636,9 @@ which a reorderable plan would undermine. Concretely:
   way a slide deck works — not the exam trainer's jump-anywhere grid, because
   jumping ahead of an unmet prerequisite is exactly what §3 exists to prevent.
   "Next" on a lesson or learn-more step is a form post that records
-  completion and redirects to the following step. On a practice step it
-  appears only once the question is answered correctly. "Previous" is always
-  available.
+  completion and redirects to the following step. On a practice step it is a
+  plain link that appears only once the question is answered correctly
+  (§5.1). "Previous" is always available.
 - **Revisiting any reachable step is always allowed** (§5.1 covers what
   re-answering does). A completed module stays browsable from the dashboard,
   and its module page lists all its steps.
@@ -620,6 +683,7 @@ CREATE TABLE IF NOT EXISTS award (           -- XP ledger and badges, §9
   ref          TEXT NOT NULL,            -- 'q15', 'module:electricite', or a badge slug
   amount       INTEGER,                  -- XP points; NULL for badges
   awarded_at   TEXT NOT NULL,
+  seen_at      TEXT,                     -- badges: NULL until its toast was shown, §9
   PRIMARY KEY (account_id, kind, ref)
 );
 ```
@@ -650,6 +714,11 @@ lesson slug of the form `q<digits>`, so the kinds can never collide.
   submit or a retried request uses `INSERT OR IGNORE` and can never grant the
   same XP or badge twice. XP rows for questions use `ref = 'q<id>'`, module
   bonuses `ref = 'module:<slug>'`.
+- `seen_at` is how a badge toast survives post/redirect/get without
+  JavaScript (§9): the award is written with `seen_at` NULL, and the next
+  course page the learner loads shows every unseen badge and sets its
+  `seen_at`. A badge earned in one tab is therefore announced once, on
+  whichever page loads next.
 - **One transaction per submission:** grading an answer, writing
   `practice_result`, writing `step_progress`, and inserting any resulting
   awards happen together, or not at all.
@@ -682,6 +751,19 @@ keep it that way:
   "database is locked". The value is stated in code, not left to the default.
 
 This also benefits the exam trainer, which shares the database.
+
+**What changes in `app/store.py`.** Today `Store._connect` opens a connection
+with the driver's default transaction handling (an implicit `BEGIN` before
+the first write, a commit on exit) and no explicit timeout. The course adds:
+
+- the busy timeout passed in `_connect`, so every connection — the exam
+  trainer's included — gets it;
+- `PRAGMA journal_mode=WAL` executed once in `Store.__init__`, next to the
+  existing `executescript(SCHEMA)`;
+- a separate `_write_tx()` context manager for the guarded handlers below:
+  it opens its own connection, issues `BEGIN IMMEDIATE` explicitly, yields,
+  and commits, or rolls back on any exception. `_connect` stays as it is for
+  every existing call, so the exam trainer's write paths are untouched.
 
 **For the same learner, races are real.** They happen through a double-click,
 two open tabs, or two devices, and three cases need guarding:
@@ -739,7 +821,9 @@ sound are a later phase, not built alongside the core loop.
   to scale badge design for. The list and the XP amounts live in code as
   constants, checked when a step is completed. There is no rules engine.
 - **Display**: XP counter and badge shelf on the dashboard; a badge unlock
-  shows as a toast/modal at the moment it's earned.
+  shows as a toast on the first course page loaded after it is earned —
+  normally the page the answer or "Next" redirected to. It is driven by the
+  award's `seen_at` (§8), rendered server-side, and needs no JavaScript.
 - **Deferred to a later phase**: streak counter, an unlock chime, a confetti
   burst. When built, effects must respect `prefers-reduced-motion` and a
   persisted mute toggle — two kids sharing a room, or studying somewhere quiet,
@@ -781,6 +865,8 @@ rather than `/learn/technique/base/...`, for two reasons:
 
 | Method and path | What it does |
 |---|---|
+| `GET /` | The landing page (§10.1): what the site is for, how to use it, links to the course and the exam trainer. |
+| `GET /exam` | The exam trainer's home, moved from `/` unchanged (§10.1). |
 | `GET /learn` | No current learner: the name dropdown (§6.1). Otherwise the dashboard: modules and their state, XP, badges, "Continue" to next up (§7). |
 | `GET /admin/learners` | Unpublished (§6.1): the account list, with an add form. |
 | `POST /admin/learners` | Adds an account, redirects back to the list. |
@@ -806,38 +892,83 @@ exam trainer's.
 reason — a structural field that costs nothing idle and saves a migration
 later.
 
+### 10.1 The landing page
+
+Today `/` is the exam trainer's home, and nothing would link to `/learn`. A
+learner arriving at the server needs to be told what the two halves are and
+which to start with, so `/` becomes a short landing page, and the exam
+trainer's home moves to `/exam`:
+
+- **What the site is for:** preparing the ILR radioamateur exam (BASE,
+  NOVICE, HAREC), in a sentence or two a 12-year-old can read.
+- **How to use it:** two cards, each with a one-paragraph explanation and a
+  button.
+  - **Apprendre** (`/learn`): the from-zero course for BASE part 1, for
+    someone who knows nothing yet — lessons one idea at a time, a real exam
+    question as soon as it can be answered, progress saved per learner.
+  - **S'entraîner** (`/exam`): the exam trainer — study mode by section, or a
+    mock exam with the real blueprint and scoring, for all three
+    certificates.
+- **Suggested path:** start with the course; move to the trainer once the
+  course is done, or straight away for parts 2 and 3, which the course does
+  not cover yet (§1).
+
+The page is static apart from the language: it follows the preferences
+cookie's `lang` like the rest of the app, its text goes through
+`app/i18n.py`, and it is written in both fr and de from the start (it is
+interface text, not course prose, so §4.3's one-module-at-a-time rule does
+not apply). It needs no current learner and no database access.
+
+Moving the trainer's home is the only change to its routes: `home()` in
+`app/main.py` is served at `/exam` instead of `/`, and the topbar brand link
+in `base.html` keeps pointing at `/`, now the landing page. The topbar gains
+two links, "Apprendre" and "S'entraîner", so either half is one click from
+anywhere. Nothing else in the trainer redirects to `/` today, so no other
+route changes; `tests/test_main.py`'s home-page test requests `/exam`, and a
+new test covers `/`.
+
 ## 11. Phases
 
-1. **Curriculum**: the full `curriculum.yaml` for all 44 questions — every
-   module, step, concept, `introduces` and `requires` — with one-line lesson
-   outlines instead of prose. It must pass the validator's structural checks
-   (§3.2, checks 1–7), and the `--report` output is reviewed for questions
-   that appear later than they need to. This is reviewed before any final
-   prose is written.
-2. **Data model and gate**: `app/course.py` (loader and validator, wired into
-   `mise run verify`), PyYAML and markdown-it-py added to the dependencies,
-   the `account` table, `python -m app.learners` with its `mise run
-   add-learner` wrapper, the `/admin/learners` page behind `ADMIN_PASSWORD`
-   (§6.1.1), and the name dropdown.
-   Tests
-   cover each validator check with a deliberately broken fixture curriculum,
-   not only the real one.
-3. **Rendering**: the `mcq_options` macro extracted from `question.html`
-   (the exam trainer's tests must still pass unchanged), the lesson,
-   practice and learn-more templates, the routes in §10, linear
-   Next-navigation and locking (§7), and the dashboard with "Continue".
-4. **Progression (MVP)**: `step_progress`, `practice_result`, `award`; the
-   retry loop (§5.1); XP counter and badge shelf. Tests cover: next up
-   advancing, locked URLs redirecting, wrong options staying disabled across a
-   reload, revisits not changing stored data, and a repeated submission not
-   granting XP twice.
+1. **Curriculum and gate**: `app/course.py` (loader and validator, wired
+   into `mise run verify` and into app startup, §3.2) with PyYAML and
+   markdown-it-py added to the dependencies; then the full `curriculum.yaml`
+   for all 44 questions — every module, step, concept, `introduces` and
+   `requires`. Prose is not written yet: each lesson and learn-more step gets
+   a stub `.fr.md` whose frontmatter has its `title` (and, for learn-more, a
+   placeholder `links` entry) and whose body is the one-line outline of what
+   the lesson will teach. The whole thing passes the validator (§3.2,
+   checks 1–7); the `--report` output is reviewed for questions that appear
+   later than they need to; and every expected answer is checked against the
+   physics for §4.4, with the list of questions needing a correction note
+   recorded in the outlines of the lessons that prepare them. Tests cover
+   each validator check with a deliberately broken fixture curriculum, not
+   only the real one. This is reviewed before any final prose is written.
+2. **Identity**: the `account` table, the `app/store.py` changes of §8.1
+   (busy timeout, WAL, `_write_tx()`), `python -m app.learners` with its
+   `mise run add-learner` wrapper, the `/admin/learners` page behind
+   `ADMIN_PASSWORD` (§6.1.1), and the name dropdown.
+3. **Rendering and navigation**: the landing page at `/` and the trainer's
+   home moved to `/exam` (§10.1); the `mcq_options` macro extracted from
+   `question.html` (the exam trainer's tests must still pass, with only the
+   home-page test's path changed); the lesson, practice and learn-more
+   templates, with answer notes (§4.4) and the image-path rewrite (§4.2); the
+   routes in §10; the `step_progress` table, which linear Next-navigation,
+   locking (§7) and the dashboard's "Continue" are all computed from. Tests
+   cover: next up advancing through lessons and learn-more steps, and locked
+   URLs and posts redirecting to next up.
+4. **Progression (MVP)**: `practice_result` and `award`; the retry loop
+   (§5.1) under the `BEGIN IMMEDIATE` guards (§8.1); XP counter, badge shelf
+   and badge toasts (§9). Tests cover: practice steps completing and
+   advancing next up, wrong options staying disabled across a reload,
+   revisits not changing stored data, a repeated submission not granting XP
+   twice, and a badge toast shown exactly once.
 5. **Content — the actual course, and the part this plan matters least
    without.** Every other phase is scaffolding; this is the thing a kid
    reads. It has to be accurate *and* genuinely easy to approach — those pull
    against each other, which is exactly why it isn't written all eight
    modules at once:
    1. **Module A alone**, end to end — lessons, diagrams, practice steps,
-      "Learn more" links (§4.2.1) — reviewed against the phase-2 gate and read
+      "Learn more" links (§4.2.1) — checked by the phase-1 gate and read
       by an actual target reader. This is where the tone, lesson length, and
       diagram style get decided in practice, not in the abstract.
    2. **Module B**, applying whatever A's review changed. Two modules is
