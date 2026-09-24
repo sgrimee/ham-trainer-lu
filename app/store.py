@@ -1,4 +1,5 @@
-"""Candidate state: attempts, responses, grades (specs/TRAINER.md §5).
+"""Candidate state: attempts, responses, grades (specs/TRAINER.md §5), and the
+course's learner accounts and progress (specs/LEARN.md §8).
 
 The only SQLite in this project is the app's own, kept apart from `data/` so
 `mise run data` can never touch study history. Path is `ATTEMPTS_DB`, default
@@ -50,7 +51,56 @@ CREATE TABLE IF NOT EXISTS grade (
   model       TEXT,
   PRIMARY KEY (attempt_id, question_id, item_no)
 );
+
+-- specs/LEARN.md §8. One account store for both apps (§6.2); the progress
+-- tables are created now, ahead of the phases that fill them, so deleting a
+-- learner (§6.1) already removes everything a learner can own.
+CREATE TABLE IF NOT EXISTS account (
+  id           TEXT PRIMARY KEY,
+  display_name TEXT NOT NULL UNIQUE,
+  created_at   TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS step_progress (
+  account_id   TEXT NOT NULL REFERENCES account(id),
+  step_id      TEXT NOT NULL,
+  completed_at TEXT NOT NULL,
+  PRIMARY KEY (account_id, step_id)
+);
+
+CREATE TABLE IF NOT EXISTS practice_result (
+  account_id    TEXT NOT NULL REFERENCES account(id),
+  question_id   INTEGER NOT NULL,
+  wrong_letters TEXT NOT NULL DEFAULT '',
+  submissions   INTEGER NOT NULL DEFAULT 0,
+  updated_at    TEXT NOT NULL,
+  PRIMARY KEY (account_id, question_id)
+);
+
+CREATE TABLE IF NOT EXISTS award (
+  account_id   TEXT NOT NULL REFERENCES account(id),
+  kind         TEXT NOT NULL CHECK (kind IN ('xp', 'badge')),
+  ref          TEXT NOT NULL,
+  amount       INTEGER,
+  awarded_at   TEXT NOT NULL,
+  seen_at      TEXT,
+  PRIMARY KEY (account_id, kind, ref)
+);
 """
+
+# Seconds a connection waits on another writer's lock before failing with
+# "database is locked" (specs/LEARN.md §8.1). Stated, not left to the driver.
+BUSY_TIMEOUT = 10.0
+
+# Everything keyed by account_id that deleting an account must remove too:
+# foreign keys are not enforced (no PRAGMA foreign_keys=ON).
+ACCOUNT_TABLES = ("step_progress", "practice_result", "award")
+
+DISPLAY_NAME_MAX = 40
+
+
+class AccountExists(ValueError):
+    """`display_name` is unique (specs/LEARN.md §6.1)."""
 
 
 def now() -> str:
@@ -65,16 +115,93 @@ class Store:
         self.path = path
         with self._connect() as con:
             con.executescript(SCHEMA)
+            # Persistent in the file: reads never wait on a write (LEARN.md §8.1).
+            con.execute("PRAGMA journal_mode=WAL")
 
     @contextmanager
     def _connect(self):
-        con = sqlite3.connect(self.path)
+        con = sqlite3.connect(self.path, timeout=BUSY_TIMEOUT)
         con.row_factory = sqlite3.Row
         try:
             yield con
             con.commit()
         finally:
             con.close()
+
+    @contextmanager
+    def _write_tx(self):
+        """One `BEGIN IMMEDIATE` transaction (specs/LEARN.md §8.1): the write
+        lock is taken before the first read, so read-decide-write handlers
+        for the same learner are serialized. Commits, or rolls back on any
+        exception."""
+        con = sqlite3.connect(self.path, timeout=BUSY_TIMEOUT, isolation_level=None)
+        con.row_factory = sqlite3.Row
+        try:
+            con.execute("BEGIN IMMEDIATE")
+            try:
+                yield con
+            except BaseException:
+                con.execute("ROLLBACK")
+                raise
+            con.execute("COMMIT")
+        finally:
+            con.close()
+
+    # -- accounts (specs/LEARN.md §6.1) -------------------------------------
+
+    def create_account(self, display_name: str) -> str:
+        """Raises ValueError on a blank or overlong name, AccountExists on a
+        taken one."""
+        name = " ".join(display_name.split())
+        if not name:
+            raise ValueError("empty name")
+        if len(name) > DISPLAY_NAME_MAX:
+            raise ValueError(f"name longer than {DISPLAY_NAME_MAX} characters")
+        account_id = uuid.uuid4().hex
+        try:
+            with self._connect() as con:
+                con.execute("INSERT INTO account (id, display_name, created_at) VALUES (?, ?, ?)",
+                            (account_id, name, now()))
+        except sqlite3.IntegrityError:
+            raise AccountExists(name) from None
+        return account_id
+
+    def accounts(self) -> list[dict]:
+        with self._connect() as con:
+            rows = con.execute(
+                "SELECT * FROM account ORDER BY display_name COLLATE NOCASE").fetchall()
+        return [dict(r) for r in rows]
+
+    def get_account(self, account_id: str) -> dict | None:
+        with self._connect() as con:
+            row = con.execute("SELECT * FROM account WHERE id = ?", (account_id,)).fetchone()
+        return dict(row) if row else None
+
+    def account_by_name(self, display_name: str) -> dict | None:
+        with self._connect() as con:
+            row = con.execute("SELECT * FROM account WHERE display_name = ?",
+                              (" ".join(display_name.split()),)).fetchone()
+        return dict(row) if row else None
+
+    def account_summary(self, account_id: str) -> dict:
+        """Row counts shown before a delete is confirmed."""
+        with self._connect() as con:
+            steps = con.execute("SELECT COUNT(*) FROM step_progress WHERE account_id = ?",
+                                (account_id,)).fetchone()[0]
+            xp = con.execute("SELECT COALESCE(SUM(amount), 0) FROM award "
+                             "WHERE account_id = ? AND kind = 'xp'", (account_id,)).fetchone()[0]
+            badges = con.execute("SELECT COUNT(*) FROM award WHERE account_id = ? AND kind = 'badge'",
+                                 (account_id,)).fetchone()[0]
+        return {"steps_completed": steps, "xp": xp, "badges": badges}
+
+    def delete_account(self, account_id: str) -> bool:
+        """The account and everything keyed by it, in one transaction.
+        False if there was no such account."""
+        with self._write_tx() as con:
+            for table in ACCOUNT_TABLES:
+                con.execute(f"DELETE FROM {table} WHERE account_id = ?", (account_id,))
+            cur = con.execute("DELETE FROM account WHERE id = ?", (account_id,))
+            return cur.rowcount > 0
 
     # -- attempts ---------------------------------------------------------
 

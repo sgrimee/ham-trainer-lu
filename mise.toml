@@ -49,6 +49,12 @@ run = "./scripts/download-refs.sh"
 description = "Validate the course and print its authoring review report (specs/LEARN.md §3.2)"
 run = "uv run python -m app.course --report"
 
+[tasks.add-learner]
+description = "Add a course learner account: mise run add-learner \"<name>\" (specs/LEARN.md §6.1)"
+# The name is appended as the argument. `python -m app.learners` also has
+# `list` and `delete`, and is what to run inside the container.
+run = "uv run python -m app.learners add"
+
 [tasks.docker-build]
 description = "Build the container image (Dockerfile); the reference PDFs it copies are downloaded first"
 depends = ["download-refs"]

@@ -158,3 +158,17 @@ textarea { max-width: 100%; }
 @media print {
   .topbar, .grid-nav, form, .review-actions, .hint, .footer { display: none; }
 }
+
+/* Course learners and admin (specs/LEARN.md §6.1) */
+.learner-pick { display: flex; flex-wrap: wrap; gap: 0.6rem; align-items: center; }
+.learner-pick label { flex-basis: 100%; }
+.not-you { display: flex; justify-content: flex-end; align-items: center; gap: 0.4rem; margin: 0 0 0.75rem; font-size: 0.85rem; color: var(--muted); }
+.btn-link { background: none; border: none; padding: 0; color: var(--accent); text-decoration: underline; font-size: inherit; }
+.btn-link:hover { background: none; color: var(--accent-hover); }
+.learner-name { flex: 1; font-weight: 500; }
+a.link-button { text-decoration: none; border-radius: 8px; border-style: solid; border-width: 1px; }
+.btn-danger { background: var(--incorrect); border-color: var(--incorrect); }
+.btn-danger:hover { background: #9d2b23; border-color: #9d2b23; }
+.form-error { color: var(--incorrect); font-weight: 500; }
+.summary { display: grid; grid-template-columns: max-content 1fr; gap: 0.2rem 1rem; }
+.summary dd { margin: 0; }

@@ -18,7 +18,10 @@ PART_NAMES = {"1": "technique", "2": "procedures", "3": "reglementation"}
 
 # specs/TRAINER.md §2.2. The guide gives procedures/reglementation as ranges for
 # NOVICE/HAREC (12-15, 20-25); a single blueprint count is picked from the
-# middle of each so exam mode has a fixed length to sample.
+# middle of each so exam mode has a fixed length to sample. BASE reglementation
+# keeps the guide's 10 although the 2024 catalogue has only 8 (confirmed by the
+# ILR, which is adding questions); sampling takes min(blueprint, pool) and never
+# borrows from another tag.
 BLUEPRINT = {
     "base":   {"technique": 30, "procedures": 10, "reglementation": 10},
     "novice": {"technique": 60, "procedures": 14, "reglementation": 23},

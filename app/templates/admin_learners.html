@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block head %}<meta name="robots" content="noindex, nofollow">{% endblock %}
+{% block title %}{{ t(ui, 'admin_learners') }} — admin{% endblock %}
+{% block content %}
+<section class="card">
+  <h1>{{ t(ui, 'admin_learners') }}</h1>
+  {% if accounts %}
+  <ul class="resume-list">
+    {% for a in accounts %}
+    <li class="resume-item">
+      <span class="learner-name">{{ a.display_name }}</span>
+      <span class="hint">{{ t(ui, 'created_on') }} {{ a.created_at[:10] }}</span>
+      <a class="link-button" href="/admin/learners/{{ a.id }}/delete">{{ t(ui, 'delete') }}</a>
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <p>{{ t(ui, 'no_accounts') }}</p>
+  {% endif %}
+</section>
+<section class="card">
+  <form method="post" action="/admin/learners">
+    {% if error %}<p class="form-error" role="alert">{{ error }}</p>{% endif %}
+    <label>{{ t(ui, 'display_name') }}
+      <input type="text" name="display_name" value="{{ name }}" maxlength="40" required autofocus>
+    </label>
+    <button type="submit">{{ t(ui, 'add_learner') }}</button>
+  </form>
+</section>
+{% endblock %}

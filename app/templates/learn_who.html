@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}{{ t(ui, 'learn_title') }} — {{ t(ui, 'app_title') }}{% endblock %}
+{% block content %}
+<section class="card">
+  <h1>{{ t(ui, 'who_are_you') }}</h1>
+  {% if accounts %}
+  <form method="post" action="/learn/who" class="learner-pick">
+    <label for="account_id">{{ t(ui, 'pick_name') }}</label>
+    <select name="account_id" id="account_id">
+      {% for a in accounts %}
+      <option value="{{ a.id }}">{{ a.display_name }}</option>
+      {% endfor %}
+    </select>
+    <button type="submit">{{ t(ui, 'its_me') }}</button>
+  </form>
+  {% else %}
+  <p>{{ t(ui, 'no_learners') }}</p>
+  {% endif %}
+</section>
+{% endblock %}

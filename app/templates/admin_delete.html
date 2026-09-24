@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block head %}<meta name="robots" content="noindex, nofollow">{% endblock %}
+{% block title %}{{ t(ui, 'delete') }} — admin{% endblock %}
+{% block content %}
+<section class="card">
+  <h1>{{ t(ui, 'confirm_delete_learner', name=account.display_name) }}</h1>
+  <dl class="summary">
+    <dt>{{ t(ui, 'created_on') }}</dt><dd>{{ account.created_at[:10] }}</dd>
+    <dt>{{ t(ui, 'steps_completed') }}</dt><dd>{{ summary.steps_completed }}</dd>
+    <dt>{{ t(ui, 'xp') }}</dt><dd>{{ summary.xp }}</dd>
+    <dt>{{ t(ui, 'badges') }}</dt><dd>{{ summary.badges }}</dd>
+  </dl>
+  <p>{{ t(ui, 'delete_learner_warning') }}</p>
+  <form method="post" action="/admin/learners/{{ account.id }}/delete" class="answer-actions">
+    <button type="submit" class="btn-danger">{{ t(ui, 'delete') }}</button>
+    <a href="/admin/learners">{{ t(ui, 'cancel') }}</a>
+  </form>
+</section>
+{% endblock %}

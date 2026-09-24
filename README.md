@@ -61,6 +61,7 @@ mise run data     # extract, render the appendix, verify
 mise run verify   # run the validation gates on their own
 mise run serve    # run the training application at http://127.0.0.1:8000
 mise run test     # unit tests
+mise run add-learner "<name>"     # add a course learner (python -m app.learners add|delete|list)
 mise run docker-build             # build the container image
 mise run serve-docker             # build and run it at http://127.0.0.1:8000
 mise run eval-grader <model>...   # score grading models (needs LLM_API_KEY)
@@ -76,7 +77,9 @@ place it is a no-op of a fraction of a second.
 Entering the directory autoloads `.env` (see `.env.example`); it is gitignored
 and needed only for the training application's grader, not for extraction. With
 no key configured the app still runs: it shows the reference answer and lets
-you mark yourself right or wrong (specs/TRAINER.md §7.3).
+you mark yourself right or wrong (specs/TRAINER.md §7.3). Setting
+`ADMIN_PASSWORD` enables the unlinked `/admin/learners` page for managing course
+learners (specs/LEARN.md §6.1.1); unset, `/admin` answers 404.
 
 Selecting an exam is one filter — tags nest, `BASE ⊂ NOVICE ⊂ HAREC`:
 

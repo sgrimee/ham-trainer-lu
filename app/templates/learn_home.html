@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% from "_learner.html" import not_you %}
+{% block title %}{{ t(ui, 'learn_title') }} — {{ t(ui, 'app_title') }}{% endblock %}
+{% block content %}
+{{ not_you(ui, learner) }}
+<section class="card">
+  <h1>{{ t(ui, 'hello_learner', name=learner.display_name) }}</h1>
+  <p>{{ t(ui, 'course_coming') }}</p>
+</section>
+{% endblock %}

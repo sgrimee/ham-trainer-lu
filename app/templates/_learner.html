@@ -1,0 +1,7 @@
+{# "not you? change" (specs/LEARN.md §6.1): a form, since clearing is a POST. #}
+{% macro not_you(ui, learner) -%}
+<form method="post" action="/learn/who/clear" class="not-you">
+  <span>{{ learner.display_name }} · {{ t(ui, 'not_you') }}</span>
+  <button type="submit" class="btn-link">{{ t(ui, 'change_learner') }}</button>
+</form>
+{%- endmacro %}

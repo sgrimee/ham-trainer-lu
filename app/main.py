@@ -13,19 +13,19 @@ from contextlib import asynccontextmanager
 from urllib.parse import urlencode
 
 import httpx2 as httpx
-from fastapi import Depends, FastAPI, Form, HTTPException, Request
+from fastapi import APIRouter, Depends, FastAPI, Form, HTTPException, Request
 from fastapi.datastructures import FormData
-from fastapi.responses import RedirectResponse
+from fastapi.responses import RedirectResponse, Response
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
+from . import admin, catalogue, grader, scoring, session
 from . import annotations as annotations_module
-from . import catalogue, grader, scoring, session
 from . import course as course_module
 from .catalogue import BLUEPRINT
 from .grader import LLMGrader
 from .i18n import t
-from .store import Store
+from .store import AccountExists, Store
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 cat = catalogue.load()
@@ -63,6 +63,7 @@ templates.env.globals["t"] = t  # type: ignore
 templates.env.globals["doc_files"] = annotations_module.documents()  # type: ignore
 
 PREFS_COOKIE = "ilr_session_prefs"
+LEARNER_COOKIE = "ilr_learner"   # the current course learner's account.id (specs/LEARN.md §6.1)
 GITHUB_REPO = "sgrimee/ham-trainer-lu"
 
 
@@ -445,3 +446,116 @@ def appendix(request: Request, lang: str = "fr"):
         "ui": ui_lang(lang), "title": index["title_de"] if lang == "de" else index["title_fr"],
         "pages": index["pages"],
     })
+
+
+# -- course learners (specs/LEARN.md §6.1) -------------------------------------
+#
+# Identification, not security: whoever reaches the server can pick any name.
+# Acceptable only for a handful of known learners on a private network; PINs
+# (§6.2) must land before the course is opened to anyone else.
+
+def course_ui(request: Request) -> str:
+    """Interface language of pages not tied to a module (§4.3): German only
+    once some module offers it, which none does until phase 7."""
+    return "fr"
+
+
+def current_learner(request: Request, store: Store) -> dict | None:
+    """The account named by the learner cookie. An unknown or deleted id is
+    "no current learner", never an error (§6.1)."""
+    account_id = request.cookies.get(LEARNER_COOKIE)
+    return store.get_account(account_id) if account_id else None
+
+
+@app.get("/learn")
+def learn_home(request: Request, store: Store = Depends(get_store)):
+    ui = course_ui(request)
+    learner = current_learner(request, store)
+    if learner is None:
+        response = templates.TemplateResponse(request=request, name="learn_who.html", context={
+            "ui": ui, "accounts": store.accounts()})
+        if request.cookies.get(LEARNER_COOKIE):
+            response.delete_cookie(LEARNER_COOKIE)
+        return response
+    return templates.TemplateResponse(request=request, name="learn_home.html", context={
+        "ui": ui, "learner": learner})
+
+
+@app.post("/learn/who")
+def learn_pick(account_id: str = Form(""), store: Store = Depends(get_store)):
+    response = RedirectResponse("/learn", status_code=303)
+    if store.get_account(account_id) is not None:
+        response.set_cookie(LEARNER_COOKIE, account_id, max_age=60 * 60 * 24 * 365,
+                            httponly=True, samesite="lax")
+    return response
+
+
+@app.post("/learn/who/clear")
+def learn_clear():
+    response = RedirectResponse("/learn", status_code=303)
+    response.delete_cookie(LEARNER_COOKIE)
+    return response
+
+
+# -- admin (specs/LEARN.md §6.1, §6.1.1) ----------------------------------------
+#
+# Unpublished: nothing links here. Every route sits on this router, whose
+# dependency enforces the admin password; none looks at the current learner.
+
+admin_router = APIRouter(prefix="/admin", dependencies=[Depends(admin.require_admin)])
+NOINDEX = {"X-Robots-Tag": "noindex, nofollow"}
+
+
+def _admin_page(request: Request, name: str, context: dict) -> Response:
+    response = templates.TemplateResponse(request=request, name=name,
+                                          context={"ui": course_ui(request), **context})
+    response.headers.update(NOINDEX)
+    return response
+
+
+def _admin_redirect(url: str) -> Response:
+    return RedirectResponse(url, status_code=303, headers=NOINDEX)
+
+
+def _learners_page(request: Request, store: Store, error: str | None = None,
+                   name: str = "") -> Response:
+    return _admin_page(request, "admin_learners.html", {
+        "accounts": store.accounts(), "error": error, "name": name})
+
+
+@admin_router.get("/learners")
+def admin_learners(request: Request, store: Store = Depends(get_store)):
+    return _learners_page(request, store)
+
+
+@admin_router.post("/learners")
+def admin_add_learner(request: Request, display_name: str = Form(""),
+                      store: Store = Depends(get_store)):
+    ui = course_ui(request)
+    try:
+        store.create_account(display_name)
+    except AccountExists as e:
+        # Refused with a message on the same page, not an error page (§6.1).
+        return _learners_page(request, store, t(ui, "learner_exists", name=str(e)), display_name)
+    except ValueError:
+        return _learners_page(request, store, t(ui, "learner_invalid_name"), display_name)
+    return _admin_redirect("/admin/learners")
+
+
+@admin_router.get("/learners/{account_id}/delete")
+def admin_confirm_delete(request: Request, account_id: str, store: Store = Depends(get_store)):
+    account = store.get_account(account_id)
+    if account is None:
+        return _admin_redirect("/admin/learners")
+    return _admin_page(request, "admin_delete.html", {
+        "account": account, "summary": store.account_summary(account_id)})
+
+
+@admin_router.post("/learners/{account_id}/delete")
+def admin_delete(account_id: str, store: Store = Depends(get_store)):
+    store.delete_account(account_id)
+    return _admin_redirect("/admin/learners")
+
+
+# After the routes: include_router copies them at call time.
+app.include_router(admin_router)

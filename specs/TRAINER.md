@@ -40,6 +40,8 @@ preferences.
 | with figures | 0 | 6 | 92 |
 
 Tags nest (`BASE ⊂ NOVICE ⊂ HAREC`), so selecting a pool is one tag filter.
+The ILR has confirmed that a candidate is only asked questions carrying their
+certificate's tag (§2.2).
 NOVICE and HAREC draw parts 2 and 3 from an identical pool (§2.2); only the
 technique part differs.
 
@@ -69,10 +71,18 @@ Exam mode uses these counts (`catalogue.BLUEPRINT`):
 Where the guide gives a range, the blueprint takes a fixed value from its middle
 so an exam sitting has a fixed length.
 
-**BASE part 3 asks for 10 questions from a pool of 8.** The guide (2023) and the
-catalogue (2024) disagree. The app draws the 8 that exist and does not invent
-more. Part 3 is still marked out of 60 (§2.3), so each question is worth 7.5
-points.
+**BASE part 3 asks for 10 questions from a pool of 8.** The guide (2023) says
+10, but the catalogue (2024) has only 8. The ILR confirmed this in writing in
+September 2026: the catalogue does contain only eight BASE questions for part 3,
+the ILR is writing new ones to close the gap, and a BASE candidate is never
+asked a question tagged only NOVICE or HAREC. So the app draws the 8 that exist
+and never fills the part from the NOVICE pool. Part 3 is still marked out of
+60 (§2.3), so each question is worth 7.5 points.
+
+The blueprint keeps the guide's 10, and sampling takes whichever is smaller:
+the blueprint count or the pool. So when a catalogue edition with more BASE part 3
+questions comes out, the only thing to do is re-extract it (`reference/documents.yaml`).
+The 7.5-point weight then goes back to 6 by itself.
 
 ### 2.3 The scoring rule
 
@@ -765,7 +775,8 @@ Smaller gaps against this spec:
   who disagrees should be able to request a second opinion on one answer. Today
   the only override is self-grading when no grader ran.
 - **Short-part notice.** The UI does not yet tell a BASE candidate that part 3
-  has 8 questions against the guide's 10 (§2.2).
+  has 8 questions against the guide's 10. The ILR has confirmed this is how the
+  real exam works today (§2.2).
 - **Self-graded attempts** are not yet reported as partly self-graded in the
   result headline (§7.3).
 - **Offline.** A service worker caching the catalogue, assets and appendix would
