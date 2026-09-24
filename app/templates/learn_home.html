@@ -1,10 +1,29 @@
 {% extends "base.html" %}
 {% from "_learner.html" import not_you %}
-{% block title %}{{ t(ui, 'learn_title') }} — {{ t(ui, 'app_title') }}{% endblock %}
+{% block title %}{{ t(ui, 'dashboard') }} — {{ t(ui, 'learn_title') }}{% endblock %}
 {% block content %}
 {{ not_you(ui, learner) }}
 <section class="card">
   <h1>{{ t(ui, 'hello_learner', name=learner.display_name) }}</h1>
-  <p>{{ t(ui, 'course_coming') }}</p>
+  <p class="course-name">{{ t(ui, 'course_title') }}</p>
+  {% if next_up %}
+    <p>{{ t(ui, 'questions_remaining', n=questions_remaining, total=questions_total) }}</p>
+    <a class="button button-large" id="next-link" href="{{ step_url(next_up) }}">{{ t(ui, 'continue') }} &rarr;</a>
+  {% else %}
+    <p class="course-done">{{ t(ui, 'course_done') }}</p>
+  {% endif %}
 </section>
+<ol class="module-list">
+  {% for m in modules %}
+  <li class="module-item module-{{ m.state }}">
+    {% if m.state == 'locked' %}
+      <span class="module-title">{{ m.title }}</span>
+    {% else %}
+      <a class="module-title" href="{{ course_prefix }}/{{ m.module.slug }}">{{ m.title }}</a>
+    {% endif %}
+    <span class="module-state">{{ t(ui, 'module_state_' + m.state) }}</span>
+    <span class="hint">{{ t(ui, 'steps_progress', done=m.done, total=m.total) }}</span>
+  </li>
+  {% endfor %}
+</ol>
 {% endblock %}

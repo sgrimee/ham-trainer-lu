@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% from "_macros.html" import cell, mcq_options %}
+{% from "_learner.html" import not_you %}
+{% from "_learn_step.html" import crumbs, previous_link %}
+{% block title %}{{ title }} — {{ t(ui, 'learn_title') }}{% endblock %}
+{% block content %}
+{{ not_you(ui, learner) }}
+{{ crumbs(ui, module, module_title, position, module_total) }}
+{# A practice question looks exactly like an exam question (specs/LEARN.md §5):
+   same view model, same options markup, catalogue order, no "show answer". #}
+<article class="question practice">
+  <header class="q-meta">
+    <span>{{ title }}</span>
+    <span>{{ t(ui, 'section_label') }} {{ q.section }}</span>
+  </header>
+  <div class="stem">
+    {% for c in q.stem %}<p>{{ cell(c) }}</p>{% endfor %}
+  </div>
+
+  {% if solved %}
+    <fieldset disabled>{{ mcq_options(q, picked, marks) }}</fieldset>
+    <p class="practice-verdict verdict-correct" role="status">{{ t(ui, 'well_done') }}</p>
+    {% if note %}<div class="answer-note">{{ note|safe }}</div>{% endif %}
+  {% else %}
+    {% if wrong %}<p class="practice-verdict verdict-incorrect" role="status">{{ t(ui, 'try_again') }}</p>{% endif %}
+    <form method="post" action="{{ step_url(step) }}/answer">
+      {{ mcq_options(q, none, marks) }}
+      <button type="submit">{{ t(ui, 'check') }}</button>
+    </form>
+    {% if review %}
+    <p class="review-links">{{ t(ui, 'review_lessons') }}
+      {% for s, s_title in review %}<a href="{{ step_url(s) }}">{{ s_title }}</a>{% if not loop.last %} · {% endif %}{% endfor %}
+    </p>
+    {% endif %}
+  {% endif %}
+
+  <nav class="prev-next">
+    {% if previous %}{{ previous_link(ui, previous) }}{% endif %}
+    {% if solved %}<a id="next-link" href="{{ step_url(following) }}">{{ t(ui, 'next') }} &rarr;</a>{% endif %}
+  </nav>
+</article>
+{% endblock %}

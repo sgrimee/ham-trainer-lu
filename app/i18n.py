@@ -76,7 +76,38 @@ MESSAGES = {
         "hello_learner": "Bonjour {name} !",
         "not_you": "Ce n'est pas toi ?",
         "change_learner": "Changer",
-        "course_coming": "Le cours arrive bientôt ici.",
+        "nav_exam": "S'entraîner",
+        "landing_heading": "Prépare ton examen de radioamateur",
+        "landing_intro": ("Ce site aide à préparer l'examen de radioamateur de l'ILR, au Luxembourg : "
+                          "les certificats BASE, NOVICE et HAREC. Il a deux parties."),
+        "landing_learn_text": ("Le cours pour qui part de zéro : la partie 1 de l'examen BASE, les "
+                               "techniques, expliquée une idée à la fois. Dès que tu en sais assez pour "
+                               "répondre, une vraie question d'examen apparaît. Ta progression est "
+                               "enregistrée à ton nom."),
+        "landing_learn_button": "Commencer le cours",
+        "landing_exam_text": ("L'entraînement à l'examen, pour les trois certificats : le mode étude, "
+                              "section par section avec la correction tout de suite, ou l'examen blanc, "
+                              "tiré et noté comme le vrai."),
+        "landing_exam_button": "S'entraîner",
+        "landing_path_title": "Par où commencer ?",
+        "landing_path_text": ("Commence par le cours, puis passe à l'entraînement une fois le cours terminé. "
+                              "Pour les parties 2 et 3 de l'examen (procédures et réglementation), que le "
+                              "cours ne couvre pas encore, tu peux t'entraîner tout de suite."),
+        "course_title": "Cours BASE — partie 1 : Techniques",
+        "dashboard": "Mon parcours",
+        "continue": "Continuer",
+        "course_done": "Bravo, tu as terminé tout le cours !",
+        "questions_remaining": "Questions restantes : {n} sur {total}",
+        "module_state_locked": "À venir",
+        "module_state_in-progress": "En cours",
+        "module_state_completed": "Terminé",
+        "steps_progress": "{done} / {total} étapes",
+        "step_of": "Étape {n} / {total}",
+        "question_n": "Question {id}",
+        "sources": "Sources",
+        "well_done": "Bravo, c'est la bonne réponse !",
+        "try_again": "Ce n'est pas la bonne réponse. Essaie encore !",
+        "review_lessons": "Revoir :",
         "admin_learners": "Élèves",
         "add_learner": "Ajouter",
         "display_name": "Prénom ou surnom",
@@ -161,7 +192,38 @@ MESSAGES = {
         "hello_learner": "Hallo {name}!",
         "not_you": "Nicht du?",
         "change_learner": "Wechseln",
-        "course_coming": "Der Kurs kommt bald hierher.",
+        "nav_exam": "Üben",
+        "landing_heading": "Bereite dich auf deine Amateurfunkprüfung vor",
+        "landing_intro": ("Diese Seite hilft bei der Vorbereitung auf die Amateurfunkprüfung des ILR in "
+                          "Luxemburg: die Zertifikate BASE, NOVICE und HAREC. Sie hat zwei Teile."),
+        "landing_learn_text": ("Der Kurs für alle, die bei null anfangen: Teil 1 der BASE-Prüfung, die "
+                               "Technik, eine Idee nach der anderen erklärt. Sobald du genug weißt, um zu "
+                               "antworten, erscheint eine echte Prüfungsfrage. Dein Fortschritt wird unter "
+                               "deinem Namen gespeichert."),
+        "landing_learn_button": "Kurs starten",
+        "landing_exam_text": ("Das Prüfungstraining für alle drei Zertifikate: der Lernmodus, Abschnitt für "
+                              "Abschnitt mit sofortiger Korrektur, oder die Probeprüfung, zusammengestellt "
+                              "und bewertet wie die echte."),
+        "landing_exam_button": "Üben",
+        "landing_path_title": "Womit anfangen?",
+        "landing_path_text": ("Fang mit dem Kurs an und wechsle zum Training, wenn du ihn abgeschlossen "
+                              "hast. Für die Teile 2 und 3 der Prüfung (Verfahren und Vorschriften), die "
+                              "der Kurs noch nicht abdeckt, kannst du sofort üben."),
+        "course_title": "BASE-Kurs — Teil 1: Technik",
+        "dashboard": "Mein Kurs",
+        "continue": "Weiter",
+        "course_done": "Bravo, du hast den ganzen Kurs abgeschlossen!",
+        "questions_remaining": "Verbleibende Fragen: {n} von {total}",
+        "module_state_locked": "Noch gesperrt",
+        "module_state_in-progress": "In Arbeit",
+        "module_state_completed": "Abgeschlossen",
+        "steps_progress": "{done} / {total} Schritte",
+        "step_of": "Schritt {n} / {total}",
+        "question_n": "Frage {id}",
+        "sources": "Quellen",
+        "well_done": "Super, das ist richtig!",
+        "try_again": "Das ist nicht richtig. Versuch es noch einmal!",
+        "review_lessons": "Wiederholen:",
         "admin_learners": "Lernende",
         "add_learner": "Hinzufügen",
         "display_name": "Vorname oder Spitzname",

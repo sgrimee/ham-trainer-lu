@@ -7,7 +7,7 @@ document.addEventListener("keydown", (e) => {
   if (e.key.toLowerCase() in letters) {
     const radios = document.querySelectorAll('input[type=radio][name=answer]');
     const radio = radios[letters[e.key.toLowerCase()]];
-    if (radio) radio.checked = true;
+    if (radio && !radio.disabled) radio.checked = true;  // a course option already tried is disabled
     return;
   }
   if (e.key === "ArrowLeft") {

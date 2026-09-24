@@ -40,11 +40,12 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     # specs/LEARN.md §3.2: the container never runs `mise run verify`, so a
     # half-valid course must fail the deploy here rather than render as a
     # broken page in front of a learner.
-    course_problems = course_module.validate(questions=cat.questions)
-    if course_problems:
-        for p in course_problems:
+    try:
+        app.state.course = course_module.load(questions=cat.questions)
+    except course_module.CourseError as e:
+        for p in e.problems:
             log.error("course: %s", p)
-        raise course_module.CourseError(course_problems)
+        raise
     # A configured but unreadable ADMIN_PASSWORD_FILE fails here, like a bad
     # LLM_API_KEY_FILE does, rather than as a 500 on every /admin request.
     admin.admin_password()
@@ -76,6 +77,10 @@ def get_store(request: Request) -> Store:
 
 def get_llm_grader(request: Request) -> LLMGrader | None:
     return request.app.state.llm_grader
+
+
+def get_course(request: Request) -> course_module.Course:
+    return request.app.state.course
 
 
 def report_issue_url(request: Request, q: dict | None = None, attempt: dict | None = None,
@@ -191,9 +196,19 @@ def _read_prefs(request: Request) -> dict:
     return prefs
 
 
-# -- home: pick a session, or resume one -------------------------------------
+# -- landing page (specs/LEARN.md §10.1) ---------------------------------------
 
 @app.get("/")
+def landing(request: Request):
+    """What the site is for and which half to start with. Static apart from
+    the language, which follows the preferences cookie; no learner, no store."""
+    return templates.TemplateResponse(request=request, name="landing.html", context={
+        "ui": ui_lang(_read_prefs(request)["lang"])})
+
+
+# -- exam trainer home: pick a session, or resume one --------------------------
+
+@app.get("/exam")
 def home(request: Request, lang: str = "fr", store: Store = Depends(get_store)):
     ui = ui_lang(lang)
     section_names = _section_labels(ui)
@@ -437,7 +452,7 @@ def retry_wrong(attempt_id: str, store: Store = Depends(get_store)):
 def delete_attempt(attempt_id: str, lang: str = Form("fr"), store: Store = Depends(get_store)):
     _load_attempt_or_404(store, attempt_id)
     store.delete_attempt(attempt_id)
-    return RedirectResponse(f"/?lang={ui_lang(lang)}", status_code=303)
+    return RedirectResponse(f"/exam?lang={ui_lang(lang)}", status_code=303)
 
 
 # -- appendix (specs/TRAINER.md §4.2) --------------------------------------------
@@ -451,16 +466,25 @@ def appendix(request: Request, lang: str = "fr"):
     })
 
 
-# -- course learners (specs/LEARN.md §6.1) -------------------------------------
+# -- the course (specs/LEARN.md §5, §6.1, §7, §10) -----------------------------
 #
 # Identification, not security: whoever reaches the server can pick any name.
 # Acceptable only for a handful of known learners on a private network; PINs
 # (§6.2) must land before the course is opened to anyone else.
+#
+# Every step URL is reachable or redirects to next up (§7): a locked step, a
+# step that isn't in the named module and an unknown module all land there,
+# and a post for any of them writes nothing. Practice grading is an exact
+# match on `is_correct` -- no LLM belongs on this path (§2).
 
-def course_ui(request: Request) -> str:
-    """Interface language of pages not tied to a module (§4.3): German only
-    once some module offers it, which none does until phase 7."""
-    return "fr"
+COURSE_PREFIX = f"/learn/{course_module.CERT}/{course_module.PART}"
+
+
+def course_ui(request: Request, module: course_module.Module | None = None) -> str:
+    """The one effective language of a course page (§4.3), from the trainer's
+    own `lang` preference: German only where the page's module offers it, or,
+    off-module, once any module does."""
+    return request.app.state.course.effective_lang(_read_prefs(request)["lang"], module)
 
 
 def current_learner(request: Request, store: Store) -> dict | None:
@@ -470,8 +494,38 @@ def current_learner(request: Request, store: Store) -> dict | None:
     return store.get_account(account_id) if account_id else None
 
 
+def step_url(step: course_module.Step | None) -> str:
+    """A step's address; the dashboard once there is no step (course done)."""
+    return f"{COURSE_PREFIX}/{step.module}/{step.slug}" if step else "/learn"
+
+
+templates.env.globals["step_url"] = step_url  # type: ignore
+templates.env.globals["course_prefix"] = COURSE_PREFIX  # type: ignore
+
+
+def _to_dashboard() -> Response:
+    return RedirectResponse("/learn", status_code=303)
+
+
+def _to_next_up(course: course_module.Course, completed: set[str]) -> Response:
+    return RedirectResponse(step_url(course.next_up(completed)), status_code=303)
+
+
+def _question(step: course_module.Step) -> dict:
+    """A practice step's catalogue question, joined on id (§4.1)."""
+    assert step.question_id is not None
+    return cat.get(step.question_id)
+
+
+def _step_title(step: course_module.Step, lang: str) -> str:
+    if step.kind == "practice":
+        return t(lang, "question_n", id=step.question_id)
+    return course_module.page(step, lang).title
+
+
 @app.get("/learn")
-def learn_home(request: Request, store: Store = Depends(get_store)):
+def learn_home(request: Request, store: Store = Depends(get_store),
+               course: course_module.Course = Depends(get_course)):
     ui = course_ui(request)
     learner = current_learner(request, store)
     if learner is None:
@@ -480,13 +534,21 @@ def learn_home(request: Request, store: Store = Depends(get_store)):
         if request.cookies.get(LEARNER_COOKIE):
             response.delete_cookie(LEARNER_COOKIE)
         return response
+    completed = store.completed_steps(learner["id"])
+    practice = [s for s in course.steps if s.kind == "practice"]
+    modules = [{"module": m, "title": m.title.get(ui, m.title["fr"]),
+                "state": course.module_state(m, completed),
+                "done": sum(1 for s in m.steps if s.id in completed), "total": len(m.steps)}
+               for m in course.modules]
     return templates.TemplateResponse(request=request, name="learn_home.html", context={
-        "ui": ui, "learner": learner})
+        "ui": ui, "learner": learner, "modules": modules, "next_up": course.next_up(completed),
+        "questions_remaining": sum(1 for s in practice if s.id not in completed),
+        "questions_total": len(practice)})
 
 
 @app.post("/learn/who")
 def learn_pick(account_id: str = Form(""), store: Store = Depends(get_store)):
-    response = RedirectResponse("/learn", status_code=303)
+    response = _to_dashboard()
     if store.get_account(account_id) is not None:
         response.set_cookie(LEARNER_COOKIE, account_id, max_age=60 * 60 * 24 * 365,
                             httponly=True, samesite="lax")
@@ -495,9 +557,124 @@ def learn_pick(account_id: str = Form(""), store: Store = Depends(get_store)):
 
 @app.post("/learn/who/clear")
 def learn_clear():
-    response = RedirectResponse("/learn", status_code=303)
+    response = _to_dashboard()
     response.delete_cookie(LEARNER_COOKIE)
     return response
+
+
+@app.get(COURSE_PREFIX + "/{module_slug}")
+def learn_module(request: Request, module_slug: str, store: Store = Depends(get_store),
+                 course: course_module.Course = Depends(get_course)):
+    learner = current_learner(request, store)
+    if learner is None:
+        return _to_dashboard()
+    completed = store.completed_steps(learner["id"])
+    module = course.module(module_slug)
+    if module is None or course.module_state(module, completed) == "locked":
+        return _to_next_up(course, completed)
+    ui = course_ui(request, module)
+    steps = [{"step": s, "title": _step_title(s, ui), "done": s.id in completed,
+              "reachable": course.reachable(s, completed)} for s in module.steps]
+    return templates.TemplateResponse(request=request, name="learn_module.html", context={
+        "ui": ui, "learner": learner, "module": module,
+        "title": module.title.get(ui, module.title["fr"]), "steps": steps})
+
+
+@app.get(COURSE_PREFIX + "/{module_slug}/{step_slug}")
+def learn_step(request: Request, module_slug: str, step_slug: str, picked: str = "",
+               store: Store = Depends(get_store),
+               course: course_module.Course = Depends(get_course)):
+    learner = current_learner(request, store)
+    if learner is None:
+        return _to_dashboard()
+    completed = store.completed_steps(learner["id"])
+    step = course.step(module_slug, step_slug)
+    if step is None or not course.reachable(step, completed):
+        return _to_next_up(course, completed)
+    module = course.module(module_slug)
+    assert module is not None
+    ui = course_ui(request, module)
+    context = {
+        "ui": ui, "learner": learner, "step": step, "module": module,
+        "module_title": module.title.get(ui, module.title["fr"]),
+        "position": module.steps.index(step) + 1, "module_total": len(module.steps),
+        "previous": course.preceding(step), "following": course.following(step),
+    }
+    if step.kind != "practice":
+        page = course_module.page(step, ui)
+        return templates.TemplateResponse(request=request, name="learn_page.html", context={
+            **context, "page": page, "title": page.title})
+
+    q = _question(step)
+    correct_letter = next(o["letter"] for o in q["options"] if o["is_correct"])
+    if picked not in {o["letter"] for o in q["options"]}:
+        picked = ""
+    done = step.id in completed
+    # Phase 3 stand-in for §5.1's stored `wrong_letters`: on a step not yet
+    # completed, only a wrong pick can come back in the query string (a right
+    # one completes the step first), so a correct `picked` there is ignored.
+    # Phase 4 replaces this path with the stored letters, and `picked` is then
+    # ignored on every step not yet completed.
+    if not done and picked == correct_letter:
+        picked = ""
+    solved = done and picked == correct_letter
+    marks = {picked: "correct" if picked == correct_letter else "wrong"} if picked else {}
+    return templates.TemplateResponse(request=request, name="learn_practice.html", context={
+        **context, "title": t(ui, "question_n", id=step.question_id),
+        "q": session.localize_question(q, ui, None), "marks": marks, "picked": picked,
+        "solved": solved, "wrong": bool(picked) and not solved,
+        "note": course_module.answer_note(step, ui) if solved else None,
+        "review": [(s, course_module.page(s, ui).title) for s in course.review_lessons(step)]
+        if picked and not solved else [],
+    })
+
+
+@app.post(COURSE_PREFIX + "/{module_slug}/{step_slug}/next")
+def learn_next(request: Request, module_slug: str, step_slug: str,
+               store: Store = Depends(get_store),
+               course: course_module.Course = Depends(get_course)):
+    """Completes a lesson or learn-more step (§5.1) and moves on. A practice
+    step is completed by its answer instead; its "Next" is a plain link."""
+    learner = current_learner(request, store)
+    if learner is None:
+        return _to_dashboard()
+    step = course.step(module_slug, step_slug)
+    if step is None or step.kind == "practice":
+        return _to_next_up(course, store.completed_steps(learner["id"]))
+    result = store.complete_step(learner["id"], step.id, lambda done: course.reachable(step, done))
+    if result is None:
+        return _to_dashboard()
+    if result is False:
+        return _to_next_up(course, store.completed_steps(learner["id"]))
+    return RedirectResponse(step_url(course.following(step)), status_code=303)
+
+
+@app.post(COURSE_PREFIX + "/{module_slug}/{step_slug}/answer")
+def learn_answer(request: Request, module_slug: str, step_slug: str, answer: str = Form(""),
+                 store: Store = Depends(get_store),
+                 course: course_module.Course = Depends(get_course)):
+    """Grades a practice answer by exact match and redirects back to the step
+    (post/redirect/get, §5.1). A right answer on a step not yet completed
+    completes it; a revisit's answer changes nothing stored."""
+    learner = current_learner(request, store)
+    if learner is None:
+        return _to_dashboard()
+    completed = store.completed_steps(learner["id"])
+    step = course.step(module_slug, step_slug)
+    if step is None or step.kind != "practice" or not course.reachable(step, completed):
+        return _to_next_up(course, completed)
+    q = _question(step)
+    here = step_url(step)
+    if answer not in {o["letter"] for o in q["options"]}:
+        return RedirectResponse(here, status_code=303)   # nothing picked (or a forged value)
+    correct = next(o["letter"] for o in q["options"] if o["is_correct"])
+    if answer == correct and step.id not in completed:
+        result = store.complete_step(learner["id"], step.id, lambda done: course.reachable(step, done))
+        if result is None:
+            return _to_dashboard()
+        if result is False:
+            return _to_next_up(course, store.completed_steps(learner["id"]))
+    return RedirectResponse(f"{here}?{urlencode({'picked': answer})}", status_code=303)
 
 
 # -- admin (specs/LEARN.md §6.1, §6.1.1) ----------------------------------------

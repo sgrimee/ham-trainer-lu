@@ -11,8 +11,11 @@
 <header class="topbar">
   <a class="brand" href="/">{{ t(ui, 'app_title') }}</a>
   <nav>
+    <a href="/learn">{{ t(ui, 'learn_title') }}</a>
+    <a href="/exam?lang={{ ui }}">{{ t(ui, 'nav_exam') }}</a>
     <a href="/appendix?lang={{ ui }}" target="_blank" rel="noopener">{{ t(ui, 'appendix') }}</a>
-    {% if not grader_available %}
+    {#- The grader only serves the exam trainer's open questions. #}
+    {% if not grader_available and request.url.path.startswith(('/exam', '/attempts')) %}
       <span class="model-badge model-badge--none">{{ t(ui, 'no_model_configured') }}</span>
     {% endif %}
   </nav>

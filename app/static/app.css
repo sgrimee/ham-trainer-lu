@@ -172,3 +172,50 @@ a.link-button { text-decoration: none; border-radius: 8px; border-style: solid; 
 .form-error { color: var(--incorrect); font-weight: 500; }
 .summary { display: grid; grid-template-columns: max-content 1fr; gap: 0.2rem 1rem; }
 .summary dd { margin: 0; }
+
+/* Landing page and course (specs/LEARN.md §5, §7, §10) */
+a.button {
+  display: inline-block; padding: 0.55rem 1.1rem; border-radius: 8px; background: var(--accent);
+  color: #fff; text-decoration: none; font-weight: 500;
+}
+a.button:hover { background: var(--accent-hover); color: #fff; }
+.button-large { font-size: 1.05rem; padding: 0.7rem 1.4rem; }
+.landing-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr)); gap: 1rem; }
+.landing-cards .card { margin-bottom: 0; }
+.landing-cards + .card { margin-top: 1rem; }
+.course-name { color: var(--muted); margin-top: -0.4rem; }
+.course-done { font-weight: 600; color: var(--correct); }
+.crumbs { font-size: 0.85rem; color: var(--muted); margin: 0 0 0.75rem; }
+.module-list, .step-list { list-style: none; padding: 0; margin: 0; }
+.module-item {
+  display: flex; flex-wrap: wrap; align-items: baseline; gap: 0.3rem 0.8rem;
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 0.75rem 1rem; margin-bottom: 0.5rem;
+}
+.module-title { flex: 1; font-weight: 600; }
+.module-item a.module-title { text-decoration: none; }
+.module-state { font-size: 0.8rem; padding: 0.1rem 0.6rem; border-radius: 1rem; background: #eef2ff; color: var(--accent); }
+.module-locked { opacity: 0.6; }
+.module-locked .module-state { background: #f0f0f0; color: var(--muted); }
+.module-completed .module-state { background: #e6f4ea; color: var(--correct); }
+.step-item { padding: 0.45rem 0 0.45rem 1.6rem; border-bottom: 1px solid var(--border); position: relative; }
+.step-item::before { position: absolute; left: 0.2rem; color: var(--muted); content: "○"; }
+.step-item.done::before { content: "✓"; color: var(--correct); }
+.step-item.locked { color: var(--muted); }
+.step-item.locked::before { content: "·"; }
+.step-practice { font-style: italic; }
+.lesson-body { font-size: 1.05rem; }
+.lesson-body svg, .lesson-body img { max-width: 100%; height: auto; }
+.lesson-sources, .learn-more-links { font-size: 0.9rem; }
+.lesson-sources h2 { font-size: 0.95rem; color: var(--muted); }
+.language-note { font-size: 0.8rem; color: var(--muted); margin-left: 0.4rem; }
+.prev-next form { margin: 0 0 0 auto; }
+.practice fieldset { margin: 0; }
+.options li.mark-correct { border-color: var(--correct); background: #f2fbf5; }
+.options li.mark-wrong { border-color: var(--incorrect); background: #fdf2f1; opacity: 0.7; }
+.options li.mark-wrong label { cursor: not-allowed; text-decoration: line-through; }
+.practice-verdict { font-weight: 600; }
+.verdict-correct { color: var(--correct); }
+.verdict-incorrect { color: var(--incorrect); }
+.answer-note { border-left: 3px solid var(--correct); padding: 0.2rem 0 0.2rem 0.8rem; margin: 0.5rem 0; }
+.review-links { font-size: 0.9rem; }

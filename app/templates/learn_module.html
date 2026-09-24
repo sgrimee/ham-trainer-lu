@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% from "_learner.html" import not_you %}
+{% block title %}{{ title }} — {{ t(ui, 'learn_title') }}{% endblock %}
+{% block content %}
+{{ not_you(ui, learner) }}
+<p class="crumbs"><a href="/learn">{{ t(ui, 'dashboard') }}</a></p>
+<section class="card">
+  <h1>{{ title }}</h1>
+  <ol class="step-list">
+    {% for s in steps %}
+    <li class="step-item step-{{ s.step.kind }}{% if s.done %} done{% elif not s.reachable %} locked{% endif %}">
+      {% if s.reachable %}<a href="{{ step_url(s.step) }}">{{ s.title }}</a>{% else %}<span>{{ s.title }}</span>{% endif %}
+    </li>
+    {% endfor %}
+  </ol>
+</section>
+{% endblock %}

@@ -30,6 +30,7 @@ runs the same validation at startup and refuses to start if it fails.
 from __future__ import annotations
 
 import argparse
+import functools
 import pathlib
 import re
 import sys
@@ -90,6 +91,12 @@ class Module:
     title: dict[str, str]
     steps: tuple[Step, ...]
 
+    @property
+    def offers_de(self) -> bool:
+        """German is offered module by module (§4.3). Once the course has
+        validated, a `de` title means every file has its `.de.md` too."""
+        return "de" in self.title
+
 
 @dataclass(frozen=True)
 class Course:
@@ -103,6 +110,62 @@ class Course:
     def introduced_by(self) -> dict[str, Step]:
         """Concept slug -> the lesson that introduces it."""
         return {c: s for s in self.steps if s.kind == "lesson" for c in s.introduces}
+
+    # -- navigation (§7) --------------------------------------------------
+    #
+    # Pure functions of the course and a learner's set of completed step ids
+    # (`step_progress`, §8): "next up" is derived, never stored, so it cannot
+    # drift from what was actually done. Ids of steps no longer in the course
+    # are simply never looked at.
+
+    def module(self, slug: str) -> Module | None:
+        return next((m for m in self.modules if m.slug == slug), None)
+
+    def step(self, module: str, slug: str) -> Step | None:
+        """The step at `<module>/<slug>`; None if that module has no such step."""
+        m = self.module(module)
+        return next((s for s in m.steps if s.slug == slug), None) if m else None
+
+    def next_up(self, completed: set[str]) -> Step | None:
+        """The first step not completed; None once the whole course is done."""
+        return next((s for s in self.steps if s.id not in completed), None)
+
+    def reachable(self, step: Step, completed: set[str]) -> bool:
+        return step.id in completed or step == self.next_up(completed)
+
+    def following(self, step: Step) -> Step | None:
+        """The step after `step` in linear order, crossing into the next module."""
+        steps = self.steps
+        i = steps.index(step)
+        return steps[i + 1] if i + 1 < len(steps) else None
+
+    def preceding(self, step: Step) -> Step | None:
+        steps = self.steps
+        i = steps.index(step)
+        return steps[i - 1] if i > 0 else None
+
+    def module_state(self, module: Module, completed: set[str]) -> str:
+        """"locked", "in-progress" or "completed". A module is unlocked once its
+        first step is reachable."""
+        if all(s.id in completed for s in module.steps):
+            return "completed"
+        return "in-progress" if self.reachable(module.steps[0], completed) else "locked"
+
+    def review_lessons(self, step: Step) -> list[Step]:
+        """The lessons that introduced `step`'s required concepts, in course
+        order: the "Revoir : …" links after a wrong answer (§5.1)."""
+        lessons = {self.introduced_by()[c] for c in step.requires}
+        return [s for s in self.steps if s in lessons]
+
+    def offers_de(self) -> bool:
+        """Pages not tied to a module offer German once any module does (§4.3)."""
+        return any(m.offers_de for m in self.modules)
+
+    def effective_lang(self, preference: str, module: Module | None = None) -> str:
+        """The one language of a page (§4.3): `de` only if the learner prefers
+        it and the page's module (or, off-module, some module) offers it."""
+        offered = module.offers_de if module is not None else self.offers_de()
+        return "de" if preference == "de" and offered else "fr"
 
 
 class CourseError(Exception):
@@ -528,6 +591,53 @@ def report(course: Course) -> list[str]:
     lines.append(f"Concepts no later step requires ({len(unused)}):")
     lines += [f"  {c:<32} introduced by {s.slug} ({s.module})" for c, s in unused] or ["  (none)"]
     return lines
+
+
+# --- rendering (§4) ----------------------------------------------------------
+#
+# Lesson Markdown is written by the author and committed, so raw HTML stays
+# enabled (inline SVG, §4.2). Nothing a learner types is ever rendered here.
+
+IMG_BARE_SRC = re.compile(r"""(<img\b[^>]*?\bsrc\s*=\s*["'])([^"'/\\:#?]+)(["'])""", re.I)
+
+
+@dataclass(frozen=True)
+class Page:
+    """One lesson or learn-more page, or an answer note (title "", no entries)."""
+    title: str
+    html: str
+    entries: tuple[dict, ...] = ()     # a lesson's `sources`, a learn-more's `links`
+
+
+def rewrite_images(html: str, module: str) -> str:
+    """Bare image filenames (the only form the validator allows, §4.2) point
+    at the `/data` static mount. Left relative, they would resolve under the
+    lesson's own URL and hit the locked-step redirect."""
+    return IMG_BARE_SRC.sub(lambda m: f"{m[1]}/data/course/{CERT}/{module}/{m[2]}{m[3]}", html)
+
+
+def render_markdown(body: str, module: str) -> str:
+    return rewrite_images(_MD.render(body), module)
+
+
+@functools.cache
+def _read_page(path: pathlib.Path, module: str) -> Page:
+    meta, body = split_frontmatter(path.read_text())
+    meta = meta if isinstance(meta, dict) else {}
+    entries = meta.get("sources") or meta.get("links") or []
+    return Page(meta.get("title", ""), render_markdown(body, module), tuple(entries))
+
+
+def page(step: Step, lang: str, course_dir: pathlib.Path | None = None) -> Page:
+    """A lesson or learn-more step's page in `lang` (the page's effective
+    language, §4.3, whose file the validator guarantees exists)."""
+    return _read_page((course_dir or COURSE_DIR) / step.module / f"{step.slug}.{lang}.md", step.module)
+
+
+def answer_note(step: Step, lang: str, course_dir: pathlib.Path | None = None) -> str | None:
+    """A practice step's optional answer note (§4.4), rendered; None if it has none."""
+    path = (course_dir or COURSE_DIR) / step.module / f"{step.slug}.{lang}.md"
+    return _read_page(path, step.module).html if path.is_file() else None
 
 
 # --- entry points ------------------------------------------------------------

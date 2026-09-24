@@ -932,9 +932,10 @@ Moving the trainer's home is the only change to its routes: `home()` in
 `app/main.py` is served at `/exam` instead of `/`, and the topbar brand link
 in `base.html` keeps pointing at `/`, now the landing page. The topbar gains
 two links, "Apprendre" and "S'entraîner", so either half is one click from
-anywhere. Nothing else in the trainer redirects to `/` today, so no other
-route changes; `tests/test_main.py`'s home-page test requests `/exam`, and a
-new test covers `/`.
+anywhere. The one other route that redirected to `/`, abandoning a session
+(`POST /attempts/{id}/delete`), now returns to `/exam`, where the resume list
+it came from lives; `tests/test_main.py`'s home-page test requests `/exam`,
+and new tests cover `/` and that redirect.
 
 ## 11. Phases
 

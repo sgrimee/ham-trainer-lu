@@ -1,0 +1,15 @@
+{# Shared frame of a course step page (specs/LEARN.md §7): where you are, then
+   the step, then the Previous / Next flow. `next_control` is the step's own
+   "Next": a form post on a lesson or learn-more step, a plain link on a
+   practice step once it is answered correctly. #}
+{% macro crumbs(ui, module, module_title, position, module_total) -%}
+<p class="crumbs">
+  <a href="/learn">{{ t(ui, 'dashboard') }}</a> ›
+  <a href="{{ course_prefix }}/{{ module.slug }}">{{ module_title }}</a> ·
+  {{ t(ui, 'step_of', n=position, total=module_total) }}
+</p>
+{%- endmacro %}
+
+{% macro previous_link(ui, previous) -%}
+<a id="prev-link" href="{{ step_url(previous) }}">&larr; {{ t(ui, 'previous') }}</a>
+{%- endmacro %}

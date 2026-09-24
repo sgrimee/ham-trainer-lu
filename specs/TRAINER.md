@@ -124,7 +124,7 @@ browser ──HTTP──► app (FastAPI, app/main.py)
 
 | Route | Does |
 |---|---|
-| `GET /` | home: new session form, attempts in progress |
+| `GET /exam` | home: new session form, attempts in progress (moved from `/`, which is now the landing page: LEARN.md §10.1) |
 | `POST /attempts` | create an attempt (§6.1) |
 | `GET /attempts/{id}/q/{n}` | show question `n` |
 | `POST /attempts/{id}/q/{n}/answer` | record an answer; in study mode also grade it |

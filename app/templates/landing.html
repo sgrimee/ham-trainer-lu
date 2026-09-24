@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="card landing-intro">
+  <h1>{{ t(ui, 'landing_heading') }}</h1>
+  <p>{{ t(ui, 'landing_intro') }}</p>
+</section>
+<div class="landing-cards">
+  <section class="card">
+    <h2>{{ t(ui, 'learn_title') }}</h2>
+    <p>{{ t(ui, 'landing_learn_text') }}</p>
+    <a class="button" href="/learn">{{ t(ui, 'landing_learn_button') }}</a>
+  </section>
+  <section class="card">
+    <h2>{{ t(ui, 'nav_exam') }}</h2>
+    <p>{{ t(ui, 'landing_exam_text') }}</p>
+    <a class="button" href="/exam?lang={{ ui }}">{{ t(ui, 'landing_exam_button') }}</a>
+  </section>
+</div>
+<section class="card">
+  <h2>{{ t(ui, 'landing_path_title') }}</h2>
+  <p>{{ t(ui, 'landing_path_text') }}</p>
+</section>
+{% endblock %}

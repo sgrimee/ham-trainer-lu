@@ -1,3 +1,25 @@
 {% macro cell(c) -%}
 <span class="lang-{{ c.lang }}{% if c.fallback %} fallback{% endif %}">{% if c.fallback %}<span class="fallback-tag">{{ c.lang }}</span>{% endif %}{{ c.text }}</span>
 {%- endmacro %}
+
+{# The MCQ options, shared by the exam trainer and the course (specs/LEARN.md §5).
+   The calling template owns the <form> and its action. The letter shown is
+   positional, the value submitted is opt.letter: identical in catalogue order,
+   distinct when the trainer shuffles. `marks` maps a letter to 'wrong' (shown
+   marked and disabled) or 'correct' (shown marked); the trainer passes none. #}
+{% macro mcq_options(q, selected=none, marks={}) -%}
+      <ul class="options">
+        {% for opt in q.options %}
+        {%- set mark = marks.get(opt.letter) %}
+        <li{% if mark %} class="mark-{{ mark }}"{% endif %}>
+          <label class="choice">
+            <input type="radio" name="answer" value="{{ opt.letter }}"
+                  {% if selected == opt.letter %}checked{% endif %}{% if mark == 'wrong' %} disabled{% endif %}>
+            <strong>{{ "abcd"[loop.index0] }})</strong>
+            {% for c in opt.cells %}{{ cell(c) }}{% endfor %}
+            {% if opt.asset %}<img src="/data/{{ opt.asset.path }}" alt="option {{ opt.letter }}">{% endif %}
+          </label>
+        </li>
+        {% endfor %}
+      </ul>
+{%- endmacro %}

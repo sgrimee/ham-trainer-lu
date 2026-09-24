@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "_macros.html" import cell %}
+{% from "_macros.html" import cell, mcq_options %}
 {% block content %}
 <div class="session-layout">
 
@@ -41,19 +41,7 @@
   {% if not read_only %}
   <form method="post" action="/attempts/{{ attempt.id }}/q/{{ n }}/answer" id="answer-form">
     {% if q.kind == 'mcq' %}
-      <ul class="options">
-        {% for opt in q.options %}
-        <li>
-          <label class="choice">
-            <input type="radio" name="answer" value="{{ opt.letter }}"
-                  {% if response and response.answer == opt.letter %}checked{% endif %}>
-            <strong>{{ "abcd"[loop.index0] }})</strong>
-            {% for c in opt.cells %}{{ cell(c) }}{% endfor %}
-            {% if opt.asset %}<img src="/data/{{ opt.asset.path }}" alt="option {{ opt.letter }}">{% endif %}
-          </label>
-        </li>
-        {% endfor %}
-      </ul>
+      {{ mcq_options(q, response.answer if response else none) }}
     {% else %}
       {% for item in q.sub_items %}
         <div class="open-item">

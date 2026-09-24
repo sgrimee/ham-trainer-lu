@@ -21,7 +21,7 @@ def _create_study_attempt(client, **overrides) -> str:
 
 
 def test_home_page_loads(client):
-    resp = client.get("/")
+    resp = client.get("/exam")
     assert resp.status_code == 200
 
 

@@ -12,6 +12,7 @@ import os
 import pathlib
 import sqlite3
 import uuid
+from collections.abc import Callable
 from contextlib import contextmanager
 from datetime import UTC, datetime
 
@@ -202,6 +203,33 @@ class Store:
                 con.execute(f"DELETE FROM {table} WHERE account_id = ?", (account_id,))
             cur = con.execute("DELETE FROM account WHERE id = ?", (account_id,))
             return cur.rowcount > 0
+
+    # -- course progress (specs/LEARN.md §7, §8) ---------------------------
+
+    def completed_steps(self, account_id: str) -> set[str]:
+        with self._connect() as con:
+            rows = con.execute("SELECT step_id FROM step_progress WHERE account_id = ?",
+                               (account_id,)).fetchall()
+        return {r[0] for r in rows}
+
+    def complete_step(self, account_id: str, step_id: str,
+                      allowed: Callable[[set[str]], bool]) -> bool | None:
+        """Record `step_id` as completed, in one `BEGIN IMMEDIATE` transaction
+        that first re-checks, under the write lock, that the account still
+        exists (§8.1 guard 3) and that `allowed(completed steps)` holds -- the
+        caller's reachability rule, so a stale tab or a second device cannot
+        complete a locked step. None: no such account; False: refused, nothing
+        written; True: completed (or already was)."""
+        with self._write_tx() as con:
+            if con.execute("SELECT 1 FROM account WHERE id = ?", (account_id,)).fetchone() is None:
+                return None
+            done = {r[0] for r in con.execute(
+                "SELECT step_id FROM step_progress WHERE account_id = ?", (account_id,))}
+            if not allowed(done):
+                return False
+            con.execute("INSERT OR IGNORE INTO step_progress (account_id, step_id, completed_at) "
+                        "VALUES (?, ?, ?)", (account_id, step_id, now()))
+            return True
 
     # -- attempts ---------------------------------------------------------
 
