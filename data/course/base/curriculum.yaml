@@ -78,8 +78,11 @@ modules:
         introduces: [alternating-current, direct-current]
         requires: [current, voltage, frequency]
       - lesson: ondes
-        introduces: [wave, amplitude, transverse-wave, longitudinal-wave]
+        introduces: [wave, amplitude]
         requires: [frequency]
+      - lesson: transversale-ou-longitudinale
+        introduces: [transverse-wave, longitudinal-wave]
+        requires: [wave]
       - lesson: onde-electromagnetique
         introduces: [electromagnetic-wave, electric-field, magnetic-field]
         requires: [wave, transverse-wave, voltage, current]
@@ -96,11 +99,17 @@ modules:
         requires: [wavelength, frequency, speed-of-light, si-prefixes]
       - practice: 58
         requires: [wavelength-frequency-relation, si-prefixes]
-      - practice: 54
+      - lesson: comparer-frequence-et-longueur-d-onde
+        introduces: [frequency-wavelength-comparison]
         requires: [wavelength-frequency-relation]
+      - practice: 54
+        requires: [frequency-wavelength-comparison]
+      - lesson: qu-est-ce-qu-une-bande
+        introduces: [frequency-band, hf-vhf-uhf]
+        requires: [frequency, wavelength, si-prefixes]
       - lesson: bandes-radioamateur
-        introduces: [amateur-bands, hf-vhf-uhf]
-        requires: [wavelength-frequency-relation, si-prefixes]
+        introduces: [amateur-bands]
+        requires: [frequency-band, hf-vhf-uhf, wavelength-frequency-relation, si-prefixes]
       - practice: 55
         requires: [amateur-bands, si-prefixes]
       - practice: 56
