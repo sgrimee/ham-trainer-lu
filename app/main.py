@@ -19,7 +19,7 @@ from fastapi.responses import RedirectResponse, Response
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
-from . import admin, catalogue, grader, scoring, session
+from . import admin, awards, catalogue, grader, scoring, session
 from . import annotations as annotations_module
 from . import course as course_module
 from .catalogue import BLUEPRINT
@@ -517,6 +517,32 @@ def _question(step: course_module.Step) -> dict:
     return cat.get(step.question_id)
 
 
+def _awards(course: course_module.Course, step: course_module.Step):
+    """What completing `step` earns, decided inside the store's transaction (§9)."""
+    return lambda done, first_try: awards.earned(course, step, done, first_try)
+
+
+def badge_label(course: course_module.Course, ref: str, ui: str) -> str | None:
+    """A badge's name; None for a module badge whose module is gone (§7)."""
+    if ref == awards.FIRST_LESSON:
+        return t(ui, "badge_first_lesson")
+    if ref == awards.COURSE_DONE:
+        return t(ui, "badge_course_done")
+    m = course.module(ref.removeprefix("module:"))
+    return t(ui, "badge_module", title=m.title.get(ui, m.title["fr"])) if m else None
+
+
+def _render_learn(request: Request, store: Store, name: str, context: dict) -> Response:
+    """A course page for the current learner, announcing every badge not yet
+    shown (§9). Only rendered pages take them, never redirects, so a toast
+    lands on the page the answer or "Next" redirected to."""
+    course = request.app.state.course
+    labels = (badge_label(course, ref, context["ui"])
+              for ref in store.take_unseen_badges(context["learner"]["id"]))
+    return templates.TemplateResponse(request=request, name=name, context={
+        **context, "toasts": [label for label in labels if label]})
+
+
 def _step_title(step: course_module.Step, lang: str) -> str:
     if step.kind == "practice":
         return t(lang, "question_n", id=step.question_id)
@@ -535,13 +561,18 @@ def learn_home(request: Request, store: Store = Depends(get_store),
             response.delete_cookie(LEARNER_COOKIE)
         return response
     completed = store.completed_steps(learner["id"])
+    earned = store.awards(learner["id"])
+    badges_earned = {a["ref"] for a in earned if a["kind"] == "badge"}
+    shelf = [{"label": label, "earned": ref in badges_earned}
+             for ref in awards.badges(course) if (label := badge_label(course, ref, ui))]
     practice = [s for s in course.steps if s.kind == "practice"]
     modules = [{"module": m, "title": m.title.get(ui, m.title["fr"]),
                 "state": course.module_state(m, completed),
                 "done": sum(1 for s in m.steps if s.id in completed), "total": len(m.steps)}
                for m in course.modules]
-    return templates.TemplateResponse(request=request, name="learn_home.html", context={
+    return _render_learn(request, store, "learn_home.html", {
         "ui": ui, "learner": learner, "modules": modules, "next_up": course.next_up(completed),
+        "xp": sum(a["amount"] or 0 for a in earned if a["kind"] == "xp"), "shelf": shelf,
         "questions_remaining": sum(1 for s in practice if s.id not in completed),
         "questions_total": len(practice)})
 
@@ -575,7 +606,7 @@ def learn_module(request: Request, module_slug: str, store: Store = Depends(get_
     ui = course_ui(request, module)
     steps = [{"step": s, "title": _step_title(s, ui), "done": s.id in completed,
               "reachable": course.reachable(s, completed)} for s in module.steps]
-    return templates.TemplateResponse(request=request, name="learn_module.html", context={
+    return _render_learn(request, store, "learn_module.html", {
         "ui": ui, "learner": learner, "module": module,
         "title": module.title.get(ui, module.title["fr"]), "steps": steps})
 
@@ -602,33 +633,35 @@ def learn_step(request: Request, module_slug: str, step_slug: str, picked: str =
     }
     if step.kind != "practice":
         page = course_module.page(step, ui)
-        return templates.TemplateResponse(request=request, name="learn_page.html", context={
+        return _render_learn(request, store, "learn_page.html", {
             **context, "page": page, "title": page.title})
 
     q = _question(step)
     correct_letter = next(o["letter"] for o in q["options"] if o["is_correct"])
-    if picked not in {o["letter"] for o in q["options"]}:
-        picked = ""
     done = step.id in completed
-    # Phase 3 stand-in for §5.1's stored `wrong_letters`: on a step not yet
-    # completed, only a wrong pick can come back in the query string (a right
-    # one completes the step first), so a correct `picked` there is ignored.
-    # Phase 4 replaces this path with the stored letters, and `picked` is then
-    # ignored on every step not yet completed.
-    if not done and picked == correct_letter:
-        picked = ""
-    solved = done and picked == correct_letter
-    marks = {picked: "correct" if picked == correct_letter else "wrong"} if picked else {}
-    return templates.TemplateResponse(request=request, name="learn_practice.html", context={
+    if done:
+        # A revisit stores nothing, so the redirect's `picked` is the only
+        # record of the answer just given (§5.1).
+        if picked not in {o["letter"] for o in q["options"]}:
+            picked = ""
+        marks = {picked: "correct" if picked == correct_letter else "wrong"} if picked else {}
+        solved, wrong = picked == correct_letter, bool(picked) and picked != correct_letter
+    else:
+        # Not yet completed: the stored wrong letters are the only source of
+        # truth, so a reload shows the same disabled options (§5.1).
+        result = store.practice_result(learner["id"], q["id"])
+        wrong_letters = result["wrong_letters"] if result else ""
+        marks = {letter: "wrong" for letter in wrong_letters}
+        picked, solved, wrong = "", False, bool(wrong_letters)
+    return _render_learn(request, store, "learn_practice.html", {
         **context, "title": t(ui, "question_n", id=step.question_id),
         "q": session.localize_question(q, ui, None), "marks": marks, "picked": picked,
-        "solved": solved, "wrong": bool(picked) and not solved, "done": done,
+        "solved": solved, "wrong": wrong, "done": done,
         "note": course_module.answer_note(step, ui) if solved else None,
         # A review lesson may sit in an earlier module, which need not offer
         # the same language as this one (§4.3): each title in its own.
         "review": [(s, course_module.page(s, course_ui(request, course.module(s.module))).title)
-                   for s in course.review_lessons(step)]
-        if picked and not solved else [],
+                   for s in course.review_lessons(step)] if wrong else [],
     })
 
 
@@ -644,7 +677,8 @@ def learn_next(request: Request, module_slug: str, step_slug: str,
     step = course.step(module_slug, step_slug)
     if step is None or step.kind == "practice":
         return _to_next_up(course, store.completed_steps(learner["id"]))
-    result = store.complete_step(learner["id"], step.id, lambda done: course.reachable(step, done))
+    result = store.complete_step(learner["id"], step.id, lambda done: course.reachable(step, done),
+                                 _awards(course, step))
     if result is None:
         return _to_dashboard()
     if result is False:
@@ -657,26 +691,29 @@ def learn_answer(request: Request, module_slug: str, step_slug: str, answer: str
                  store: Store = Depends(get_store),
                  course: course_module.Course = Depends(get_course)):
     """Grades a practice answer by exact match and redirects back to the step
-    (post/redirect/get, §5.1). A right answer on a step not yet completed
-    completes it; a revisit's answer changes nothing stored."""
+    (post/redirect/get, §5.1). On the first pass the answer is recorded and a
+    right one completes the step; a revisit's answer changes nothing stored
+    and travels in the query string instead. Reading, deciding and writing
+    happen in one transaction (§8.1)."""
     learner = current_learner(request, store)
     if learner is None:
         return _to_dashboard()
-    completed = store.completed_steps(learner["id"])
     step = course.step(module_slug, step_slug)
-    if step is None or step.kind != "practice" or not course.reachable(step, completed):
-        return _to_next_up(course, completed)
+    if step is None or step.kind != "practice":
+        return _to_next_up(course, store.completed_steps(learner["id"]))
     q = _question(step)
     here = step_url(step)
     if answer not in {o["letter"] for o in q["options"]}:
         return RedirectResponse(here, status_code=303)   # nothing picked (or a forged value)
     correct = next(o["letter"] for o in q["options"] if o["is_correct"])
-    if answer == correct and step.id not in completed:
-        result = store.complete_step(learner["id"], step.id, lambda done: course.reachable(step, done))
-        if result is None:
-            return _to_dashboard()
-        if result is False:
-            return _to_next_up(course, store.completed_steps(learner["id"]))
+    result = store.answer_practice(learner["id"], step.id, q["id"], answer, answer == correct,
+                                   lambda done: course.reachable(step, done), _awards(course, step))
+    if result is None:
+        return _to_dashboard()
+    if result == "locked":
+        return _to_next_up(course, store.completed_steps(learner["id"]))
+    if result == "wrong":
+        return RedirectResponse(here, status_code=303)
     return RedirectResponse(f"{here}?{urlencode({'picked': answer})}", status_code=303)
 
 

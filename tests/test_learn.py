@@ -1,17 +1,21 @@
-"""Course rendering and navigation (specs/LEARN.md phase 3): the landing page,
-the trainer's home at /exam, next up and locking (§7), practice answers (§5.1),
-and the pure navigation helpers behind them. Runs against the real course:
+"""Course rendering, navigation and progression (specs/LEARN.md phases 3-4):
+the landing page, the trainer's home at /exam, next up and locking (§7),
+practice answers and their retry loop (§5.1, §8), XP and badges (§9), and the
+pure navigation helpers behind them. Runs against the real course:
 navigation depends only on its structure, never on the prose."""
 from __future__ import annotations
 
 import pathlib
+import re
 import shutil
 import sys
+import threading
 
 import pytest
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent))
 
+from app import awards
 from app import course as course_module
 from app.main import COURSE_PREFIX, LEARNER_COOKIE, PREFS_COOKIE, cat
 from app.store import Store
@@ -54,6 +58,19 @@ def seed(store: Store, account_id: str, steps) -> None:
                         (account_id, s.id))
 
 
+def practice(store: Store, account_id: str, qid: int) -> dict:
+    result = store.practice_result(account_id, qid)
+    assert result is not None
+    return result
+
+
+def snapshot(store: Store) -> dict[str, list[tuple]]:
+    """Every progress row, to check that a request wrote nothing."""
+    with store._write_tx() as con:
+        return {t: sorted(tuple(r) for r in con.execute(f"SELECT * FROM {t}"))
+                for t in ("step_progress", "practice_result", "award")}
+
+
 def steps_before(step: course_module.Step) -> list[course_module.Step]:
     return COURSE.steps[:COURSE.steps.index(step)]
 
@@ -84,6 +101,10 @@ def test_landing_links_both_halves(client):
     resp = client.get("/")
     assert resp.status_code == 200
     assert 'href="/learn"' in resp.text and 'href="/exam?lang=fr"' in resp.text
+
+
+def test_landing_points_parts_2_and_3_to_the_ilr_guide(client):
+    assert "guide_du_radioamateur.pdf" in client.get("/").text
 
 
 def test_landing_follows_the_language_preference(client):
@@ -210,13 +231,15 @@ def test_practice_page_renders_the_catalogue_question(client, store: Store, lear
     assert page.count('name="answer"') == 4 and "id=\"next-link\"" not in page
 
 
-def test_wrong_answer_stores_nothing_and_offers_review(client, store: Store, learner):
+def test_wrong_answer_is_remembered_and_offers_review(client, store: Store, learner):
     seed(store, learner, steps_before(Q2))
     _, wrong = options(QID)
-    assert location(post(client, url(Q2) + "/answer", {"answer": wrong[0]})) == f"{url(Q2)}?picked={wrong[0]}"
+    assert location(post(client, url(Q2) + "/answer", {"answer": wrong[0]})) == url(Q2)
     assert Q2.id not in store.completed_steps(learner)
-    page = client.get(f"{url(Q2)}?picked={wrong[0]}").text
-    assert "Essaie encore" in page and "Revoir" in page and "disabled" in page
+    assert practice(store, learner, QID)["wrong_letters"] == wrong[0]
+    page = client.get(url(Q2)).text             # a plain reload, nothing in the URL
+    assert "Essaie encore" in page and "Revoir" in page
+    assert page.count("disabled") == 1 and re.search(rf'value="{wrong[0]}"\s+disabled', page)
     for lesson in COURSE.review_lessons(Q2):
         assert f'href="{url(lesson)}"' in page
     assert 'id="next-link"' not in page
@@ -232,11 +255,13 @@ def test_correct_answer_completes_and_unlocks_next(client, store: Store, learner
     assert COURSE.next_up(store.completed_steps(learner)) == following(Q2)
 
 
-def test_a_correct_pick_in_the_url_does_not_solve_an_open_step(client, store: Store, learner):
+@pytest.mark.parametrize("pick", ["correct", "wrong"])
+def test_picked_in_the_url_is_ignored_on_an_open_step(client, store: Store, learner, pick):
     seed(store, learner, steps_before(Q2))
-    correct, _ = options(QID)
-    page = client.get(f"{url(Q2)}?picked={correct}").text
-    assert "Bravo" not in page and 'id="next-link"' not in page
+    correct, wrong = options(QID)
+    page = client.get(f"{url(Q2)}?picked={correct if pick == 'correct' else wrong[0]}").text
+    assert "Bravo" not in page and "Essaie encore" not in page and "disabled" not in page
+    assert 'id="next-link"' not in page
 
 
 def test_empty_or_forged_answer_is_ignored(client, store: Store, learner):
@@ -248,14 +273,16 @@ def test_empty_or_forged_answer_is_ignored(client, store: Store, learner):
 
 def test_revisit_gets_feedback_but_stores_nothing(client, store: Store, learner):
     seed(store, learner, steps_before(Q2) + [Q2])
-    before = store.completed_steps(learner)
+    before = snapshot(store)
     page = client.get(url(Q2)).text
     assert "disabled" not in page                 # fresh question
     assert f'id="next-link" href="{url(following(Q2))}"' in page   # no need to re-answer
     _, wrong = options(QID)
     assert location(post(client, url(Q2) + "/answer", {"answer": wrong[0]})) == f"{url(Q2)}?picked={wrong[0]}"
     assert "Essaie encore" in client.get(f"{url(Q2)}?picked={wrong[0]}").text
-    assert store.completed_steps(learner) == before
+    correct, _ = options(QID)
+    assert location(post(client, url(Q2) + "/answer", {"answer": correct})) == f"{url(Q2)}?picked={correct}"
+    assert snapshot(store) == before
 
 
 def test_answer_note_shows_once_answered_correctly(client, store: Store, learner, tmp_path, monkeypatch):
@@ -296,9 +323,153 @@ def test_review_links_use_each_lessons_own_language(client, store: Store, learne
     unites = next(s for s in module("electricite").steps if s.slug == "unites")
     seed(store, learner, steps_before(q5))
     _, wrong = options(5)
-    page = client.get(f"{url(q5)}?picked={wrong[0]}").text
+    post(client, url(q5) + "/answer", {"answer": wrong[0]})
+    page = client.get(url(q5)).text
     assert "Wiederholen:" in page
     assert course_module.page(unites, "fr").title.replace("'", "&#39;") in page
+
+
+# -- progression: XP, badges and the answer transaction (§8, §8.1, §9) -------------------
+
+def xp_rows(store: Store, learner: str) -> dict[str, int]:
+    return {a["ref"]: a["amount"] for a in store.awards(learner) if a["kind"] == "xp"}
+
+
+def badge_rows(store: Store, learner: str) -> set[str]:
+    return {a["ref"] for a in store.awards(learner) if a["kind"] == "badge"}
+
+
+def test_first_try_earns_xp_once(client, store: Store, learner):
+    seed(store, learner, steps_before(Q2))
+    correct, _ = options(QID)
+    post(client, url(Q2) + "/answer", {"answer": correct})
+    post(client, url(Q2) + "/answer", {"answer": correct})     # a double click, or a retried request
+    assert xp_rows(store, learner) == {Q2.id: awards.XP_FIRST_TRY}
+    result = practice(store, learner, QID)
+    assert (result["wrong_letters"], result["submissions"]) == ("", 1)   # the repeat was a revisit
+
+
+def test_correct_after_a_wrong_try_completes_without_xp(client, store: Store, learner):
+    seed(store, learner, steps_before(Q2))
+    correct, wrong = options(QID)
+    post(client, url(Q2) + "/answer", {"answer": wrong[0]})
+    post(client, url(Q2) + "/answer", {"answer": wrong[0]})    # a disabled option, forged: no new letter
+    post(client, url(Q2) + "/answer", {"answer": wrong[1]})
+    post(client, url(Q2) + "/answer", {"answer": correct})
+    assert Q2.id in store.completed_steps(learner)
+    result = practice(store, learner, QID)
+    assert (result["wrong_letters"], result["submissions"]) == (wrong[0] + wrong[1], 4)
+    assert xp_rows(store, learner) == {}
+
+
+def test_deleted_learner_answer_writes_nothing(client, store: Store, learner):
+    seed(store, learner, steps_before(Q2))
+    store.delete_account(learner)
+    _, wrong = options(QID)
+    assert location(post(client, url(Q2) + "/answer", {"answer": wrong[0]})) == "/learn"
+    assert snapshot(store) == {"step_progress": [], "practice_result": [], "award": []}
+
+
+def test_locked_answer_writes_nothing(client, store: Store, learner):
+    _, wrong = options(QID)
+    assert location(post(client, url(Q2) + "/answer", {"answer": wrong[0]})) == url(FIRST)
+    assert snapshot(store) == {"step_progress": [], "practice_result": [], "award": []}
+
+
+def test_first_lesson_badge_toast_shows_exactly_once(client, store: Store, learner):
+    target = location(post(client, url(FIRST) + "/next"))
+    assert badge_rows(store, learner) == {awards.FIRST_LESSON}
+    assert "Nouveau badge : Première leçon" in client.get(target).text
+    assert "Nouveau badge" not in client.get(target).text
+    assert "Nouveau badge" not in client.get("/learn").text
+    post(client, url(SECOND) + "/next")                      # a second lesson: no second toast
+    assert "Nouveau badge" not in client.get("/learn").text
+
+
+def test_a_redirect_does_not_consume_the_toast(client, store: Store, learner):
+    post(client, url(FIRST) + "/next")
+    assert location(get(client, url(COURSE.steps[4]))) == url(SECOND)   # locked: redirected
+    assert "Nouveau badge" in client.get(url(SECOND)).text
+
+
+def test_learn_more_completes_the_module_with_bonus_and_badge(client, store: Store, learner):
+    elec = module("electricite")
+    seed(store, learner, elec.steps[:-1])
+    target = location(post(client, url(elec.steps[-1]) + "/next"))
+    ref = awards.module_ref("electricite")
+    assert xp_rows(store, learner) == {ref: awards.XP_MODULE}
+    assert ref in badge_rows(store, learner)
+    assert "Module terminé : " in client.get(target).text
+
+
+def test_module_closed_by_a_practice_step_still_earns_its_bonus(store: Store):
+    """After a curriculum change, the last missing step can be a question (§7)."""
+    account = store.create_account("Max")
+    elec = module("electricite")
+    seed(store, account, [s for s in elec.steps if s != Q2])
+    correct, _ = options(QID)
+    assert store.answer_practice(account, Q2.id, QID, correct, True, lambda done: True,
+                                 lambda done, first: awards.earned(COURSE, Q2, done, first)) == "correct"
+    assert xp_rows(store, account) == {Q2.id: awards.XP_FIRST_TRY,
+                                       awards.module_ref("electricite"): awards.XP_MODULE}
+
+
+def test_finishing_the_course_earns_its_badge(client, store: Store, learner):
+    last = COURSE.steps[-1]
+    seed(store, learner, steps_before(last))
+    assert location(post(client, url(last) + "/next")) == "/learn"
+    assert awards.COURSE_DONE in badge_rows(store, learner)
+    assert "Nouveau badge : BASE partie 1 terminée" in client.get("/learn").text
+
+
+def test_dashboard_shows_xp_and_the_badge_shelf(client, store: Store, learner):
+    seed(store, learner, steps_before(Q2))
+    correct, _ = options(QID)
+    post(client, url(Q2) + "/answer", {"answer": correct})
+    page = client.get("/learn").text
+    assert f">{awards.XP_FIRST_TRY} XP<" in page
+    assert page.count('class="badge ') == len(awards.badges(COURSE))
+    assert "Première leçon" in page and 'class="badge locked"' in page
+
+
+def test_a_wrong_answer_holding_the_lock_denies_first_try_xp(store: Store):
+    """§8.1 guard 1, the dangerous interleaving made deterministic: a wrong
+    answer holds the write lock while a right one arrives. The right one must
+    not read `wrong_letters` until the wrong one has committed, so it earns
+    no first-try XP."""
+    account = store.create_account("Max")
+    seed(store, account, steps_before(Q2))
+    correct, wrong = options(QID)
+    holding, release = threading.Event(), threading.Event()
+    right_read_early: list[bool] = []
+
+    def wrong_allowed(done):
+        holding.set()
+        release.wait(5)
+        return True
+
+    def right_allowed(done):
+        right_read_early.append(not release.is_set())
+        return True
+
+    def earn(done, first):
+        return awards.earned(COURSE, Q2, done, first)
+
+    t_wrong = threading.Thread(target=store.answer_practice,
+                               args=(account, Q2.id, QID, wrong[0], False, wrong_allowed, earn))
+    t_wrong.start()
+    holding.wait(5)
+    t_right = threading.Thread(target=store.answer_practice,
+                               args=(account, Q2.id, QID, correct, True, right_allowed, earn))
+    t_right.start()
+    threading.Event().wait(0.3)       # time for the right answer to overtake, were it not blocked
+    release.set()
+    t_wrong.join(5)
+    t_right.join(5)
+    assert right_read_early == [False]
+    assert Q2.id in store.completed_steps(account)
+    assert practice(store, account, QID)["wrong_letters"] == wrong[0]
+    assert xp_rows(store, account) == {}
 
 
 # -- lesson rendering (§4.2) -----------------------------------------------------------

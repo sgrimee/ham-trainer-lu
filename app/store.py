@@ -12,9 +12,10 @@ import os
 import pathlib
 import sqlite3
 import uuid
-from collections.abc import Callable
+from collections.abc import Callable, Iterable
 from contextlib import contextmanager
 from datetime import UTC, datetime
+from typing import Protocol
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 
@@ -53,9 +54,9 @@ CREATE TABLE IF NOT EXISTS grade (
   PRIMARY KEY (attempt_id, question_id, item_no)
 );
 
--- specs/LEARN.md §8. One account store for both apps (§6.2); the progress
--- tables are created now, ahead of the phases that fill them, so deleting a
--- learner (§6.1) already removes everything a learner can own.
+-- specs/LEARN.md §8. One account store for both apps (§6.2). Progress:
+-- completed steps, the practice retry loop's first pass (§5.1), and the XP
+-- and badge ledger (§9), all removed with the learner (§6.1).
 CREATE TABLE IF NOT EXISTS account (
   id           TEXT PRIMARY KEY,
   display_name TEXT NOT NULL UNIQUE,
@@ -98,6 +99,20 @@ BUSY_TIMEOUT = 10.0
 ACCOUNT_TABLES = ("step_progress", "practice_result", "award")
 
 DISPLAY_NAME_MAX = 40
+
+
+class Grant(Protocol):
+    """One XP or badge row to write (app/awards.py's Award)."""
+    @property
+    def kind(self) -> str: ...
+    @property
+    def ref(self) -> str: ...
+    @property
+    def amount(self) -> int | None: ...
+
+
+# (completed steps including the one just completed, first try?) -> awards.
+Awards = Callable[[set[str], bool], Iterable[Grant]]
 
 
 class AccountExists(ValueError):
@@ -212,24 +227,114 @@ class Store:
                                (account_id,)).fetchall()
         return {r[0] for r in rows}
 
+    @staticmethod
+    def _account_exists(con: sqlite3.Connection, account_id: str) -> bool:
+        """Checked first in every progress write, under the write lock: a
+        learner deleted mid-request gets nothing written (§8.1 guard 3)."""
+        return con.execute("SELECT 1 FROM account WHERE id = ?", (account_id,)).fetchone() is not None
+
+    @staticmethod
+    def _completed_in(con: sqlite3.Connection, account_id: str) -> set[str]:
+        return {r[0] for r in con.execute(
+            "SELECT step_id FROM step_progress WHERE account_id = ?", (account_id,))}
+
+    @staticmethod
+    def _complete(con: sqlite3.Connection, account_id: str, step_id: str, done: set[str],
+                  first_try: bool, awards: Awards | None) -> None:
+        """Mark a step completed and grant what that earns (§9), idempotently."""
+        con.execute("INSERT OR IGNORE INTO step_progress (account_id, step_id, completed_at) "
+                    "VALUES (?, ?, ?)", (account_id, step_id, now()))
+        for a in awards(done | {step_id}, first_try) if awards else ():
+            con.execute("INSERT OR IGNORE INTO award (account_id, kind, ref, amount, awarded_at) "
+                        "VALUES (?, ?, ?, ?, ?)", (account_id, a.kind, a.ref, a.amount, now()))
+
     def complete_step(self, account_id: str, step_id: str,
-                      allowed: Callable[[set[str]], bool]) -> bool | None:
-        """Record `step_id` as completed, in one `BEGIN IMMEDIATE` transaction
-        that first re-checks, under the write lock, that the account still
-        exists (§8.1 guard 3) and that `allowed(completed steps)` holds -- the
-        caller's reachability rule, so a stale tab or a second device cannot
-        complete a locked step. None: no such account; False: refused, nothing
-        written; True: completed (or already was)."""
+                      allowed: Callable[[set[str]], bool],
+                      awards: Awards | None = None) -> bool | None:
+        """Record a lesson or learn-more step as completed, with its awards,
+        in one `BEGIN IMMEDIATE` transaction (§8.1). `allowed(completed
+        steps)` is the caller's reachability rule, re-checked under the lock
+        so a stale tab or a second device cannot complete a locked step.
+        None: no such account; False: refused, nothing written; True:
+        completed (or already was)."""
         with self._write_tx() as con:
-            if con.execute("SELECT 1 FROM account WHERE id = ?", (account_id,)).fetchone() is None:
+            if not self._account_exists(con, account_id):
                 return None
-            done = {r[0] for r in con.execute(
-                "SELECT step_id FROM step_progress WHERE account_id = ?", (account_id,))}
+            done = self._completed_in(con, account_id)
             if not allowed(done):
                 return False
-            con.execute("INSERT OR IGNORE INTO step_progress (account_id, step_id, completed_at) "
-                        "VALUES (?, ?, ?)", (account_id, step_id, now()))
+            if step_id not in done:
+                self._complete(con, account_id, step_id, done, False, awards)
             return True
+
+    def answer_practice(self, account_id: str, step_id: str, question_id: int, letter: str,
+                        correct: bool, allowed: Callable[[set[str]], bool],
+                        awards: Awards | None = None) -> str | None:
+        """Record one answer to a practice step (§5.1): read, decide and write
+        `practice_result`, `step_progress` and awards in one `BEGIN IMMEDIATE`
+        transaction, so same-learner submissions are serialized (§8.1 guard 1)
+        and a correct answer can never read `wrong_letters` before a
+        concurrent wrong one commits.
+
+        None: no such account. "locked": refused, nothing written. "revisit":
+        the step was already completed, so nothing is written whatever the
+        answer -- completion, attempts and XP are decided by the first pass
+        only. "wrong" / "correct": recorded; a correct answer completes the
+        step, and earns first-try XP only if no wrong option was tried."""
+        with self._write_tx() as con:
+            if not self._account_exists(con, account_id):
+                return None
+            done = self._completed_in(con, account_id)
+            if not allowed(done):
+                return "locked"
+            if step_id in done:
+                return "revisit"
+            row = con.execute("SELECT wrong_letters FROM practice_result "
+                              "WHERE account_id = ? AND question_id = ?",
+                              (account_id, question_id)).fetchone()
+            wrong = row["wrong_letters"] if row else ""
+            if not correct and letter not in wrong:
+                wrong += letter
+            con.execute(
+                "INSERT INTO practice_result (account_id, question_id, wrong_letters, submissions, "
+                "updated_at) VALUES (?, ?, ?, 1, ?) "
+                "ON CONFLICT(account_id, question_id) DO UPDATE SET "
+                "wrong_letters = excluded.wrong_letters, submissions = submissions + 1, "
+                "updated_at = excluded.updated_at",
+                (account_id, question_id, wrong, now()))
+            if not correct:
+                return "wrong"
+            self._complete(con, account_id, step_id, done, not wrong, awards)
+            return "correct"
+
+    def practice_result(self, account_id: str, question_id: int) -> dict | None:
+        with self._connect() as con:
+            row = con.execute("SELECT * FROM practice_result WHERE account_id = ? AND question_id = ?",
+                              (account_id, question_id)).fetchone()
+        return dict(row) if row else None
+
+    def awards(self, account_id: str) -> list[dict]:
+        with self._connect() as con:
+            rows = con.execute("SELECT * FROM award WHERE account_id = ? ORDER BY awarded_at",
+                               (account_id,)).fetchall()
+        return [dict(r) for r in rows]
+
+    def take_unseen_badges(self, account_id: str) -> list[str]:
+        """Badges not yet announced, marked seen in the same transaction, so
+        each toast is shown exactly once even across tabs (§8, §9). Called on
+        every course page view, so the write lock is only taken when a plain
+        read finds something to announce: page reads never wait on a write
+        (§8.1)."""
+        unseen = ("SELECT ref FROM award WHERE account_id = ? AND kind = 'badge' "
+                  "AND seen_at IS NULL ORDER BY awarded_at, ref")
+        with self._connect() as con:
+            if con.execute(unseen, (account_id,)).fetchone() is None:
+                return []
+        with self._write_tx() as con:
+            refs = [r[0] for r in con.execute(unseen, (account_id,))]
+            con.execute("UPDATE award SET seen_at = ? WHERE account_id = ? AND kind = 'badge' "
+                        "AND seen_at IS NULL", (now(), account_id))
+        return refs
 
     # -- attempts ---------------------------------------------------------
 

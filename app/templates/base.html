@@ -21,6 +21,11 @@
   </nav>
 </header>
 <main>
+{#- Badges earned since the last course page (specs/LEARN.md §9): server-side,
+    shown once, no JavaScript. #}
+{% for label in toasts|default([]) %}
+<p class="toast" role="status">{{ t(ui, 'badge_earned', name=label) }}</p>
+{% endfor %}
 {% block content %}{% endblock %}
 </main>
 <footer class="footer">

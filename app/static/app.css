@@ -225,3 +225,15 @@ a.button:hover { background: var(--accent-hover); color: #fff; }
 .verdict-incorrect { color: var(--incorrect); }
 .answer-note { border-left: 3px solid var(--correct); padding: 0.2rem 0 0.2rem 0.8rem; margin: 0.5rem 0; }
 .review-links { font-size: 0.9rem; }
+.xp-total { font-size: 1.1rem; font-weight: 700; color: var(--accent); }
+.badge-shelf h2 { font-size: 1rem; margin-top: 0; }
+.badge-shelf ul { list-style: none; padding: 0; margin: 0; display: flex; flex-wrap: wrap; gap: 0.5rem; }
+.badge { font-size: 0.85rem; padding: 0.3rem 0.8rem; border-radius: 1rem; border: 1px solid var(--border); }
+.badge.earned { background: #fff7e0; border-color: var(--partial); color: var(--fg); font-weight: 600; }
+.badge.earned::before { content: "★ "; color: var(--partial); }
+.badge.locked { color: var(--muted); }
+.toast {
+  background: #fff7e0; border: 1px solid var(--partial); border-radius: var(--radius);
+  padding: 0.6rem 1rem; margin: 0 0 1rem; font-weight: 600;
+}
+.toast::before { content: "★ "; color: var(--partial); }

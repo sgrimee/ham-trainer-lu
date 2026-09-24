@@ -6,6 +6,7 @@
 <section class="card">
   <h1>{{ t(ui, 'hello_learner', name=learner.display_name) }}</h1>
   <p class="course-name">{{ t(ui, 'course_title') }}</p>
+  <p class="xp-total" id="xp-total">{{ t(ui, 'xp_total', n=xp) }}</p>
   {% if next_up %}
     <p>{{ t(ui, 'questions_remaining', n=questions_remaining, total=questions_total) }}</p>
     <a class="button button-large" id="next-link" href="{{ step_url(next_up) }}">{{ t(ui, 'continue') }} &rarr;</a>
@@ -26,4 +27,14 @@
   </li>
   {% endfor %}
 </ol>
+<section class="card badge-shelf">
+  <h2>{{ t(ui, 'badges') }}</h2>
+  <ul>
+    {% for b in shelf %}
+    <li class="badge{% if b.earned %} earned{% else %} locked{% endif %}">
+      {{ b.label }}{% if not b.earned %} <span class="hint">({{ t(ui, 'badge_locked') }})</span>{% endif %}
+    </li>
+    {% endfor %}
+  </ul>
+</section>
 {% endblock %}
