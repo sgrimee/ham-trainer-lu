@@ -525,8 +525,9 @@ most SQL databases other than SQLite.)
   There is no sign-up page and no rename.
 - **`/learn` without a current learner shows a dropdown** of every account's
   display name. Picking one sets a cookie carrying `account.id`, and a
-  "not you? change" link on every course page clears it. There is no PIN, no
-  password and no session secret.
+  "not you? change" link on every course page, the landing page and the
+  trainer home at `/exam` clears it. There is no PIN, no password and no
+  session secret.
 - **This is identification, not security, and the spec says so
   deliberately.** Anyone who can reach the server can pick any name and
   change that learner's progress. That is acceptable only because the MVP

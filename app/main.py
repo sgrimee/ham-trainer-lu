@@ -199,11 +199,12 @@ def _read_prefs(request: Request) -> dict:
 # -- landing page (specs/LEARN.md §10.1) ---------------------------------------
 
 @app.get("/")
-def landing(request: Request):
+def landing(request: Request, store: Store = Depends(get_store)):
     """What the site is for and which half to start with. Static apart from
-    the language, which follows the preferences cookie; no learner, no store."""
+    the language, which follows the preferences cookie, and the current
+    learner's "not you? change" line when there is one."""
     return templates.TemplateResponse(request=request, name="landing.html", context={
-        "ui": ui_lang(_read_prefs(request)["lang"])})
+        "ui": ui_lang(_read_prefs(request)["lang"]), "learner": current_learner(request, store)})
 
 
 # -- exam trainer home: pick a session, or resume one --------------------------
@@ -225,7 +226,7 @@ def home(request: Request, lang: str = "fr", store: Store = Depends(get_store)):
         "ui": ui, "lang": lang, "tags": catalogue.TAGS,
         "counts": {tg: len(cat.filter(tg)) for tg in catalogue.TAGS},
         "sections": _section_options(), "resumes": resumes, "blueprint": BLUEPRINT,
-        "prefs": _read_prefs(request),
+        "prefs": _read_prefs(request), "learner": current_learner(request, store),
     })
 
 

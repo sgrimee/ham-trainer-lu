@@ -113,6 +113,17 @@ def test_landing_follows_the_language_preference(client):
     assert "Amateurfunkprüfung" in resp.text and '<html lang="de">' in resp.text
 
 
+def test_landing_and_trainer_home_show_the_current_learner(client, learner):
+    for path in ("/", "/exam"):
+        text = client.get(path).text
+        assert "Léa" in text and 'action="/learn/who/clear"' in text
+
+
+def test_landing_and_trainer_home_without_a_learner(client):
+    for path in ("/", "/exam"):
+        assert 'action="/learn/who/clear"' not in client.get(path).text
+
+
 def test_abandoning_a_session_returns_to_the_trainer_home(client):
     resp = post(client, "/attempts", {"tag": "base", "mode": "study", "lang": "fr", "count": "all"})
     attempt_id = location(resp).split("/")[2]

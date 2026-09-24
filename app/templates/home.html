@@ -1,5 +1,7 @@
 {% extends "base.html" %}
+{% from "_learner.html" import not_you %}
 {% block content %}
+{% if learner %}{{ not_you(ui, learner) }}{% endif %}
 
 {% if resumes %}
 <section class="card">
