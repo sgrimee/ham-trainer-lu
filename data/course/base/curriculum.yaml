@@ -163,7 +163,7 @@ modules:
     steps:
       - lesson: dipole
         introduces: [antenna, half-wave-dipole]
-        requires: [electromagnetic-wave, wavelength, current]
+        requires: [electromagnetic-wave, wavelength, current, alternating-current]
       - lesson: polarisation
         introduces: [polarization]
         requires: [half-wave-dipole, electric-field, magnetic-field]
@@ -204,10 +204,10 @@ modules:
     steps:
       - lesson: ionosphere
         introduces: [ionosphere, skywave]
-        requires: [electromagnetic-wave, hf-vhf-uhf]
+        requires: [electromagnetic-wave, hf-vhf-uhf, speed-of-light]
       - lesson: vue-directe
         introduces: [line-of-sight-propagation]
-        requires: [hf-vhf-uhf, ionosphere]
+        requires: [hf-vhf-uhf, ionosphere, speed-of-light]
       - practice: 376
         requires: [line-of-sight-propagation, amateur-bands]
       - lesson: cycle-solaire
