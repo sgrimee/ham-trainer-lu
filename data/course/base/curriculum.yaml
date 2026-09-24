@@ -284,7 +284,7 @@ modules:
     steps:
       - lesson: brouillage
         introduces: [interference, receiver-sensitivity]
-        requires: [amateur-bands, power, feedline, mains-supply]
+        requires: [amateur-bands, power, feedline, mains-supply, coaxial-cable, balun]
       - practice: 415
         requires: [interference, receiver-sensitivity, feedline]
       - lesson: puissance-rayonnee
@@ -292,7 +292,7 @@ modules:
         requires: [power, antenna-gain, decibel]
       - lesson: remedes-au-brouillage
         introduces: [interference-remedies]
-        requires: [interference, effective-radiated-power, coaxial-cable]
+        requires: [interference, effective-radiated-power, coaxial-cable, feedline, frequency-modulation, single-sideband, balun]
       - practice: 419
         requires: [interference-remedies, effective-radiated-power]
       - learn-more
