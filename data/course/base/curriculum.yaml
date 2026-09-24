@@ -252,7 +252,7 @@ modules:
         requires: [mains-supply]
       - lesson: choc-electrique
         introduces: [electric-shock, contact-voltage]
-        requires: [current, voltage, resistance, ohms-law]
+        requires: [current, voltage, resistance, ohms-law, conductor, mains-supply]
       - practice: 432
         requires: [contact-voltage]
       - lesson: terre-de-protection
@@ -269,14 +269,14 @@ modules:
         requires: [lightning-protection-system, earth-electrode]
       - lesson: surtensions
         introduces: [surge-protection]
-        requires: [lightning, coaxial-cable]
+        requires: [lightning, coaxial-cable, earthing]
       - practice: 434
         requires: [surge-protection, coaxial-cable]
       - lesson: locaux-a-risque
         introduces: [hazardous-locations]
-        requires: [lightning, coaxial-cable, insulator]
+        requires: [lightning, coaxial-cable, insulator, surge-protection]
       - practice: 436
-        requires: [hazardous-locations, coaxial-cable, insulator]
+        requires: [hazardous-locations, coaxial-cable, insulator, surge-protection]
       - learn-more
 
   - slug: perturbations
