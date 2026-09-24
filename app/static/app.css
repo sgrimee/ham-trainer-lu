@@ -206,6 +206,12 @@ a.button:hover { background: var(--accent-hover); color: #fff; }
 .step-practice { font-style: italic; }
 .lesson-body { font-size: 1.05rem; }
 .lesson-body svg, .lesson-body img { max-width: 100%; height: auto; }
+.lesson-body figure { margin: 1.2rem 0; text-align: center; }
+.lesson-body figcaption { font-size: 0.9rem; color: var(--muted); margin-top: 0.3rem; }
+.lesson-body blockquote { margin: 1rem 0; padding: 0.5rem 0.9rem; border-left: 3px solid var(--accent); background: #eef2ff; border-radius: 0 var(--radius) var(--radius) 0; }
+.lesson-body blockquote p { margin: 0.3rem 0; }
+.lesson-body table { border-collapse: collapse; margin: 0.8rem 0; }
+.lesson-body th, .lesson-body td { border: 1px solid var(--border); padding: 0.3rem 0.7rem; text-align: left; }
 .lesson-sources, .learn-more-links { font-size: 0.9rem; }
 .lesson-sources h2 { font-size: 0.95rem; color: var(--muted); }
 .language-note { font-size: 0.8rem; color: var(--muted); margin-left: 0.4rem; }
