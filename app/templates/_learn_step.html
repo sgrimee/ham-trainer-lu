@@ -10,6 +10,6 @@
 </p>
 {%- endmacro %}
 
-{% macro previous_link(ui, previous) -%}
-<a id="prev-link" href="{{ step_url(previous) }}">&larr; {{ t(ui, 'previous') }}</a>
+{% macro previous_link(ui, previous, top=false) -%}
+<a{% if not top %} id="prev-link"{% endif %} href="{{ step_url(previous) }}">&larr; {{ t(ui, 'previous') }}</a>
 {%- endmacro %}

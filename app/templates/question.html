@@ -1,6 +1,22 @@
 {% extends "base.html" %}
 {% from "_macros.html" import cell, mcq_options %}
 {% block content %}
+{#- Rendered above and below the question, so Previous / Next stay put whatever
+    the page length; only the bottom copy carries the ids the arrow keys click.
+    In a running exam the bottom pair lives in the answer form (it saves the
+    answer on the way), so the top copy submits that same form. #}
+{% macro prev_next(top=false) -%}
+<nav class="prev-next{% if top %} prev-next-top{% endif %}">
+  {% if attempt.mode != 'exam' or read_only %}
+    {% if n > 1 %}<a{% if not top %} id="prev-link"{% endif %} href="/attempts/{{ attempt.id }}/q/{{ n - 1 }}">&larr; {{ t(ui, 'previous') }}</a>{% endif %}
+    {% if n < total %}<a{% if not top %} id="next-link"{% endif %} href="/attempts/{{ attempt.id }}/q/{{ n + 1 }}">{{ t(ui, 'next') }} &rarr;</a>{% endif %}
+  {% elif top %}
+    {% if n > 1 %}<button type="submit" form="answer-form" name="goto" value="{{ n - 1 }}" class="btn-secondary">&larr; {{ t(ui, 'previous') }}</button>{% endif %}
+    {% if n < total %}<button type="submit" form="answer-form" name="goto" value="{{ n + 1 }}" class="btn-secondary">{{ t(ui, 'next') }} &rarr;</button>{% endif %}
+  {% endif %}
+  {% if submitted %}<a href="/attempts/{{ attempt.id }}/results">{{ t(ui, 'results') }}</a>{% endif %}
+</nav>
+{%- endmacro %}
 <div class="session-layout">
 
 <nav class="grid-nav">
@@ -19,6 +35,7 @@
 </nav>
 
 <article class="question">
+  {{ prev_next(top=true) }}
   <header class="q-meta">
     <span>{{ t(ui, 'question_of', n=n, total=total) }}</span>
     <span class="q-part">{{ t(ui, 'part') }} {{ t(ui, q.part) }}</span>
@@ -74,13 +91,7 @@
     {% include "_feedback.html" %}
   {% endif %}
 
-  <nav class="prev-next">
-    {% if attempt.mode != 'exam' or read_only %}
-      {% if n > 1 %}<a id="prev-link" href="/attempts/{{ attempt.id }}/q/{{ n - 1 }}">&larr; {{ t(ui, 'previous') }}</a>{% endif %}
-      {% if n < total %}<a id="next-link" href="/attempts/{{ attempt.id }}/q/{{ n + 1 }}">{{ t(ui, 'next') }} &rarr;</a>{% endif %}
-    {% endif %}
-    {% if submitted %}<a href="/attempts/{{ attempt.id }}/results">{{ t(ui, 'results') }}</a>{% endif %}
-  </nav>
+  {{ prev_next() }}
 </article>
 </div>
 <p class="hint">{{ t(ui, 'flag_shortcut_hint') }}</p>

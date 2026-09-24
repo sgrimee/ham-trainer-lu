@@ -3,9 +3,20 @@
 {% from "_learn_step.html" import crumbs, previous_link %}
 {% block title %}{{ title }} — {{ t(ui, 'learn_title') }}{% endblock %}
 {% block content %}
+{#- Rendered above and below the step, so Previous / Next stay put whatever the
+    page length; only the bottom copy carries the ids the arrow keys click. #}
+{% macro prev_next(top=false) -%}
+<nav class="prev-next{% if top %} prev-next-top{% endif %}">
+  {% if previous %}{{ previous_link(ui, previous, top) }}{% endif %}
+  <form method="post" action="{{ step_url(step) }}/next">
+    <button type="submit"{% if not top %} id="next-link"{% endif %}>{{ t(ui, 'next') }} &rarr;</button>
+  </form>
+</nav>
+{%- endmacro %}
 {{ not_you(ui, learner) }}
 {{ crumbs(ui, module, module_title, position, module_total) }}
 <article class="card lesson lesson-{{ step.kind }}">
+  {{ prev_next(top=true) }}
   <h1>{{ page.title }}</h1>
   <div class="lesson-body">{{ page.html|safe }}</div>
 
@@ -29,11 +40,6 @@
   </ul>
   {% endif %}
 
-  <nav class="prev-next">
-    {% if previous %}{{ previous_link(ui, previous) }}{% endif %}
-    <form method="post" action="{{ step_url(step) }}/next">
-      <button type="submit" id="next-link">{{ t(ui, 'next') }} &rarr;</button>
-    </form>
-  </nav>
+  {{ prev_next() }}
 </article>
 {% endblock %}

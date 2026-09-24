@@ -4,11 +4,21 @@
 {% from "_learn_step.html" import crumbs, previous_link %}
 {% block title %}{{ title }} — {{ t(ui, 'learn_title') }}{% endblock %}
 {% block content %}
+{#- Rendered above and below the question, so Previous / Next stay put whatever
+    the page length; only the bottom copy carries the ids the arrow keys click. #}
+{% macro prev_next(top=false) -%}
+<nav class="prev-next{% if top %} prev-next-top{% endif %}">
+  {% if previous %}{{ previous_link(ui, previous, top) }}{% endif %}
+  {#- A completed step is already done: a revisit need not be re-answered to move on. #}
+  {% if done %}<a{% if not top %} id="next-link"{% endif %} href="{{ step_url(following) }}">{{ t(ui, 'next') }} &rarr;</a>{% endif %}
+</nav>
+{%- endmacro %}
 {{ not_you(ui, learner) }}
 {{ crumbs(ui, module, module_title, position, module_total) }}
 {# A practice question looks exactly like an exam question (specs/LEARN.md §5):
    same view model, same options markup, catalogue order, no "show answer". #}
 <article class="question practice">
+  {{ prev_next(top=true) }}
   <header class="q-meta">
     <span>{{ title }}</span>
     <span>{{ t(ui, 'section_label') }} {{ q.section }}</span>
@@ -37,10 +47,6 @@
     {% endif %}
   {% endif %}
 
-  <nav class="prev-next">
-    {% if previous %}{{ previous_link(ui, previous) }}{% endif %}
-    {#- A completed step is already done: a revisit need not be re-answered to move on. #}
-    {% if done %}<a id="next-link" href="{{ step_url(following) }}">{{ t(ui, 'next') }} &rarr;</a>{% endif %}
-  </nav>
+  {{ prev_next() }}
 </article>
 {% endblock %}

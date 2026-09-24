@@ -124,6 +124,7 @@ textarea { max-width: 100%; }
 .source-tag, .comment { font-size: 0.85rem; color: var(--muted); }
 
 .prev-next { display: flex; gap: 1rem; align-items: center; margin-top: 1rem; }
+.prev-next-top { margin: 0 0 1rem; }
 .hint { color: var(--muted); font-size: 0.8rem; text-align: center; }
 
 .part-bar { display: flex; align-items: center; gap: 0.6rem; margin-bottom: 0.5rem; }
