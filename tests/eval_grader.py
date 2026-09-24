@@ -11,6 +11,7 @@ deliberately not a pytest test. Raw responses land in var/eval/ for inspection.
 
 Run it after every change to app/grading_prompt.py.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -24,8 +25,8 @@ import urllib.request
 from concurrent.futures import ThreadPoolExecutor
 
 HERE = pathlib.Path(__file__).resolve().parent
-sys.path.insert(0, str(HERE))          # the fixtures, alongside this file
-sys.path.insert(0, str(HERE.parent))   # the repo root, for the app package
+sys.path.insert(0, str(HERE))  # the fixtures, alongside this file
+sys.path.insert(0, str(HERE.parent))  # the repo root, for the app package
 
 from grading_fixtures import CASES  # noqa: E402
 
@@ -40,20 +41,24 @@ def grade(model: str, case) -> dict:
     body = request_body(model, lang, question, reference, candidate)
 
     req = urllib.request.Request(
-        f"{os.environ['LLM_BASE_URL']}/chat/completions", method="POST",
+        f"{os.environ['LLM_BASE_URL']}/chat/completions",
+        method="POST",
         data=json.dumps(body).encode(),
-        headers={"Authorization": f"Bearer {os.environ['LLM_API_KEY']}",
-                 "Content-Type": "application/json"})
+        headers={"Authorization": f"Bearer {os.environ['LLM_API_KEY']}", "Content-Type": "application/json"},
+    )
     started = time.time()
     for attempt in range(4):
         try:
             with urllib.request.urlopen(req, timeout=180) as response:
                 payload = json.load(response)
             usage = payload.get("usage", {})
-            return {"case": cid, "secs": round(time.time() - started, 1),
-                    "tokens_in": usage.get("prompt_tokens") or 0,
-                    "tokens_out": usage.get("completion_tokens") or 0,
-                    **json.loads(payload["choices"][0]["message"]["content"])}
+            return {
+                "case": cid,
+                "secs": round(time.time() - started, 1),
+                "tokens_in": usage.get("prompt_tokens") or 0,
+                "tokens_out": usage.get("completion_tokens") or 0,
+                **json.loads(payload["choices"][0]["message"]["content"]),
+            }
         except urllib.error.HTTPError as e:
             # 429 here is usually upstream capacity, not our own rate limit.
             if e.code in (429, 503) and attempt < 3:
@@ -106,38 +111,50 @@ def report(model: str, runs: list[dict[str, dict]]) -> dict:
             caught = any(must_flag.lower() in s.lower() for s in r.get("incorrect", []))
             traps_hit += caught
             note = "false statement flagged" if caught else "MISSED THE FALSE STATEMENT"
-        print(f"  {cid:14} {expected:10} {got:10} {share * 100:5.0f}%  "
-              f"{'ok ' if got == expected else 'BAD'} {r['secs']:4.1f}s  {note}")
+        print(
+            f"  {cid:14} {expected:10} {got:10} {share * 100:5.0f}%  "
+            f"{'ok ' if got == expected else 'BAD'} {r['secs']:4.1f}s  {note}"
+        )
 
     graded = [r for r in first.values() if "error" not in r]
     stable = drift = None
     if len(runs) > 1:
-        pairs = [(verdict(a[c]), verdict(b[c]))
-                 for a, b in zip(runs, runs[1:], strict=False) for c in a
-                 if "error" not in a[c] and "error" not in b[c]]
+        pairs = [
+            (verdict(a[c]), verdict(b[c]))
+            for a, b in zip(runs, runs[1:], strict=False)
+            for c in a
+            if "error" not in a[c] and "error" not in b[c]
+        ]
         stable = sum(x[0] == y[0] for x, y in pairs) / len(pairs) if pairs else 0
         drift = sum(abs(x[1] - y[1]) for x, y in pairs) / len(pairs) if pairs else 0
 
     summary = {
-        "model": model, "verdicts": hits, "cases": len(CASES),
+        "model": model,
+        "verdicts": hits,
+        "cases": len(CASES),
         "traps": f"{traps_hit}/{traps}",
         "median_s": sorted(r["secs"] for r in graded)[len(graded) // 2] if graded else None,
         "tokens_in": round(sum(r["tokens_in"] for r in graded) / len(graded)) if graded else 0,
         "tokens_out": round(sum(r["tokens_out"] for r in graded) / len(graded)) if graded else 0,
         "errors": sum(1 for r in first.values() if "error" in r),
-        "stable": stable, "drift": drift,
+        "stable": stable,
+        "drift": drift,
     }
-    print(f"  -> {hits}/{len(CASES)} verdicts, {traps_hit}/{traps} false statements caught, "
-          f"median {summary['median_s']}s, ~{summary['tokens_in']} in / {summary['tokens_out']} out tokens")
+    print(
+        f"  -> {hits}/{len(CASES)} verdicts, {traps_hit}/{traps} false statements caught, "
+        f"median {summary['median_s']}s, ~{summary['tokens_in']} in / {summary['tokens_out']} out tokens"
+    )
     return summary
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description=__doc__,
-                                     formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser = argparse.ArgumentParser(
+        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
+    )
     parser.add_argument("models", nargs="*", help="model ids; defaults to $LLM_MODEL")
-    parser.add_argument("--runs", type=int, default=1,
-                        help="repeat each model N times and report verdict stability")
+    parser.add_argument(
+        "--runs", type=int, default=1, help="repeat each model N times and report verdict stability"
+    )
     args = parser.parse_args()
 
     for var in ("LLM_BASE_URL", "LLM_API_KEY"):
@@ -152,18 +169,23 @@ def main() -> int:
     for model in models:
         runs = [one_run(model) for _ in range(args.runs)]
         (OUT_DIR / f"{model.replace('/', '_')}.json").write_text(
-            json.dumps(runs, indent=1, ensure_ascii=False))
+            json.dumps(runs, indent=1, ensure_ascii=False)
+        )
         summaries.append(report(model, runs))
 
     if len(summaries) > 1 or args.runs > 1:
-        print(f"\n{'model':38} {'verdicts':>9} {'traps':>6} {'median':>7} "
-              f"{'tok in/out':>11} {'stable':>7} {'drift':>6} {'err':>4}")
+        print(
+            f"\n{'model':38} {'verdicts':>9} {'traps':>6} {'median':>7} "
+            f"{'tok in/out':>11} {'stable':>7} {'drift':>6} {'err':>4}"
+        )
         for s in summaries:
             stable = f"{s['stable'] * 100:.0f}%" if s["stable"] is not None else "-"
             drift = f"{s['drift'] * 100:.1f}pp" if s["drift"] is not None else "-"
-            print(f"{s['model']:38} {s['verdicts']:6}/{s['cases']:<2} {s['traps']:>6} "
-                  f"{s['median_s']:6}s {s['tokens_in']:5}/{s['tokens_out']:<5} "
-                  f"{stable:>7} {drift:>6} {s['errors']:4}")
+            print(
+                f"{s['model']:38} {s['verdicts']:6}/{s['cases']:<2} {s['traps']:>6} "
+                f"{s['median_s']:6}s {s['tokens_in']:5}/{s['tokens_out']:<5} "
+                f"{stable:>7} {drift:>6} {s['errors']:4}"
+            )
 
     print(f"\nRaw responses: {OUT_DIR}")
     worst = min((s["verdicts"] for s in summaries), default=0)

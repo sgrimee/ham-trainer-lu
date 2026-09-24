@@ -3,6 +3,7 @@
 Loaded once at startup and held in memory: 509 questions is small enough that
 filtering by tag or section is a list comprehension, not a query layer.
 """
+
 from __future__ import annotations
 
 import json
@@ -23,9 +24,9 @@ PART_NAMES = {"1": "technique", "2": "procedures", "3": "reglementation"}
 # ILR, which is adding questions); sampling takes min(blueprint, pool) and never
 # borrows from another tag.
 BLUEPRINT = {
-    "base":   {"technique": 30, "procedures": 10, "reglementation": 10},
+    "base": {"technique": 30, "procedures": 10, "reglementation": 10},
     "novice": {"technique": 60, "procedures": 14, "reglementation": 23},
-    "harec":  {"technique": 60, "procedures": 14, "reglementation": 23},
+    "harec": {"technique": 60, "procedures": 14, "reglementation": 23},
 }
 
 
@@ -66,8 +67,11 @@ class Catalogue:
     def filter(self, tag: str, section_prefix: str | None = None) -> list[dict]:
         out = [q for q in self.questions if tag in q["tags"]]
         if section_prefix:
-            out = [q for q in out if q["section"] == section_prefix
-                   or q["section"].startswith(section_prefix + ".")]
+            out = [
+                q
+                for q in out
+                if q["section"] == section_prefix or q["section"].startswith(section_prefix + ".")
+            ]
         return out
 
     def sections(self, tag: str) -> list[str]:

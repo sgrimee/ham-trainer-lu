@@ -5,6 +5,7 @@ State machine over the token stream from geometry.iter_lines(). Every line is
 consumed by exactly one cell; anything unexpected raises rather than being
 silently dropped.
 """
+
 from __future__ import annotations
 
 import re
@@ -62,8 +63,9 @@ def split_cell(lines):
         # best separates roman-before from italic-after.
         best, best_k = None, len(lines)
         for k in range(len(lines) + 1):
-            score = (sum(1 for i, ln in voting if i < k and ln.lang == "fr")
-                     + sum(1 for i, ln in voting if i >= k and ln.lang == "de"))
+            score = sum(1 for i, ln in voting if i < k and ln.lang == "fr") + sum(
+                1 for i, ln in voting if i >= k and ln.lang == "de"
+            )
             if best is None or score > best:
                 best, best_k = score, k
         return lines[:best_k], lines[best_k:], None
@@ -121,7 +123,7 @@ class Question:
     section_de: str | None
     stem: list = field(default_factory=list)
     options: list = field(default_factory=list)
-    answer: list = field(default_factory=list)   # parsed answer items
+    answer: list = field(default_factory=list)  # parsed answer items
     answer_lines: list = field(default_factory=list)  # raw lines behind them
     notes: list = field(default_factory=list)
 
@@ -194,8 +196,10 @@ def as_table(lines):
     labels.sort(key=lambda lab: lab.y)
     buckets = {id(lab): [] for lab in labels}
     for line in bodies:
+
         def _distance(lab: Line, target: Line = line) -> float:
             return abs(lab.y - target.y)
+
         buckets[id(min(labels, key=_distance))].append(line)
     if any(len(v) != 2 for v in buckets.values()):
         return None
@@ -223,7 +227,7 @@ def assemble(doc):
     heading_buf = []
     section = (None, None, None)
     q = None
-    cell = None          # where body/gutter/subitem lines currently accumulate
+    cell = None  # where body/gutter/subitem lines currently accumulate
 
     def flush_heading():
         nonlocal heading_buf, section

@@ -10,6 +10,7 @@ including a form another site submits, and account ids are public in the /learn
 dropdown. So a state-changing request that the browser marks cross-site, or
 whose Origin is not this host, is refused (403) before the password is looked at.
 """
+
 from __future__ import annotations
 
 import base64

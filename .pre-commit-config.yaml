@@ -1,0 +1,26 @@
+# Run the CI lint gate before each commit. Install with `mise run install-hooks`.
+# Local hooks through `uv run`, so ruff and ty are the versions pinned in uv.lock
+# -- the same ones `mise run lint` uses in CI.
+repos:
+  - repo: local
+    hooks:
+      # Rewrites the staged files and fails the commit if it changed any:
+      # review the result, `git add` it and commit again.
+      - id: ruff-format
+        name: ruff format
+        entry: uv run ruff format
+        language: system
+        types: [python]
+      - id: ruff
+        name: ruff check
+        entry: uv run ruff check
+        language: system
+        types: [python]
+      - id: ty
+        name: ty check
+        # A type error can come from a file other than the one changed, so check
+        # the whole project rather than just the staged files.
+        entry: uv run ty check .
+        language: system
+        types: [python]
+        pass_filenames: false

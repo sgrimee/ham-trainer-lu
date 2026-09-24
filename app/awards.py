@@ -6,14 +6,15 @@ award can never be granted twice (§8).
 Amounts and the badge list are placeholders until real learners have used
 the course (§12).
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass
 
 from .course import Course, Step
 
-XP_FIRST_TRY = 10       # a practice step completed with no wrong option (§8)
-XP_MODULE = 50          # every step of a module, its learn-more included
+XP_FIRST_TRY = 10  # a practice step completed with no wrong option (§8)
+XP_MODULE = 50  # every step of a module, its learn-more included
 
 FIRST_LESSON = "premiere-lecon"
 COURSE_DONE = "base-technique"
@@ -21,8 +22,8 @@ COURSE_DONE = "base-technique"
 
 @dataclass(frozen=True)
 class Award:
-    kind: str           # "xp" | "badge"
-    ref: str            # "q15", "module:electricite", or a badge slug
+    kind: str  # "xp" | "badge"
+    ref: str  # "q15", "module:electricite", or a badge slug
     amount: int | None = None
 
 

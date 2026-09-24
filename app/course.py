@@ -27,6 +27,7 @@ Run `uv run python -m app.course` to validate (`mise run verify` does), and
 `uv run python -m app.course --report` for the review report. The application
 runs the same validation at startup and refuses to start if it fails.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -72,9 +73,9 @@ IMG_TAG_SRC = re.compile(r"""<img\b[^>]*?\bsrc\s*=\s*["']([^"']*)["']""", re.I)
 
 @dataclass(frozen=True)
 class Step:
-    kind: str                    # "lesson" | "practice" | "learn-more"
-    module: str                  # module slug
-    slug: str                    # URL segment: lesson slug, "q<id>" or "en-savoir-plus"
+    kind: str  # "lesson" | "practice" | "learn-more"
+    module: str  # module slug
+    slug: str  # URL segment: lesson slug, "q<id>" or "en-savoir-plus"
     question_id: int | None = None
     introduces: tuple[str, ...] = ()
     requires: tuple[str, ...] = ()
@@ -145,7 +146,7 @@ class Course:
         return steps[i - 1] if i > 0 else None
 
     def module_state(self, module: Module, completed: set[str]) -> str:
-        """"locked", "in-progress" or "completed". A module is unlocked once its
+        """ "locked", "in-progress" or "completed". A module is unlocked once its
         first step is reachable."""
         if all(s.id in completed for s in module.steps):
             return "completed"
@@ -184,7 +185,7 @@ def split_frontmatter(text: str) -> tuple[object, str]:
     m = FRONTMATTER.match(text)
     if not m:
         raise ValueError("frontmatter opened with --- but never closed")
-    return yaml.safe_load(m.group(1)) or {}, text[m.end():]
+    return yaml.safe_load(m.group(1)) or {}, text[m.end() :]
 
 
 # --- checks ------------------------------------------------------------------
@@ -192,6 +193,7 @@ def split_frontmatter(text: str) -> tuple[object, str]:
 # Each check appends human-readable problems and never raises: a validator that
 # crashes on the first bad value hides every problem after it. YAML 1.1 turns
 # `no` into False and `2` into an int, so every value is type-checked before use.
+
 
 def _is_slug(value: object) -> bool:
     return isinstance(value, str) and SLUG.fullmatch(value) is not None
@@ -216,13 +218,14 @@ def _parse_step(raw: object, module: str, where: str, problems: list[str]) -> St
     if raw == "learn-more":
         return Step("learn-more", module, LEARN_MORE)
     if not isinstance(raw, dict):
-        problems.append(f"{where}: a step is `lesson: <slug>`, `practice: <id>` or `learn-more`,"
-                        f" got {raw!r}")
+        problems.append(f"{where}: a step is `lesson: <slug>`, `practice: <id>` or `learn-more`, got {raw!r}")
         return None
     kinds = {"lesson", "practice", "learn-more"} & set(raw)
     if len(kinds) != 1 or "learn-more" in kinds:
-        problems.append(f"{where}: a step must be exactly one of `lesson: <slug>`, `practice: <id>`"
-                        f" or a bare `learn-more`, got keys {sorted(raw)}")
+        problems.append(
+            f"{where}: a step must be exactly one of `lesson: <slug>`, `practice: <id>`"
+            f" or a bare `learn-more`, got keys {sorted(raw)}"
+        )
         return None
 
     if "lesson" in raw:
@@ -315,20 +318,25 @@ def _check_uniqueness(course: Course, problems: list[str]) -> None:
     lessons = [s for s in course.steps if s.kind == "lesson"]
     for slug, n in Counter(s.slug for s in lessons).items():
         if n > 1:
-            problems.append(f"lesson slug {slug!r} is used {n} times; lesson slugs are unique"
-                            " across the whole course")
+            problems.append(
+                f"lesson slug {slug!r} is used {n} times; lesson slugs are unique across the whole course"
+            )
     for s in lessons:
         if PRACTICE_SLUG.fullmatch(s.slug) or s.slug == LEARN_MORE:
-            problems.append(f"lesson {s.slug} (module {s.module}): {s.slug!r} is reserved for"
-                            " practice and learn-more steps")
+            problems.append(
+                f"lesson {s.slug} (module {s.module}): {s.slug!r} is reserved for"
+                " practice and learn-more steps"
+            )
     introducers: dict[str, list[str]] = {}
     for s in lessons:
         for c in s.introduces:
             introducers.setdefault(c, []).append(s.slug)
     for c, by in introducers.items():
         if len(by) > 1:
-            problems.append(f"concept {c!r} is introduced by {len(by)} lessons ({', '.join(by)});"
-                            " exactly one may introduce it")
+            problems.append(
+                f"concept {c!r} is introduced by {len(by)} lessons ({', '.join(by)});"
+                " exactly one may introduce it"
+            )
 
 
 def _check_order(course: Course, problems: list[str]) -> None:
@@ -342,8 +350,10 @@ def _check_order(course: Course, problems: list[str]) -> None:
             elif introduced_at[c] == i:
                 problems.append(f"{where}: requires {c!r}, which it introduces itself")
             elif introduced_at[c] > i:
-                problems.append(f"{where}: requires {c!r}, which is only introduced later"
-                                f" (lesson {course.steps[introduced_at[c]].slug})")
+                problems.append(
+                    f"{where}: requires {c!r}, which is only introduced later"
+                    f" (lesson {course.steps[introduced_at[c]].slug})"
+                )
 
 
 def _base_section1_ids(questions: list[dict]) -> set[int]:
@@ -383,8 +393,9 @@ def _check_question_shape(course: Course, questions: list[dict], problems: list[
         else:
             correct = sum(1 for o in q["options"] if o.get("is_correct"))
             if correct != 1:
-                problems.append(f"{where}: question has {correct} correct options; retry-until-correct"
-                                " needs exactly one")
+                problems.append(
+                    f"{where}: question has {correct} correct options; retry-until-correct needs exactly one"
+                )
 
 
 def _check_module_shape(course: Course, problems: list[str]) -> None:
@@ -446,7 +457,7 @@ def _check_entries(entries: object, key: str, allowed: set[str], where: str, pro
             problems.append(f"{at}: `comment` is required")
         if key == "links" and _url_ok(entry.get("url")) and _is_video(entry["url"]):
             if not isinstance(entry.get("language_note"), str) or not entry["language_note"].strip():
-                problems.append(f"{at}: a video link needs a `language_note` (e.g. \"🇫🇷 uniquement\")")
+                problems.append(f'{at}: a video link needs a `language_note` (e.g. "🇫🇷 uniquement")')
 
 
 def _check_file(path: pathlib.Path, kind: str, problems: list[str]) -> None:
@@ -482,8 +493,9 @@ def _check_file(path: pathlib.Path, kind: str, problems: list[str]) -> None:
     for src in _image_srcs(body):
         bare = src and not any(ch in src for ch in "/\\:#?") and src not in (".", "..")
         if not bare:
-            problems.append(f"{where}: image {src!r} must be a bare filename next to the lesson,"
-                            " e.g. ![](dipole.svg)")
+            problems.append(
+                f"{where}: image {src!r} must be a bare filename next to the lesson, e.g. ![](dipole.svg)"
+            )
         elif not (path.parent / src).is_file():
             problems.append(f"{where}: image {src!r} does not exist in {path.parent.name}/")
 
@@ -531,8 +543,10 @@ def _check_files(course: Course, course_dir: pathlib.Path, problems: list[str]) 
         if len(rel.parts) != 2 or rel.parts[0] not in module_pages or stem is None:
             problems.append(f"{rel}: not attached to any step")
         elif stem in practice_module and practice_module[stem] != rel.parts[0]:
-            problems.append(f"{rel}: answer note for {stem}, but practice step {stem} is in module"
-                            f" {practice_module[stem]}")
+            problems.append(
+                f"{rel}: answer note for {stem}, but practice step {stem} is in module"
+                f" {practice_module[stem]}"
+            )
         elif stem not in module_pages[rel.parts[0]] and stem not in practice_module:
             problems.append(f"{rel}: not attached to any step")
 
@@ -568,8 +582,10 @@ def report(course: Course) -> list[str]:
     """
     steps = course.steps
     introduced_at = {c: i for i, s in enumerate(steps) if s.kind == "lesson" for c in s.introduces}
-    lines = ["Practice steps: distance from the lesson introducing their last required concept"
-             " (⚠ = other lessons in between):"]
+    lines = [
+        "Practice steps: distance from the lesson introducing their last required concept"
+        " (⚠ = other lessons in between):"
+    ]
     for i, s in enumerate(steps):
         if s.kind != "practice":
             continue
@@ -578,15 +594,18 @@ def report(course: Course) -> list[str]:
             lines.append(f"  ? {s.slug:<5} {s.module:<14} requires nothing introduced")
             continue
         last = max(known)
-        between = [t.slug for t in steps[last + 1:i] if t.kind == "lesson"]
+        between = [t.slug for t in steps[last + 1 : i] if t.kind == "lesson"]
         mark = "⚠" if between else " "
         extra = f"; {len(between)} lesson(s) in between: {', '.join(between)}" if between else ""
         distance = i - last
-        lines.append(f"  {mark} {s.slug:<5} {s.module:<14} {distance} step{'s' * (distance > 1)}"
-                     f" after lesson {steps[last].slug}{extra}")
+        lines.append(
+            f"  {mark} {s.slug:<5} {s.module:<14} {distance} step{'s' * (distance > 1)}"
+            f" after lesson {steps[last].slug}{extra}"
+        )
 
-    unused = [(c, steps[i]) for c, i in introduced_at.items()
-              if not any(c in t.requires for t in steps[i + 1:])]
+    unused = [
+        (c, steps[i]) for c, i in introduced_at.items() if not any(c in t.requires for t in steps[i + 1 :])
+    ]
     lines.append("")
     lines.append(f"Concepts no later step requires ({len(unused)}):")
     lines += [f"  {c:<32} introduced by {s.slug} ({s.module})" for c, s in unused] or ["  (none)"]
@@ -604,9 +623,10 @@ IMG_BARE_SRC = re.compile(r"""(<img\b[^>]*?\bsrc\s*=\s*["'])([^"'/\\:#?]+)(["'])
 @dataclass(frozen=True)
 class Page:
     """One lesson or learn-more page, or an answer note (title "", no entries)."""
+
     title: str
     html: str
-    entries: tuple[dict, ...] = ()     # a lesson's `sources`, a learn-more's `links`
+    entries: tuple[dict, ...] = ()  # a lesson's `sources`, a learn-more's `links`
 
 
 def rewrite_images(html: str, module: str) -> str:
@@ -642,12 +662,11 @@ def answer_note(step: Step, lang: str, course_dir: pathlib.Path | None = None) -
 
 # --- entry points ------------------------------------------------------------
 
-def _inputs(course_dir: pathlib.Path | None,
-            questions: list[dict] | None) -> tuple[pathlib.Path, list[dict]]:
+
+def _inputs(course_dir: pathlib.Path | None, questions: list[dict] | None) -> tuple[pathlib.Path, list[dict]]:
     # Resolved at call time, not as default arguments, so tests can point
     # COURSE_DIR at a fixture.
-    return (course_dir or COURSE_DIR,
-            questions if questions is not None else catalogue.load().questions)
+    return (course_dir or COURSE_DIR, questions if questions is not None else catalogue.load().questions)
 
 
 def validate(course_dir: pathlib.Path | None = None, questions: list[dict] | None = None) -> list[str]:
@@ -665,8 +684,9 @@ def load(course_dir: pathlib.Path | None = None, questions: list[dict] | None = 
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="python -m app.course", description=__doc__.split("\n")[0])
-    parser.add_argument("--report", action="store_true",
-                        help="also print the authoring review report (never fails the gate)")
+    parser.add_argument(
+        "--report", action="store_true", help="also print the authoring review report (never fails the gate)"
+    )
     args = parser.parse_args(argv)
 
     course, problems = _check(*_inputs(None, None))
@@ -674,8 +694,10 @@ def main(argv: list[str] | None = None) -> int:
         print(f"  {p}")
     if course is not None:
         n = {k: sum(1 for s in course.steps if s.kind == k) for k in ("lesson", "practice", "learn-more")}
-        print(f"{len(course.modules)} modules | {n['lesson']} lessons | {n['practice']} practice steps"
-              f" | {len(course.introduced_by())} concepts | {len(problems)} problems")
+        print(
+            f"{len(course.modules)} modules | {n['lesson']} lessons | {n['practice']} practice steps"
+            f" | {len(course.introduced_by())} concepts | {len(problems)} problems"
+        )
         if args.report:
             print()
             print("\n".join(report(course)))

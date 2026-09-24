@@ -6,6 +6,7 @@ fraction of that, and how the three part totals turn into a pass/fail verdict.
 Everything is `float`; round only when displaying (§7.2 -- rounding each
 question would shave real marks off a 30-point threshold).
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass

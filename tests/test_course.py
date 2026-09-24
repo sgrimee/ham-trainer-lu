@@ -4,6 +4,7 @@ Each check is exercised against a deliberately broken copy of a tiny fixture
 course with its own fake catalogue, not only against the real course: a gate
 that has only ever seen valid input has not been shown to close.
 """
+
 from __future__ import annotations
 
 import copy
@@ -20,10 +21,18 @@ from app.catalogue import load as load_catalogue
 
 
 def mcq(qid: int, tags: list[str], section: str, correct: int = 1, kind: str = "mcq") -> dict:
-    options = [{"letter": letter, "is_correct": i < correct, "text": {"fr": letter}}
-               for i, letter in enumerate("abcd")]
-    return {"id": qid, "kind": kind, "section": section, "tags": tags,
-            "text": {"fr": f"Question {qid}"}, "options": options if kind == "mcq" else []}
+    options = [
+        {"letter": letter, "is_correct": i < correct, "text": {"fr": letter}}
+        for i, letter in enumerate("abcd")
+    ]
+    return {
+        "id": qid,
+        "kind": kind,
+        "section": section,
+        "tags": tags,
+        "text": {"fr": f"Question {qid}"},
+        "options": options if kind == "mcq" else [],
+    }
 
 
 # The two BASE 1.x questions the fixture course must cover, plus decoys that
@@ -31,30 +40,40 @@ def mcq(qid: int, tags: list[str], section: str, correct: int = 1, kind: str = "
 QUESTIONS = [
     mcq(1, ["base", "novice", "harec"], "1.1"),
     mcq(2, ["base", "novice", "harec"], "1.6"),
-    mcq(57, ["novice", "harec"], "1.1"),            # section 1, not BASE
-    mcq(500, ["base", "novice", "harec"], "2.1"),   # BASE, not section 1
+    mcq(57, ["novice", "harec"], "1.1"),  # section 1, not BASE
+    mcq(500, ["base", "novice", "harec"], "2.1"),  # BASE, not section 1
 ]
 
 CURRICULUM = {
     "cert": "base",
     "part": "technique",
     "modules": [
-        {"slug": "alpha", "title": {"fr": "Alpha"}, "steps": [
-            {"lesson": "a1", "introduces": ["x"]},
-            {"practice": 1, "requires": ["x"]},
-            "learn-more",
-        ]},
-        {"slug": "beta", "title": {"fr": "Bêta"}, "steps": [
-            {"lesson": "b1", "introduces": ["y"], "requires": ["x"]},
-            {"practice": 2, "requires": ["y"]},
-            "learn-more",
-        ]},
+        {
+            "slug": "alpha",
+            "title": {"fr": "Alpha"},
+            "steps": [
+                {"lesson": "a1", "introduces": ["x"]},
+                {"practice": 1, "requires": ["x"]},
+                "learn-more",
+            ],
+        },
+        {
+            "slug": "beta",
+            "title": {"fr": "Bêta"},
+            "steps": [
+                {"lesson": "b1", "introduces": ["y"], "requires": ["x"]},
+                {"practice": 2, "requires": ["y"]},
+                "learn-more",
+            ],
+        },
     ],
 }
 
 LESSON = "---\ntitle: Une leçon\n---\n\nPlan : une idée.\n"
-LEARN_MORE = ("---\ntitle: En savoir plus\nlinks:\n"
-              "  - url: https://fr.wikipedia.org/wiki/Onde\n    comment: Une page.\n---\n")
+LEARN_MORE = (
+    "---\ntitle: En savoir plus\nlinks:\n"
+    "  - url: https://fr.wikipedia.org/wiki/Onde\n    comment: Une page.\n---\n"
+)
 
 
 def build(root: pathlib.Path, curriculum: dict | None = None) -> pathlib.Path:
@@ -93,11 +112,18 @@ def steps(cur: dict, module: int) -> list:
 
 # --- the fixture and the real course are sound -------------------------------
 
+
 def test_fixture_course_is_valid(fixture):
     assert problems(fixture) == []
     loaded = course.load(fixture, QUESTIONS)
-    assert [s.id for s in loaded.steps] == ["a1", "q1", "alpha/en-savoir-plus",
-                                           "b1", "q2", "beta/en-savoir-plus"]
+    assert [s.id for s in loaded.steps] == [
+        "a1",
+        "q1",
+        "alpha/en-savoir-plus",
+        "b1",
+        "q2",
+        "beta/en-savoir-plus",
+    ]
     assert loaded.introduced_by()["y"].slug == "b1"
 
 
@@ -120,6 +146,7 @@ def test_real_course_is_valid_and_covers_the_44_base_technique_questions():
 
 
 # --- check 1: schema ---------------------------------------------------------
+
 
 def test_invalid_yaml(tmp_path):
     root = build(tmp_path / "c")
@@ -183,6 +210,7 @@ def test_module_title_needs_french(tmp_path, curriculum):
 
 # --- check 2: uniqueness -----------------------------------------------------
 
+
 def test_duplicate_module_slug(tmp_path, curriculum):
     curriculum["modules"][1]["slug"] = "alpha"
     assert_problem(build(tmp_path / "c", curriculum), "module slug 'alpha' is used by 2 modules")
@@ -206,6 +234,7 @@ def test_concept_introduced_twice(tmp_path, curriculum):
 
 # --- check 3: order ----------------------------------------------------------
 
+
 def test_requires_a_concept_introduced_later(tmp_path, curriculum):
     steps(curriculum, 0)[1]["requires"] = ["x", "y"]
     assert_problem(build(tmp_path / "c", curriculum), "requires 'y', which is only introduced later")
@@ -223,6 +252,7 @@ def test_requires_a_concept_nobody_introduces(tmp_path, curriculum):
 
 # --- check 4: coverage -------------------------------------------------------
 
+
 def test_missing_question(tmp_path, curriculum):
     steps(curriculum, 1)[1]["practice"] = 1
     root = build(tmp_path / "c", curriculum)
@@ -232,27 +262,35 @@ def test_missing_question(tmp_path, curriculum):
 
 # --- check 5: question shape -------------------------------------------------
 
-@pytest.mark.parametrize(("qid", "fragment"), [
-    (57, "not BASE tagged"),
-    (500, "section 2.1, not 1.x"),
-    (999, "no such question"),
-])
+
+@pytest.mark.parametrize(
+    ("qid", "fragment"),
+    [
+        (57, "not BASE tagged"),
+        (500, "section 2.1, not 1.x"),
+        (999, "no such question"),
+    ],
+)
 def test_ineligible_question(tmp_path, curriculum, qid, fragment):
     steps(curriculum, 1)[1]["practice"] = qid
     assert_problem(build(tmp_path / "c", curriculum), fragment)
 
 
-@pytest.mark.parametrize(("question", "fragment"), [
-    (mcq(2, ["base"], "1.6", kind="open"), "kind is 'open'"),
-    (mcq(2, ["base"], "1.6", correct=2), "2 correct options"),
-    (mcq(2, ["base"], "1.6", correct=0), "0 correct options"),
-])
+@pytest.mark.parametrize(
+    ("question", "fragment"),
+    [
+        (mcq(2, ["base"], "1.6", kind="open"), "kind is 'open'"),
+        (mcq(2, ["base"], "1.6", correct=2), "2 correct options"),
+        (mcq(2, ["base"], "1.6", correct=0), "0 correct options"),
+    ],
+)
 def test_question_must_be_single_answer_mcq(fixture, question, fragment):
     found = course.validate(fixture, [QUESTIONS[0], question])
     assert any(fragment in p for p in found), found
 
 
 # --- check 6: module shape ---------------------------------------------------
+
 
 def test_module_without_practice(tmp_path, curriculum):
     del steps(curriculum, 1)[1]
@@ -273,6 +311,7 @@ def test_learn_more_must_be_last_and_unique(tmp_path, curriculum):
 
 # --- check 7: files ----------------------------------------------------------
 
+
 def test_missing_lesson_and_learn_more_files(fixture):
     (fixture / "alpha" / "a1.fr.md").unlink()
     (fixture / "beta" / "en-savoir-plus.fr.md").unlink()
@@ -280,8 +319,9 @@ def test_missing_lesson_and_learn_more_files(fixture):
     assert_problem(fixture, "beta/en-savoir-plus.fr.md: missing")
 
 
-@pytest.mark.parametrize("path", ["alpha/stray.fr.md", "gamma/a1.fr.md", "top.fr.md",
-                                  "alpha/a1.en.md", "alpha/q999.fr.md"])
+@pytest.mark.parametrize(
+    "path", ["alpha/stray.fr.md", "gamma/a1.fr.md", "top.fr.md", "alpha/a1.en.md", "alpha/q999.fr.md"]
+)
 def test_orphan_markdown(fixture, path):
     (fixture / path).parent.mkdir(exist_ok=True)
     (fixture / path).write_text(LESSON)
@@ -315,7 +355,8 @@ def test_lesson_without_frontmatter_and_unclosed_frontmatter(fixture):
 def test_source_urls_must_be_well_formed(fixture):
     (fixture / "alpha" / "a1.fr.md").write_text(
         "---\ntitle: T\nsources:\n  - url: fr.wikipedia.org/wiki/Onde\n    comment: c\n"
-        "  - url: https://example.org/x\n    comment: c\n    license: CC0\n    extra: 1\n---\n")
+        "  - url: https://example.org/x\n    comment: c\n    license: CC0\n    extra: 1\n---\n"
+    )
     assert_problem(fixture, "url 'fr.wikipedia.org/wiki/Onde' is not a well-formed")
     assert_problem(fixture, "unknown key 'extra'")
 
@@ -324,18 +365,21 @@ def test_learn_more_links(fixture):
     page = fixture / "alpha" / "en-savoir-plus.fr.md"
     page.write_text("---\ntitle: T\nlinks: []\n---\n")
     assert_problem(fixture, "`links` must be a non-empty list")
-    page.write_text("---\ntitle: T\nlinks:\n"
-                    "  - url: https://www.youtube.com/watch?v=x\n    comment: c\n---\n")
+    page.write_text(
+        "---\ntitle: T\nlinks:\n  - url: https://www.youtube.com/watch?v=x\n    comment: c\n---\n"
+    )
     assert_problem(fixture, "a video link needs a `language_note`")
-    page.write_text("---\ntitle: T\nlinks:\n  - url: https://youtu.be/x\n    comment: c\n"
-                    "    language_note: 🇫🇷 uniquement\n---\n")
+    page.write_text(
+        "---\ntitle: T\nlinks:\n  - url: https://youtu.be/x\n    comment: c\n"
+        "    language_note: 🇫🇷 uniquement\n---\n"
+    )
     assert problems(fixture) == []
 
 
 def test_images(fixture):
     lesson = fixture / "alpha" / "a1.fr.md"
     (fixture / "alpha" / "dipole.svg").write_text("<svg/>")
-    lesson.write_text(LESSON + "\n![dipôle](dipole.svg)\n\nTexte <img src=\"dipole.svg\"> en ligne.\n")
+    lesson.write_text(LESSON + '\n![dipôle](dipole.svg)\n\nTexte <img src="dipole.svg"> en ligne.\n')
     assert problems(fixture) == []
     lesson.write_text(LESSON + "\n![](../beta/dipole.svg)\n\n<img alt=\"\" src='/data/x.png'>\n")
     assert_problem(fixture, "image '../beta/dipole.svg' must be a bare filename")
@@ -348,8 +392,9 @@ def test_german_is_all_or_nothing_per_module(tmp_path, curriculum):
     root = build(tmp_path / "c", curriculum)
     (root / "alpha" / "q1.fr.md").write_text("Parce que.\n")
     (root / "alpha" / "a1.de.md").write_text(LESSON)
-    assert_problem(root, "module alpha: partly translated to German; missing en-savoir-plus.de.md,"
-                         " q1.de.md, title.de")
+    assert_problem(
+        root, "module alpha: partly translated to German; missing en-savoir-plus.de.md, q1.de.md, title.de"
+    )
 
     curriculum["modules"][0]["title"]["de"] = "Alpha"
     root = build(tmp_path / "d", curriculum)
@@ -363,6 +408,7 @@ def test_german_is_all_or_nothing_per_module(tmp_path, curriculum):
 
 
 # --- report, command line, startup -------------------------------------------
+
 
 def test_report_flags_late_questions_and_unused_concepts(tmp_path, curriculum):
     steps(curriculum, 1).insert(1, {"lesson": "b2", "introduces": ["z"], "requires": ["y"]})

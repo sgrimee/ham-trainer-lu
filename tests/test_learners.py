@@ -1,6 +1,7 @@
 """Learner identity (specs/LEARN.md §6, phase 2): the account store and its
 §8.1 plumbing, the command line, the password-guarded /admin pages and the
 /learn name picker."""
+
 from __future__ import annotations
 
 import pathlib
@@ -16,7 +17,7 @@ from app import admin, learners
 from app.main import LEARNER_COOKIE
 from app.store import AccountExists, Store
 
-PASSWORD = "s3cret-é"   # non-ASCII on purpose: compare_digest on str would raise
+PASSWORD = "s3cret-é"  # non-ASCII on purpose: compare_digest on str would raise
 
 
 @pytest.fixture(autouse=True)
@@ -39,6 +40,7 @@ AUTH = ("anyone", PASSWORD)
 
 
 # -- store ----------------------------------------------------------------------
+
 
 def test_store_uses_wal(store: Store):
     with sqlite3.connect(store.path) as con:
@@ -93,8 +95,10 @@ def test_delete_account_removes_all_progress(store: Store):
     with store._connect() as con:
         for account_id in (keep, gone):
             con.execute("INSERT INTO step_progress VALUES (?, 'charge', 'now')", (account_id,))
-            con.execute("INSERT INTO practice_result (account_id, question_id, updated_at) "
-                        "VALUES (?, 15, 'now')", (account_id,))
+            con.execute(
+                "INSERT INTO practice_result (account_id, question_id, updated_at) VALUES (?, 15, 'now')",
+                (account_id,),
+            )
             con.execute("INSERT INTO award VALUES (?, 'xp', 'q15', 10, 'now', NULL)", (account_id,))
     assert store.account_summary(gone) == {"steps_completed": 1, "xp": 10, "badges": 0}
 
@@ -109,6 +113,7 @@ def test_delete_account_removes_all_progress(store: Store):
 
 # -- command line -----------------------------------------------------------------
 
+
 def test_command_line(tmp_path, monkeypatch, capsys):
     monkeypatch.setenv("ATTEMPTS_DB", str(tmp_path / "cli.db"))
     assert learners.main(["add", "Léa Martin"]) == 0
@@ -122,6 +127,7 @@ def test_command_line(tmp_path, monkeypatch, capsys):
 
 
 # -- admin password (§6.1.1) ---------------------------------------------------------
+
 
 def test_admin_is_404_without_a_password(client):
     assert client.get("/admin/learners").status_code == 404
@@ -168,24 +174,38 @@ def test_unreadable_password_file_stops_startup(monkeypatch, tmp_path):
 def test_admin_refuses_cross_site_posts(client, store: Store, with_password):
     account_id = store.create_account("Léa")
     url = f"/admin/learners/{account_id}/delete"
-    for headers in ({"Sec-Fetch-Site": "cross-site"}, {"Sec-Fetch-Site": "same-site"},
-                    {"Origin": "http://evil.example"}, {"Origin": "null"}):
+    for headers in (
+        {"Sec-Fetch-Site": "cross-site"},
+        {"Sec-Fetch-Site": "same-site"},
+        {"Origin": "http://evil.example"},
+        {"Origin": "null"},
+    ):
         resp = client.post(url, auth=AUTH, headers=headers, follow_redirects=False)
         assert resp.status_code == 403, headers
     assert store.get_account(account_id) is not None
     # A cross-site GET changes nothing and is allowed (a link to the page).
-    assert client.get("/admin/learners", auth=AUTH,
-                      headers={"Sec-Fetch-Site": "cross-site"}).status_code == 200
+    assert (
+        client.get("/admin/learners", auth=AUTH, headers={"Sec-Fetch-Site": "cross-site"}).status_code == 200
+    )
     # The admin's own form: same origin.
-    resp = client.post(url, auth=AUTH, follow_redirects=False,
-                       headers={"Sec-Fetch-Site": "same-origin", "Origin": "http://testserver"})
+    resp = client.post(
+        url,
+        auth=AUTH,
+        follow_redirects=False,
+        headers={"Sec-Fetch-Site": "same-origin", "Origin": "http://testserver"},
+    )
     assert resp.status_code == 303
     assert store.get_account(account_id) is None
 
 
 def test_admin_origin_check_without_fetch_metadata(client, with_password):
-    resp = client.post("/admin/learners", data={"display_name": "Tom"}, auth=AUTH,
-                       headers={"Origin": "http://testserver"}, follow_redirects=False)
+    resp = client.post(
+        "/admin/learners",
+        data={"display_name": "Tom"},
+        auth=AUTH,
+        headers={"Origin": "http://testserver"},
+        follow_redirects=False,
+    )
     assert resp.status_code == 303
 
 
@@ -215,9 +235,9 @@ def test_rate_limit_window_expires(monkeypatch):
 
 # -- admin pages (§6.1) --------------------------------------------------------------
 
+
 def test_admin_add_list_and_delete(client, store: Store, with_password):
-    resp = client.post("/admin/learners", data={"display_name": "Léa"}, auth=AUTH,
-                       follow_redirects=False)
+    resp = client.post("/admin/learners", data={"display_name": "Léa"}, auth=AUTH, follow_redirects=False)
     assert resp.status_code == 303
     assert "Léa" in client.get("/admin/learners", auth=AUTH).text
 
@@ -229,7 +249,7 @@ def test_admin_add_list_and_delete(client, store: Store, with_password):
     account_id = store.accounts()[0]["id"]
     confirm = client.get(f"/admin/learners/{account_id}/delete", auth=AUTH)
     assert confirm.status_code == 200 and "Supprimer Léa" in confirm.text
-    assert store.get_account(account_id) is not None   # the GET deletes nothing
+    assert store.get_account(account_id) is not None  # the GET deletes nothing
 
     resp = client.post(f"/admin/learners/{account_id}/delete", auth=AUTH, follow_redirects=False)
     assert resp.status_code == 303
@@ -248,6 +268,7 @@ def test_admin_delete_unknown_redirects(client, with_password):
 
 
 # -- the name picker (§6.1) ------------------------------------------------------------
+
 
 def test_learn_with_no_accounts(client):
     resp = client.get("/learn")
@@ -285,10 +306,10 @@ def test_deleted_learner_goes_back_to_the_picker(client, store: Store):
     resp = client.get("/learn")
     assert resp.status_code == 200
     assert "Qui es-tu" in resp.text
-    assert client.cookies.get(LEARNER_COOKIE) is None   # the stale cookie is cleared
+    assert client.cookies.get(LEARNER_COOKIE) is None  # the stale cookie is cleared
 
 
 def test_admin_malformed_authorization_is_401(client, with_password):
-    for header in ("Basic !!!", "Basic " + "bm9jb2xvbg==", "Bearer xyz"):   # bad b64, no colon, other scheme
+    for header in ("Basic !!!", "Basic " + "bm9jb2xvbg==", "Bearer xyz"):  # bad b64, no colon, other scheme
         assert client.get("/admin/learners", headers={"Authorization": header}).status_code == 401
-    assert client.get("/admin/learners", auth=AUTH).status_code == 200   # none of them counted
+    assert client.get("/admin/learners", auth=AUTH).status_code == 200  # none of them counted

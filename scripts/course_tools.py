@@ -19,6 +19,7 @@
 
 `mise run verify` stays the gate; these only help write and review prose.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -37,11 +38,24 @@ SVG_BLOCK = re.compile(r"<svg\b.*?</svg>", re.S | re.I)
 FIGURE = re.compile(r"<figure>.*?</figure>", re.S)
 # What must never survive rendering: raw HTML that markdown-it escaped or
 # wrapped in a paragraph because of a blank line or an indented opening tag.
-RENDER_PROBLEMS = ("&lt;svg", "&lt;figure", "&lt;table", "&lt;tr", "&lt;text", "&lt;path",
-                   "<p><svg", "<p><figure", "<p><table", "<p><tr", "</svg></p>", "<pre><code>&lt;")
+RENDER_PROBLEMS = (
+    "&lt;svg",
+    "&lt;figure",
+    "&lt;table",
+    "&lt;tr",
+    "&lt;text",
+    "&lt;path",
+    "<p><svg",
+    "<p><figure",
+    "<p><table",
+    "<p><tr",
+    "</svg></p>",
+    "<pre><code>&lt;",
+)
 
 
 # --- typography --------------------------------------------------------------
+
 
 def _typeset_text(text: str) -> str:
     text = re.sub(r"[ \u00a0]([:;?!»])", NBSP + r"\1", text)
@@ -55,12 +69,12 @@ def typeset(markdown: str) -> str:
     if markdown.startswith("---\n"):
         end = markdown.find("\n---\n", 4)
         if end != -1:
-            front, markdown = markdown[:end + 5], markdown[end + 5:]
+            front, markdown = markdown[: end + 5], markdown[end + 5 :]
     out, last, in_fence = [], 0, False
     # Protect SVG blocks and fenced code, typeset everything between them.
     pieces = []
     for m in SVG_BLOCK.finditer(markdown):
-        pieces.append((markdown[last:m.start()], True))
+        pieces.append((markdown[last : m.start()], True))
         pieces.append((m.group(0), False))
         last = m.end()
     pieces.append((markdown[last:], True))
@@ -98,6 +112,7 @@ def cmd_typography(modules: list[str]) -> int:
 
 
 # --- render check and preview ------------------------------------------------
+
 
 def _pages(module: str):
     """(step, title, html) for every page of the module, in course order."""
@@ -141,23 +156,30 @@ def cmd_preview(module: str, out_dir: pathlib.Path) -> int:
     figures = [f for _, _, html in pages for f in FIGURE.findall(html)]
     body = ['<h1>Figures</h1><div class="preview-grid">', *figures, "</div>"]
     for step, title, html in pages:
-        body.append(f'<article class="card lesson"><p class="hint">{step.id}</p>'
-                    f'<h1>{htmllib.escape(title)}</h1><div class="lesson-body">{html}</div></article>')
-    style = (CSS.read_text()
-             + "\n.preview-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(380px,1fr));"
-             "gap:1rem}.preview-grid figure{border:1px solid #ccc;margin:0;padding:.5rem;background:#fff}"
-             "main{max-width:1300px}")
+        body.append(
+            f'<article class="card lesson"><p class="hint">{step.id}</p>'
+            f'<h1>{htmllib.escape(title)}</h1><div class="lesson-body">{html}</div></article>'
+        )
+    style = (
+        CSS.read_text()
+        + "\n.preview-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(380px,1fr));"
+        "gap:1rem}.preview-grid figure{border:1px solid #ccc;margin:0;padding:.5rem;background:#fff}"
+        "main{max-width:1300px}"
+    )
     out_dir.mkdir(parents=True, exist_ok=True)
     target = out_dir / f"{module}.html"
-    target.write_text(f'<!doctype html><meta charset="utf-8"><title>{module}</title>'
-                      f"<style>{style}</style><main><div class=\"lesson-body\">{''.join(body)}</div></main>")
+    target.write_text(
+        f'<!doctype html><meta charset="utf-8"><title>{module}</title>'
+        f'<style>{style}</style><main><div class="lesson-body">{"".join(body)}</div></main>'
+    )
     print(f"wrote {target} ({len(figures)} figures, {len(pages)} pages)")
     return 0
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(prog="python -m scripts.course_tools",
-                                     description=__doc__.split("\n")[0])
+    parser = argparse.ArgumentParser(
+        prog="python -m scripts.course_tools", description=__doc__.split("\n")[0]
+    )
     sub = parser.add_subparsers(dest="cmd", required=True)
     for name in ("typography", "check"):
         p = sub.add_parser(name)

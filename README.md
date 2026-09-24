@@ -61,6 +61,8 @@ mise run data     # extract, render the appendix, verify
 mise run verify   # run the validation gates on their own
 mise run serve    # run the training application at http://127.0.0.1:8000
 mise run test     # unit tests
+mise run lint     # ruff format + ruff + ty, as CI runs them
+mise run install-hooks            # run the lint gate as a git pre-commit hook
 mise run add-learner "<name>"     # add a course learner (python -m app.learners add|delete|list)
 mise run docker-build             # build the container image
 mise run serve-docker             # build and run it (compose.yaml) at http://127.0.0.1:8000

@@ -1,4 +1,5 @@
 """Unit tests for the study/exam grading glue (specs/TRAINER.md §7.2-7.3)."""
+
 from __future__ import annotations
 
 import asyncio
@@ -19,15 +20,25 @@ class _MalformedGrader:
 
     async def grade(self, **kwargs):
         # Deliberately schema-violating, per the class docstring.
-        return GradeResult(elements=None, incorrect=[], comment="", source="llm",  # type: ignore
-                           model="fake")
+        return GradeResult(
+            elements=None,  # type: ignore
+            incorrect=[],
+            comment="",
+            source="llm",
+            model="fake",
+        )
 
 
 def test_malformed_grader_response_degrades_to_ungraded_instead_of_crashing():
-    result = asyncio.run(_grade_open_item(
-        _MalformedGrader(), qid=442, lang="fr",  # type: ignore  (duck-typed grader, see above)
-        question_text="Comment épelle-t-on le mot Barcelona ?",
-        reference="BRAVO ALPHA ROMEO CHARLIE ECHO LIMA OSCAR NOVEMBER ALPHA",
-        candidate="BRAVO ALPHA ROMEO CHARLIE ECHO LIMA OSCAR NOVEMBER ALPHA",
-        item_weight=1.0))
+    result = asyncio.run(
+        _grade_open_item(
+            _MalformedGrader(),  # type: ignore  (duck-typed grader, see above)
+            qid=442,
+            lang="fr",
+            question_text="Comment épelle-t-on le mot Barcelona ?",
+            reference="BRAVO ALPHA ROMEO CHARLIE ECHO LIMA OSCAR NOVEMBER ALPHA",
+            candidate="BRAVO ALPHA ROMEO CHARLIE ECHO LIMA OSCAR NOVEMBER ALPHA",
+            item_weight=1.0,
+        )
+    )
     assert result is None

@@ -5,23 +5,24 @@ The document is a printed Word table. Every structural element sits in a fixed
 x-column, and the two languages are distinguished by typeface (roman = French,
 italic = German). Nothing here guesses: see specs/EXTRACTION.md section 2.
 """
+
 from __future__ import annotations
 
 import re
 
 # ---------------------------------------------------------------- page bands
-FIRST_PAGE, LAST_PAGE = 5, 176      # 1-based inclusive; question body pages
-APPENDIX_FIRST = 177                # formula appendix, reference material
-FOOTER_Y = 720.0                    # running header/footer live below this
+FIRST_PAGE, LAST_PAGE = 5, 176  # 1-based inclusive; question body pages
+APPENDIX_FIRST = 177  # formula appendix, reference material
+FOOTER_Y = 720.0  # running header/footer live below this
 
 # ------------------------------------------------------------- x-columns (pt)
-X_SECTION_MAX = 82.0    # section headings start left of this
-X_GUTTER_MAX = 96.0     # tags, option letters, answer bodies, sub-item labels
-X_SUBITEM_MIN = 180.0   # sub-item explanation column (question 448 and kin)
+X_SECTION_MAX = 82.0  # section headings start left of this
+X_GUTTER_MAX = 96.0  # tags, option letters, answer bodies, sub-item labels
+X_SUBITEM_MIN = 180.0  # sub-item explanation column (question 448 and kin)
 X_SUBITEM_MAX = 200.0
-X_MARK_MIN = 500.0      # correct-answer marker column
+X_MARK_MIN = 500.0  # correct-answer marker column
 
-HEADING_SIZE = 11.0     # body text is 10.36pt; anything larger is a heading
+HEADING_SIZE = 11.0  # body text is 10.36pt; anything larger is a heading
 
 # Symbol fonts carry no language signal and must not vote on FR/DE.
 SYMBOL_FONTS = {"CIDFont+F7", "CIDFont+F10"}
@@ -65,12 +66,7 @@ def span_lang(spans) -> str | None:
     Symbol-font spans are excluded: they are roman regardless of the
     surrounding language and would otherwise pull German lines to French.
     """
-    body = [
-        s for s in spans
-        if s["text"].strip()
-        and s["size"] > 9
-        and s["font"] not in SYMBOL_FONTS
-    ]
+    body = [s for s in spans if s["text"].strip() and s["size"] > 9 and s["font"] not in SYMBOL_FONTS]
     italic = sum(len(s["text"]) for s in body if s["flags"] & 2)
     roman = sum(len(s["text"]) for s in body if not s["flags"] & 2)
     if italic > roman:

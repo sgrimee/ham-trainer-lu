@@ -9,6 +9,7 @@ it works inside the container: `docker exec <container> python -m app.learners
 add "…"`. It needs no admin password -- shell access is its own protection.
 Deleting removes the learner's progress too, with no confirmation prompt.
 """
+
 from __future__ import annotations
 
 import argparse

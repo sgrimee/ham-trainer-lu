@@ -1,4 +1,5 @@
 """Unit tests for the scoring rules (specs/TRAINER.md §2.3, §7.2)."""
+
 from __future__ import annotations
 
 import pathlib
@@ -10,7 +11,7 @@ from app import scoring
 
 
 def test_question_weight_flat_split():
-    assert scoring.question_weight(8) == 7.5   # BASE part 3, specs/TRAINER.md §2.2
+    assert scoring.question_weight(8) == 7.5  # BASE part 3, specs/TRAINER.md §2.2
     assert scoring.question_weight(60) == 1.0
 
 
@@ -42,8 +43,9 @@ def test_verdict_partial_and_incorrect():
 
 
 def test_exam_outcome_pass():
-    parts = {p: scoring.PartResult(name=p, points=40.0)
-             for p in ("technique", "procedures", "reglementation")}
+    parts = {
+        p: scoring.PartResult(name=p, points=40.0) for p in ("technique", "procedures", "reglementation")
+    }
     assert scoring.ExamResult(parts=parts).outcome == "pass"
 
 

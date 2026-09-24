@@ -7,6 +7,7 @@ app should be able to show the same thing. Rendered as page images at 200 dpi:
 the formula typography does not survive being re-flowed as text, and nothing
 in the app needs to search it.
 """
+
 from __future__ import annotations
 
 import json
@@ -34,10 +35,18 @@ def main():
         page.get_pixmap(dpi=DPI).save(OUT / name)
         pages.append({"page": pno, "path": f"appendix/{name}"})
     (OUT / "index.json").write_text(
-        json.dumps({"title_fr": "Recueil de formules pour l’examen radioamateur HAREC et NOVICE",
-                    "title_de": "Formelsammelung für das HAREC und NOVICE Radioamateurexamen",
-                    "dpi": DPI, "pages": pages}, ensure_ascii=False, indent=2),
-        encoding="utf-8")
+        json.dumps(
+            {
+                "title_fr": "Recueil de formules pour l’examen radioamateur HAREC et NOVICE",
+                "title_de": "Formelsammelung für das HAREC und NOVICE Radioamateurexamen",
+                "dpi": DPI,
+                "pages": pages,
+            },
+            ensure_ascii=False,
+            indent=2,
+        ),
+        encoding="utf-8",
+    )
     print(f"{len(pages)} appendix pages -> {OUT.relative_to(ROOT)}")
 
 

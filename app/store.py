@@ -5,6 +5,7 @@ The only SQLite in this project is the app's own, kept apart from `data/` so
 `mise run data` can never touch study history. Path is `ATTEMPTS_DB`, default
 `var/attempts.db`, created if absent.
 """
+
 from __future__ import annotations
 
 import json
@@ -103,6 +104,7 @@ DISPLAY_NAME_MAX = 40
 
 class Grant(Protocol):
     """One XP or badge row to write (app/awards.py's Award)."""
+
     @property
     def kind(self) -> str: ...
     @property
@@ -176,16 +178,17 @@ class Store:
         account_id = uuid.uuid4().hex
         try:
             with self._connect() as con:
-                con.execute("INSERT INTO account (id, display_name, created_at) VALUES (?, ?, ?)",
-                            (account_id, name, now()))
+                con.execute(
+                    "INSERT INTO account (id, display_name, created_at) VALUES (?, ?, ?)",
+                    (account_id, name, now()),
+                )
         except sqlite3.IntegrityError:
             raise AccountExists(name) from None
         return account_id
 
     def accounts(self) -> list[dict]:
         with self._connect() as con:
-            rows = con.execute(
-                "SELECT * FROM account ORDER BY display_name COLLATE NOCASE").fetchall()
+            rows = con.execute("SELECT * FROM account ORDER BY display_name COLLATE NOCASE").fetchall()
         return [dict(r) for r in rows]
 
     def get_account(self, account_id: str) -> dict | None:
@@ -195,19 +198,24 @@ class Store:
 
     def account_by_name(self, display_name: str) -> dict | None:
         with self._connect() as con:
-            row = con.execute("SELECT * FROM account WHERE display_name = ?",
-                              (" ".join(display_name.split()),)).fetchone()
+            row = con.execute(
+                "SELECT * FROM account WHERE display_name = ?", (" ".join(display_name.split()),)
+            ).fetchone()
         return dict(row) if row else None
 
     def account_summary(self, account_id: str) -> dict:
         """Row counts shown before a delete is confirmed."""
         with self._connect() as con:
-            steps = con.execute("SELECT COUNT(*) FROM step_progress WHERE account_id = ?",
-                                (account_id,)).fetchone()[0]
-            xp = con.execute("SELECT COALESCE(SUM(amount), 0) FROM award "
-                             "WHERE account_id = ? AND kind = 'xp'", (account_id,)).fetchone()[0]
-            badges = con.execute("SELECT COUNT(*) FROM award WHERE account_id = ? AND kind = 'badge'",
-                                 (account_id,)).fetchone()[0]
+            steps = con.execute(
+                "SELECT COUNT(*) FROM step_progress WHERE account_id = ?", (account_id,)
+            ).fetchone()[0]
+            xp = con.execute(
+                "SELECT COALESCE(SUM(amount), 0) FROM award WHERE account_id = ? AND kind = 'xp'",
+                (account_id,),
+            ).fetchone()[0]
+            badges = con.execute(
+                "SELECT COUNT(*) FROM award WHERE account_id = ? AND kind = 'badge'", (account_id,)
+            ).fetchone()[0]
         return {"steps_completed": steps, "xp": xp, "badges": badges}
 
     def delete_account(self, account_id: str) -> bool:
@@ -223,8 +231,9 @@ class Store:
 
     def completed_steps(self, account_id: str) -> set[str]:
         with self._connect() as con:
-            rows = con.execute("SELECT step_id FROM step_progress WHERE account_id = ?",
-                               (account_id,)).fetchall()
+            rows = con.execute(
+                "SELECT step_id FROM step_progress WHERE account_id = ?", (account_id,)
+            ).fetchall()
         return {r[0] for r in rows}
 
     @staticmethod
@@ -235,22 +244,34 @@ class Store:
 
     @staticmethod
     def _completed_in(con: sqlite3.Connection, account_id: str) -> set[str]:
-        return {r[0] for r in con.execute(
-            "SELECT step_id FROM step_progress WHERE account_id = ?", (account_id,))}
+        return {
+            r[0] for r in con.execute("SELECT step_id FROM step_progress WHERE account_id = ?", (account_id,))
+        }
 
     @staticmethod
-    def _complete(con: sqlite3.Connection, account_id: str, step_id: str, done: set[str],
-                  first_try: bool, awards: Awards | None) -> None:
+    def _complete(
+        con: sqlite3.Connection,
+        account_id: str,
+        step_id: str,
+        done: set[str],
+        first_try: bool,
+        awards: Awards | None,
+    ) -> None:
         """Mark a step completed and grant what that earns (§9), idempotently."""
-        con.execute("INSERT OR IGNORE INTO step_progress (account_id, step_id, completed_at) "
-                    "VALUES (?, ?, ?)", (account_id, step_id, now()))
+        con.execute(
+            "INSERT OR IGNORE INTO step_progress (account_id, step_id, completed_at) VALUES (?, ?, ?)",
+            (account_id, step_id, now()),
+        )
         for a in awards(done | {step_id}, first_try) if awards else ():
-            con.execute("INSERT OR IGNORE INTO award (account_id, kind, ref, amount, awarded_at) "
-                        "VALUES (?, ?, ?, ?, ?)", (account_id, a.kind, a.ref, a.amount, now()))
+            con.execute(
+                "INSERT OR IGNORE INTO award (account_id, kind, ref, amount, awarded_at) "
+                "VALUES (?, ?, ?, ?, ?)",
+                (account_id, a.kind, a.ref, a.amount, now()),
+            )
 
-    def complete_step(self, account_id: str, step_id: str,
-                      allowed: Callable[[set[str]], bool],
-                      awards: Awards | None = None) -> bool | None:
+    def complete_step(
+        self, account_id: str, step_id: str, allowed: Callable[[set[str]], bool], awards: Awards | None = None
+    ) -> bool | None:
         """Record a lesson or learn-more step as completed, with its awards,
         in one `BEGIN IMMEDIATE` transaction (§8.1). `allowed(completed
         steps)` is the caller's reachability rule, re-checked under the lock
@@ -267,9 +288,16 @@ class Store:
                 self._complete(con, account_id, step_id, done, False, awards)
             return True
 
-    def answer_practice(self, account_id: str, step_id: str, question_id: int, letter: str,
-                        correct: bool, allowed: Callable[[set[str]], bool],
-                        awards: Awards | None = None) -> str | None:
+    def answer_practice(
+        self,
+        account_id: str,
+        step_id: str,
+        question_id: int,
+        letter: str,
+        correct: bool,
+        allowed: Callable[[set[str]], bool],
+        awards: Awards | None = None,
+    ) -> str | None:
         """Record one answer to a practice step (§5.1): read, decide and write
         `practice_result`, `step_progress` and awards in one `BEGIN IMMEDIATE`
         transaction, so same-learner submissions are serialized (§8.1 guard 1)
@@ -289,9 +317,10 @@ class Store:
                 return "locked"
             if step_id in done:
                 return "revisit"
-            row = con.execute("SELECT wrong_letters FROM practice_result "
-                              "WHERE account_id = ? AND question_id = ?",
-                              (account_id, question_id)).fetchone()
+            row = con.execute(
+                "SELECT wrong_letters FROM practice_result WHERE account_id = ? AND question_id = ?",
+                (account_id, question_id),
+            ).fetchone()
             wrong = row["wrong_letters"] if row else ""
             if not correct and letter not in wrong:
                 wrong += letter
@@ -301,7 +330,8 @@ class Store:
                 "ON CONFLICT(account_id, question_id) DO UPDATE SET "
                 "wrong_letters = excluded.wrong_letters, submissions = submissions + 1, "
                 "updated_at = excluded.updated_at",
-                (account_id, question_id, wrong, now()))
+                (account_id, question_id, wrong, now()),
+            )
             if not correct:
                 return "wrong"
             self._complete(con, account_id, step_id, done, not wrong, awards)
@@ -309,14 +339,17 @@ class Store:
 
     def practice_result(self, account_id: str, question_id: int) -> dict | None:
         with self._connect() as con:
-            row = con.execute("SELECT * FROM practice_result WHERE account_id = ? AND question_id = ?",
-                              (account_id, question_id)).fetchone()
+            row = con.execute(
+                "SELECT * FROM practice_result WHERE account_id = ? AND question_id = ?",
+                (account_id, question_id),
+            ).fetchone()
         return dict(row) if row else None
 
     def awards(self, account_id: str) -> list[dict]:
         with self._connect() as con:
-            rows = con.execute("SELECT * FROM award WHERE account_id = ? ORDER BY awarded_at",
-                               (account_id,)).fetchall()
+            rows = con.execute(
+                "SELECT * FROM award WHERE account_id = ? ORDER BY awarded_at", (account_id,)
+            ).fetchall()
         return [dict(r) for r in rows]
 
     def take_unseen_badges(self, account_id: str) -> list[str]:
@@ -325,28 +358,32 @@ class Store:
         every course page view, so the write lock is only taken when a plain
         read finds something to announce: page reads never wait on a write
         (§8.1)."""
-        unseen = ("SELECT ref FROM award WHERE account_id = ? AND kind = 'badge' "
-                  "AND seen_at IS NULL ORDER BY awarded_at, ref")
+        unseen = (
+            "SELECT ref FROM award WHERE account_id = ? AND kind = 'badge' "
+            "AND seen_at IS NULL ORDER BY awarded_at, ref"
+        )
         with self._connect() as con:
             if con.execute(unseen, (account_id,)).fetchone() is None:
                 return []
         with self._write_tx() as con:
             refs = [r[0] for r in con.execute(unseen, (account_id,))]
-            con.execute("UPDATE award SET seen_at = ? WHERE account_id = ? AND kind = 'badge' "
-                        "AND seen_at IS NULL", (now(), account_id))
+            con.execute(
+                "UPDATE award SET seen_at = ? WHERE account_id = ? AND kind = 'badge' AND seen_at IS NULL",
+                (now(), account_id),
+            )
         return refs
 
     # -- attempts ---------------------------------------------------------
 
-    def create_attempt(self, *, catalogue: str, tag: str, mode: str, lang: str,
-                        spec: dict, question_ids: list[int]) -> str:
+    def create_attempt(
+        self, *, catalogue: str, tag: str, mode: str, lang: str, spec: dict, question_ids: list[int]
+    ) -> str:
         attempt_id = uuid.uuid4().hex
         with self._connect() as con:
             con.execute(
                 "INSERT INTO attempt (id, catalogue, tag, mode, lang, spec, "
                 "question_ids, started_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-                (attempt_id, catalogue, tag, mode, lang, json.dumps(spec),
-                 json.dumps(question_ids), now()),
+                (attempt_id, catalogue, tag, mode, lang, json.dumps(spec), json.dumps(question_ids), now()),
             )
         return attempt_id
 
@@ -363,8 +400,8 @@ class Store:
     def in_progress_attempts(self, limit: int = 10) -> list[dict]:
         with self._connect() as con:
             rows = con.execute(
-                "SELECT * FROM attempt WHERE submitted_at IS NULL "
-                "ORDER BY started_at DESC LIMIT ?", (limit,),
+                "SELECT * FROM attempt WHERE submitted_at IS NULL ORDER BY started_at DESC LIMIT ?",
+                (limit,),
             ).fetchall()
         out = []
         for row in rows:
@@ -376,8 +413,7 @@ class Store:
 
     def submit_attempt(self, attempt_id: str) -> None:
         with self._connect() as con:
-            con.execute("UPDATE attempt SET submitted_at = ? WHERE id = ?",
-                        (now(), attempt_id))
+            con.execute("UPDATE attempt SET submitted_at = ? WHERE id = ?", (now(), attempt_id))
 
     def delete_attempt(self, attempt_id: str) -> None:
         """No FK enforcement (no PRAGMA foreign_keys=ON) and `grade` carries no
@@ -394,7 +430,8 @@ class Store:
         with self._connect() as con:
             existing = con.execute(
                 "SELECT flagged FROM response WHERE attempt_id = ? AND question_id = ?",
-                (attempt_id, question_id)).fetchone()
+                (attempt_id, question_id),
+            ).fetchone()
             flag_value = int(flagged) if existing is None else existing["flagged"]
             con.execute(
                 "INSERT INTO response (attempt_id, question_id, answer, flagged, updated_at) "
@@ -416,8 +453,7 @@ class Store:
 
     def responses(self, attempt_id: str) -> dict[int, dict]:
         with self._connect() as con:
-            rows = con.execute(
-                "SELECT * FROM response WHERE attempt_id = ?", (attempt_id,)).fetchall()
+            rows = con.execute("SELECT * FROM response WHERE attempt_id = ?", (attempt_id,)).fetchall()
         out = {}
         for row in rows:
             d = dict(row)
@@ -430,9 +466,19 @@ class Store:
 
     # -- grades ---------------------------------------------------------------
 
-    def put_grade(self, attempt_id: str, question_id: int, item_no: int, *,
-                  verdict: str, points: float, detail=None, comment: str | None,
-                  source: str, model: str | None) -> None:
+    def put_grade(
+        self,
+        attempt_id: str,
+        question_id: int,
+        item_no: int,
+        *,
+        verdict: str,
+        points: float,
+        detail=None,
+        comment: str | None,
+        source: str,
+        model: str | None,
+    ) -> None:
         with self._connect() as con:
             con.execute(
                 "INSERT INTO grade (attempt_id, question_id, item_no, verdict, points, "
@@ -441,16 +487,25 @@ class Store:
                 "verdict = excluded.verdict, points = excluded.points, "
                 "detail = excluded.detail, comment = excluded.comment, "
                 "source = excluded.source, model = excluded.model",
-                (attempt_id, question_id, item_no, verdict, points,
-                 json.dumps(detail) if detail is not None else None, comment, source, model),
+                (
+                    attempt_id,
+                    question_id,
+                    item_no,
+                    verdict,
+                    points,
+                    json.dumps(detail) if detail is not None else None,
+                    comment,
+                    source,
+                    model,
+                ),
             )
 
     def grades(self, attempt_id: str) -> dict[int, list[dict]]:
         """Grade rows for an attempt, grouped by question id, item_no ascending."""
         with self._connect() as con:
             rows = con.execute(
-                "SELECT * FROM grade WHERE attempt_id = ? ORDER BY question_id, item_no",
-                (attempt_id,)).fetchall()
+                "SELECT * FROM grade WHERE attempt_id = ? ORDER BY question_id, item_no", (attempt_id,)
+            ).fetchall()
         out: dict[int, list[dict]] = {}
         for row in rows:
             d = dict(row)
@@ -465,5 +520,6 @@ class Store:
         """Used before a self-grade replaces per-item placeholder rows with
         one aggregate verdict (specs/TRAINER.md §7.3)."""
         with self._connect() as con:
-            con.execute("DELETE FROM grade WHERE attempt_id = ? AND question_id = ?",
-                        (attempt_id, question_id))
+            con.execute(
+                "DELETE FROM grade WHERE attempt_id = ? AND question_id = ?", (attempt_id, question_id)
+            )

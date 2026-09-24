@@ -5,11 +5,12 @@ it was printed under.
 Images are assigned by placement, never by xref: eight images are reused by two
 different questions, and deduplicating by xref would merge their figures.
 """
+
 from __future__ import annotations
 
 from geometry import FIRST_PAGE, LAST_PAGE
 
-LOGO_XREF = 31          # running header logo, on every page but the cover
+LOGO_XREF = 31  # running header logo, on every page but the cover
 ASSET_DIR = "assets"
 
 
@@ -75,11 +76,13 @@ def extract(doc, questions, out_dir):
                 name = f"fig_{xref}.{raw['ext']}"
                 (out_dir / name).write_bytes(raw["image"])
                 seen[xref] = name
-            assets.append({
-                "question_id": qid,
-                "option_letter": letter,
-                "path": f"{ASSET_DIR}/{seen[xref]}",
-                "page": pno,
-                "bbox": [round(v, 1) for v in (rect.x0, rect.y0, rect.x1, rect.y1)],
-            })
+            assets.append(
+                {
+                    "question_id": qid,
+                    "option_letter": letter,
+                    "path": f"{ASSET_DIR}/{seen[xref]}",
+                    "page": pno,
+                    "bbox": [round(v, 1) for v in (rect.x0, rect.y0, rect.x1, rect.y1)],
+                }
+            )
     return assets, orphans

@@ -1,4 +1,5 @@
 """Shared fixtures for the endpoint tests (tests/test_main.py)."""
+
 from __future__ import annotations
 
 import pathlib

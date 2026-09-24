@@ -5,6 +5,7 @@
 python = "3.13"
 uv = "latest"
 yq = "latest"        # scripts/download-refs.sh
+prek = "latest"      # git pre-commit hooks (.pre-commit-config.yaml)
 
 [env]
 # Autoloaded on entering the directory. The file is gitignored and absent on a
@@ -81,11 +82,16 @@ description = "Run the test suite"
 run = "uv run pytest"
 
 [tasks.lint]
-description = "Ruff lint + ty type check"
+description = "Ruff format check + lint + ty type check"
 run = [
+  "uv run ruff format --check .",
   "uv run ruff check .",
   "uv run ty check .",
 ]
+
+[tasks.install-hooks]
+description = "Install the git pre-commit hook that runs the lint gate (.pre-commit-config.yaml)"
+run = "prek install"
 
 [tasks.serve]
 description = "Run the training application (specs/TRAINER.md §3)"

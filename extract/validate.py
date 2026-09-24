@@ -9,6 +9,7 @@ span-level parser -- and checks every stored string still appears there.
 
     uv run --with pymupdf python extract/validate.py
 """
+
 from __future__ import annotations
 
 import json
@@ -83,8 +84,10 @@ def main():
 
     # --- structure -------------------------------------------------------
     ids = [r["id"] for r in rows]
-    check(ids == list(range(1, EXPECTED_TOTAL + 1)),
-          f"ids are not 1..{EXPECTED_TOTAL} contiguous (got {len(ids)})")
+    check(
+        ids == list(range(1, EXPECTED_TOTAL + 1)),
+        f"ids are not 1..{EXPECTED_TOTAL} contiguous (got {len(ids)})",
+    )
 
     tag_counts = Counter(t for r in rows for t in r["tags"])
     check(dict(tag_counts) == EXPECTED_TAGS, f"tag totals {dict(tag_counts)} != {EXPECTED_TAGS}")
@@ -96,32 +99,44 @@ def main():
     for r in mcq:
         letters = [o["letter"] for o in r["options"]]
         check(3 <= len(letters) <= 4, f"q{r['id']}: {len(letters)} options")
-        check(letters == sorted(letters) and len(set(letters)) == len(letters),
-              f"q{r['id']}: option letters out of order or duplicated: {letters}")
-        check(sum(o["is_correct"] for o in r["options"]) == 1,
-              f"q{r['id']}: {sum(o['is_correct'] for o in r['options'])} correct options")
+        check(
+            letters == sorted(letters) and len(set(letters)) == len(letters),
+            f"q{r['id']}: option letters out of order or duplicated: {letters}",
+        )
+        check(
+            sum(o["is_correct"] for o in r["options"]) == 1,
+            f"q{r['id']}: {sum(o['is_correct'] for o in r['options'])} correct options",
+        )
     for r in opn:
         check(not r["options"], f"q{r['id']}: open question has options")
         check(r["answer"], f"q{r['id']}: open question has no answer")
         nums = [a["item_no"] for a in r["answer"]]
-        check(nums == [0] or nums == list(range(1, len(nums) + 1)),
-              f"q{r['id']}: answer item_no sequence {nums}")
+        check(
+            nums == [0] or nums == list(range(1, len(nums) + 1)),
+            f"q{r['id']}: answer item_no sequence {nums}",
+        )
         if nums != [0]:
             check(all(a["label"] for a in r["answer"]), f"q{r['id']}: sub-item without a label")
 
     # --- languages -------------------------------------------------------
     for r in rows:
-        check(set(r["text"]) == {"fr", "de"},
-              f"q{r['id']}: stem languages {sorted(r['text'])}")
-    no_de_opts = [(r["id"], o["letter"]) for r in rows for o in r["options"]
-                  if o["text"] and set(o["text"]) != {"fr", "de"}]
-    no_de_ans = [r["id"] for r in rows for a in r["answer"]
-                 if a["text"] and set(a["text"]) != {"fr", "de"}]
-    notes.append(f"{len(no_de_opts)} option cells carry one language only "
-                 f"(language-neutral values: units, formulas, frequencies)")
-    notes.append(f"{len(no_de_ans)} answer cells carry one language only "
-                 f"(call signs, spellings, URLs): questions "
-                 f"{sorted(set(no_de_ans))}")
+        check(set(r["text"]) == {"fr", "de"}, f"q{r['id']}: stem languages {sorted(r['text'])}")
+    no_de_opts = [
+        (r["id"], o["letter"])
+        for r in rows
+        for o in r["options"]
+        if o["text"] and set(o["text"]) != {"fr", "de"}
+    ]
+    no_de_ans = [r["id"] for r in rows for a in r["answer"] if a["text"] and set(a["text"]) != {"fr", "de"}]
+    notes.append(
+        f"{len(no_de_opts)} option cells carry one language only "
+        f"(language-neutral values: units, formulas, frequencies)"
+    )
+    notes.append(
+        f"{len(no_de_ans)} answer cells carry one language only "
+        f"(call signs, spellings, URLs): questions "
+        f"{sorted(set(no_de_ans))}"
+    )
 
     # --- characters ------------------------------------------------------
     for r in rows:
@@ -131,21 +146,25 @@ def main():
 
     # --- figures ---------------------------------------------------------
     assets = [a for r in rows for a in r["assets"]]
-    check(len(assets) == EXPECTED_PLACEMENTS,
-          f"{len(assets)} figure placements, expected {EXPECTED_PLACEMENTS}")
+    check(
+        len(assets) == EXPECTED_PLACEMENTS, f"{len(assets)} figure placements, expected {EXPECTED_PLACEMENTS}"
+    )
     for r in rows:
         for a in r["assets"]:
             check((DATA / a["path"]).exists(), f"q{r['id']}: missing asset file {a['path']}")
-            check(a["option_letter"] is None
-                  or a["option_letter"] in [o["letter"] for o in r["options"]],
-                  f"q{r['id']}: asset on unknown option {a['option_letter']}")
-    missing_fig = [r["id"] for r in rows
-                   if FIGURE_WORDS.search(" ".join(r["text"].values())) and not r["assets"]]
+            check(
+                a["option_letter"] is None or a["option_letter"] in [o["letter"] for o in r["options"]],
+                f"q{r['id']}: asset on unknown option {a['option_letter']}",
+            )
+    missing_fig = [
+        r["id"] for r in rows if FIGURE_WORDS.search(" ".join(r["text"].values())) and not r["assets"]
+    ]
     check(not missing_fig, f"questions name a drawing but have no figure: {missing_fig}")
-    soft = [r["id"] for r in rows
-            if MAYBE_FIGURE.search(" ".join(r["text"].values())) and not r["assets"]]
-    notes.append(f"{len(soft)} questions use deictic wording but have no figure "
-                 f"(they point at their own option list): {soft}")
+    soft = [r["id"] for r in rows if MAYBE_FIGURE.search(" ".join(r["text"].values())) and not r["assets"]]
+    notes.append(
+        f"{len(soft)} questions use deictic wording but have no figure "
+        f"(they point at their own option list): {soft}"
+    )
 
     # --- round trip ------------------------------------------------------
     cache: dict[int, str] = {}
@@ -158,8 +177,9 @@ def main():
                 haystack += cache.setdefault(p, page_text(doc, p)) + " "
         for where, text in strings_of(r):
             if norm(text) not in haystack:
-                failures.append(f"q{r['id']} {where}: not found verbatim in PDF page "
-                                f"{r['page']}: {text[:70]!r}")
+                failures.append(
+                    f"q{r['id']} {where}: not found verbatim in PDF page {r['page']}: {text[:70]!r}"
+                )
 
     # --- report ----------------------------------------------------------
     print(f"{len(rows)} questions | {len(mcq)} mcq | {len(opn)} open | {len(assets)} figures")

@@ -32,6 +32,7 @@ has looked. The application must show `suggested` links as unconfirmed.
 Run `uv run python -m app.annotations` to validate the file; `mise run verify`
 does it as part of the data gates.
 """
+
 from __future__ import annotations
 
 import json
@@ -76,8 +77,7 @@ def documents(path: pathlib.Path = REGISTRY) -> dict[str, dict[str, str]]:
     """
     if not path.exists():
         return {}
-    entries = re.findall(r"^\s*-\s*id:\s*(\S+)$(.*?)(?=^\s*-\s*id:|\Z)",
-                         path.read_text(), re.M | re.S)
+    entries = re.findall(r"^\s*-\s*id:\s*(\S+)$(.*?)(?=^\s*-\s*id:|\Z)", path.read_text(), re.M | re.S)
     docs: dict[str, dict[str, str]] = {}
     for doc_id, block in entries:
         fields = {}
@@ -98,8 +98,7 @@ def page_counts() -> dict[str, int]:
         import pymupdf  # extraction-only dependency; absent in the container
     except ImportError:
         return counts
-    entries = re.findall(r"^\s*-\s*id:\s*(\S+)$(.*?)(?=^\s*-\s*id:|\Z)",
-                         REGISTRY.read_text(), re.M | re.S)
+    entries = re.findall(r"^\s*-\s*id:\s*(\S+)$(.*?)(?=^\s*-\s*id:|\Z)", REGISTRY.read_text(), re.M | re.S)
     for doc_id, block in entries:
         name = re.search(r"^\s*filename:\s*(\S+)\s*$", block, re.M)
         if not name:
@@ -117,8 +116,7 @@ def validate() -> list[str]:
     if not ANNOTATIONS.exists():
         return problems
 
-    known_questions = {json.loads(line)["id"] for line in QUESTIONS.read_text().splitlines()
-                       if line.strip()}
+    known_questions = {json.loads(line)["id"] for line in QUESTIONS.read_text().splitlines() if line.strip()}
     known_docs = document_ids()
     pages = page_counts()
 
@@ -166,8 +164,9 @@ def main() -> int:
     problems = validate()
     annotated = load()
     refs = sum(len(r.get("references", [])) for r in annotated.values())
-    unverified = sum(1 for r in annotated.values()
-                     for ref in r.get("references", []) if ref.get("status") != "verified")
+    unverified = sum(
+        1 for r in annotated.values() for ref in r.get("references", []) if ref.get("status") != "verified"
+    )
     for p in problems:
         print(f"  {p}")
     print(f"{len(annotated)} annotated questions | {refs} references | {unverified} unverified")

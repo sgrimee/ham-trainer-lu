@@ -4,6 +4,7 @@ Kept flat and separate from the question language: a candidate reading
 questions in German still needs French menu labels to work, or vice versa,
 so the interface language and the question language are independent knobs.
 """
+
 from __future__ import annotations
 
 MESSAGES = {
@@ -15,7 +16,9 @@ MESSAGES = {
         "mode_exam": "Examen blanc",
         "exam_sessions_note": "L'examen réel se déroule en 3 séances distinctes, une par partie.",
         "choose_language": "Langue des questions",
-        "lang_fr": "Français", "lang_de": "Deutsch", "lang_both": "Les deux",
+        "lang_fr": "Français",
+        "lang_de": "Deutsch",
+        "lang_both": "Les deux",
         "choose_section": "Section (optionnel)",
         "all_sections": "Toutes les sections",
         "whole_part": "Toute la section",
@@ -26,34 +29,43 @@ MESSAGES = {
         "resume": "Reprendre",
         "in_progress": "Sessions en cours",
         "new_session": "Nouvelle session",
-        "mode_study_short": "Étude", "mode_exam_short": "Examen",
+        "mode_study_short": "Étude",
+        "mode_exam_short": "Examen",
         "abandon_session": "Abandonner",
         "confirm_abandon": "Abandonner cette session ? Les réponses seront perdues.",
         "question_of": "Question {n} / {total}",
-        "previous": "Précédent", "next": "Suivant", "validate": "Valider",
-        "check": "Vérifier", "flag": "Marquer",
+        "previous": "Précédent",
+        "next": "Suivant",
+        "validate": "Valider",
+        "check": "Vérifier",
+        "flag": "Marquer",
         "flagged": "Marquée",
         "saved": "Enregistré",
         "submit": "Soumettre l'examen",
         "confirm_submit": "Soumettre définitivement l'examen ?",
         "results": "Résultats",
-        "correct": "Correct", "incorrect": "Incorrect", "partial": "Partiel",
+        "correct": "Correct",
+        "incorrect": "Incorrect",
+        "partial": "Partiel",
         "ungraded": "Non noté",
         "your_answer": "Votre réponse",
         "reference_answer": "Réponse de référence",
         "grader_comment": "Commentaire",
         "elements_present": "Éléments présents",
         "incorrect_statements": "Affirmations incorrectes",
-        "score": "Score", "part": "Partie",
+        "score": "Score",
+        "part": "Partie",
         "technique": "Techniques",
         "procedures": "Règles et procédures d'exploitation",
         "reglementation": "Réglementations nationales et internationales",
         "outcome_pass": "Réussi",
         "outcome_retake_part": "À repasser : {parts}",
         "outcome_retake_all": "Échec — à repasser entièrement",
-        "appendix": "Formulaire", "close": "Fermer",
+        "appendix": "Formulaire",
+        "close": "Fermer",
         "self_grade_prompt": "Aucun modèle de correction configuré : évaluez votre réponse vous-même.",
-        "self_correct": "J'avais raison", "self_incorrect": "J'avais tort",
+        "self_correct": "J'avais raison",
+        "self_incorrect": "J'avais tort",
         "no_model_configured": "Correction automatique indisponible",
         "graded_by": "Corrigé automatiquement",
         "retry_wrong": "Refaire les questions ratées",
@@ -71,30 +83,40 @@ MESSAGES = {
         "who_are_you": "Qui es-tu ?",
         "pick_name": "Choisis ton prénom dans la liste.",
         "its_me": "C'est moi",
-        "no_learners": ("Aucun élève n'est encore inscrit. "
-                        "Demande à la personne qui gère le site de t'ajouter."),
+        "no_learners": (
+            "Aucun élève n'est encore inscrit. Demande à la personne qui gère le site de t'ajouter."
+        ),
         "hello_learner": "Bonjour {name} !",
         "not_you": "Ce n'est pas toi ?",
         "change_learner": "Changer",
         "nav_exam": "S'entraîner",
         "landing_heading": "Prépare ton examen de radioamateur",
-        "landing_intro": ("Ce site aide à préparer l'examen de radioamateur de l'ILR, au Luxembourg : "
-                          "les certificats BASE, NOVICE et HAREC. Il a deux parties."),
-        "landing_learn_text": ("Le cours pour qui part de zéro : la partie 1 de l'examen BASE, les "
-                               "techniques, expliquée une idée à la fois. Dès que tu en sais assez pour "
-                               "répondre, une vraie question d'examen apparaît. Ta progression est "
-                               "enregistrée à ton nom."),
+        "landing_intro": (
+            "Ce site aide à préparer l'examen de radioamateur de l'ILR, au Luxembourg : "
+            "les certificats BASE, NOVICE et HAREC. Il a deux parties."
+        ),
+        "landing_learn_text": (
+            "Le cours pour qui part de zéro : la partie 1 de l'examen BASE, les "
+            "techniques, expliquée une idée à la fois. Dès que tu en sais assez pour "
+            "répondre, une vraie question d'examen apparaît. Ta progression est "
+            "enregistrée à ton nom."
+        ),
         "landing_learn_button": "Commencer le cours",
-        "landing_exam_text": ("L'entraînement à l'examen, pour les trois certificats : le mode étude, "
-                              "section par section avec la correction tout de suite, ou l'examen blanc, "
-                              "tiré et noté comme le vrai."),
+        "landing_exam_text": (
+            "L'entraînement à l'examen, pour les trois certificats : le mode étude, "
+            "section par section avec la correction tout de suite, ou l'examen blanc, "
+            "tiré et noté comme le vrai."
+        ),
         "landing_exam_button": "S'entraîner",
         "landing_path_title": "Par où commencer ?",
-        "landing_path_text": ("Commence par le cours, puis passe à l'entraînement une fois le cours terminé. "
-                              "Pour les parties 2 et 3 de l'examen (procédures et réglementation), que le "
-                              "cours ne couvre pas encore, tu peux t'entraîner tout de suite."),
-        "landing_guide_text": ("Pour apprendre ces parties 2 et 3, la référence est le guide du "
-                               "radioamateur publié par l'ILR :"),
+        "landing_path_text": (
+            "Commence par le cours, puis passe à l'entraînement une fois le cours terminé. "
+            "Pour les parties 2 et 3 de l'examen (procédures et réglementation), que le "
+            "cours ne couvre pas encore, tu peux t'entraîner tout de suite."
+        ),
+        "landing_guide_text": (
+            "Pour apprendre ces parties 2 et 3, la référence est le guide du radioamateur publié par l'ILR :"
+        ),
         "landing_guide_link": "Guide du radioamateur (ILR, PDF)",
         "course_title": "Cours BASE — partie 1 : Techniques",
         "dashboard": "Mon parcours",
@@ -140,7 +162,9 @@ MESSAGES = {
         "mode_exam": "Probeprüfung",
         "exam_sessions_note": "Die echte Prüfung findet in 3 getrennten Sitzungen statt, eine pro Teil.",
         "choose_language": "Sprache der Fragen",
-        "lang_fr": "Français", "lang_de": "Deutsch", "lang_both": "Beide",
+        "lang_fr": "Français",
+        "lang_de": "Deutsch",
+        "lang_both": "Beide",
         "choose_section": "Abschnitt (optional)",
         "all_sections": "Alle Abschnitte",
         "whole_part": "Ganzer Abschnitt",
@@ -151,34 +175,43 @@ MESSAGES = {
         "resume": "Fortsetzen",
         "in_progress": "Laufende Sitzungen",
         "new_session": "Neue Sitzung",
-        "mode_study_short": "Lernen", "mode_exam_short": "Prüfung",
+        "mode_study_short": "Lernen",
+        "mode_exam_short": "Prüfung",
         "abandon_session": "Abbrechen",
         "confirm_abandon": "Diese Sitzung abbrechen? Die Antworten gehen verloren.",
         "question_of": "Frage {n} / {total}",
-        "previous": "Zurück", "next": "Weiter", "validate": "Bestätigen",
-        "check": "Prüfen", "flag": "Markieren",
+        "previous": "Zurück",
+        "next": "Weiter",
+        "validate": "Bestätigen",
+        "check": "Prüfen",
+        "flag": "Markieren",
         "flagged": "Markiert",
         "saved": "Gespeichert",
         "submit": "Prüfung abgeben",
         "confirm_submit": "Prüfung endgültig abgeben?",
         "results": "Ergebnisse",
-        "correct": "Richtig", "incorrect": "Falsch", "partial": "Teilweise",
+        "correct": "Richtig",
+        "incorrect": "Falsch",
+        "partial": "Teilweise",
         "ungraded": "Nicht bewertet",
         "your_answer": "Ihre Antwort",
         "reference_answer": "Referenzantwort",
         "grader_comment": "Kommentar",
         "elements_present": "Vorhandene Elemente",
         "incorrect_statements": "Falsche Aussagen",
-        "score": "Punkte", "part": "Teil",
+        "score": "Punkte",
+        "part": "Teil",
         "technique": "Technik",
         "procedures": "Betriebliche Regeln und Verfahren",
         "reglementation": "Nationale und internationale Vorschriften",
         "outcome_pass": "Bestanden",
         "outcome_retake_part": "Zu wiederholen: {parts}",
         "outcome_retake_all": "Nicht bestanden — vollständig zu wiederholen",
-        "appendix": "Formelsammlung", "close": "Schließen",
+        "appendix": "Formelsammlung",
+        "close": "Schließen",
         "self_grade_prompt": "Kein Korrekturmodell konfiguriert: bewerten Sie Ihre Antwort selbst.",
-        "self_correct": "Ich hatte recht", "self_incorrect": "Ich hatte unrecht",
+        "self_correct": "Ich hatte recht",
+        "self_incorrect": "Ich hatte unrecht",
         "no_model_configured": "Automatische Korrektur nicht verfügbar",
         "graded_by": "Automatisch bewertet",
         "retry_wrong": "Falsche Fragen wiederholen",
@@ -196,30 +229,41 @@ MESSAGES = {
         "who_are_you": "Wer bist du?",
         "pick_name": "Wähle deinen Namen aus der Liste.",
         "its_me": "Das bin ich",
-        "no_learners": ("Noch keine Lernenden eingetragen. "
-                        "Bitte die Person, die die Seite betreut, dich hinzuzufügen."),
+        "no_learners": (
+            "Noch keine Lernenden eingetragen. Bitte die Person, die die Seite betreut, dich hinzuzufügen."
+        ),
         "hello_learner": "Hallo {name}!",
         "not_you": "Nicht du?",
         "change_learner": "Wechseln",
         "nav_exam": "Üben",
         "landing_heading": "Bereite dich auf deine Amateurfunkprüfung vor",
-        "landing_intro": ("Diese Seite hilft bei der Vorbereitung auf die Amateurfunkprüfung des ILR in "
-                          "Luxemburg: die Zertifikate BASE, NOVICE und HAREC. Sie hat zwei Teile."),
-        "landing_learn_text": ("Der Kurs für alle, die bei null anfangen: Teil 1 der BASE-Prüfung, die "
-                               "Technik, eine Idee nach der anderen erklärt. Sobald du genug weißt, um zu "
-                               "antworten, erscheint eine echte Prüfungsfrage. Dein Fortschritt wird unter "
-                               "deinem Namen gespeichert."),
+        "landing_intro": (
+            "Diese Seite hilft bei der Vorbereitung auf die Amateurfunkprüfung des ILR in "
+            "Luxemburg: die Zertifikate BASE, NOVICE und HAREC. Sie hat zwei Teile."
+        ),
+        "landing_learn_text": (
+            "Der Kurs für alle, die bei null anfangen: Teil 1 der BASE-Prüfung, die "
+            "Technik, eine Idee nach der anderen erklärt. Sobald du genug weißt, um zu "
+            "antworten, erscheint eine echte Prüfungsfrage. Dein Fortschritt wird unter "
+            "deinem Namen gespeichert."
+        ),
         "landing_learn_button": "Kurs starten",
-        "landing_exam_text": ("Das Prüfungstraining für alle drei Zertifikate: der Lernmodus, Abschnitt für "
-                              "Abschnitt mit sofortiger Korrektur, oder die Probeprüfung, zusammengestellt "
-                              "und bewertet wie die echte."),
+        "landing_exam_text": (
+            "Das Prüfungstraining für alle drei Zertifikate: der Lernmodus, Abschnitt für "
+            "Abschnitt mit sofortiger Korrektur, oder die Probeprüfung, zusammengestellt "
+            "und bewertet wie die echte."
+        ),
         "landing_exam_button": "Üben",
         "landing_path_title": "Womit anfangen?",
-        "landing_path_text": ("Fang mit dem Kurs an und wechsle zum Training, wenn du ihn abgeschlossen "
-                              "hast. Für die Teile 2 und 3 der Prüfung (Verfahren und Vorschriften), die "
-                              "der Kurs noch nicht abdeckt, kannst du sofort üben."),
-        "landing_guide_text": ("Um diese Teile 2 und 3 zu lernen, ist der vom ILR veröffentlichte "
-                               "Leitfaden für Funkamateure die Referenz (auf Französisch):"),
+        "landing_path_text": (
+            "Fang mit dem Kurs an und wechsle zum Training, wenn du ihn abgeschlossen "
+            "hast. Für die Teile 2 und 3 der Prüfung (Verfahren und Vorschriften), die "
+            "der Kurs noch nicht abdeckt, kannst du sofort üben."
+        ),
+        "landing_guide_text": (
+            "Um diese Teile 2 und 3 zu lernen, ist der vom ILR veröffentlichte "
+            "Leitfaden für Funkamateure die Referenz (auf Französisch):"
+        ),
         "landing_guide_link": "Guide du radioamateur (ILR, PDF)",
         "course_title": "BASE-Kurs — Teil 1: Technik",
         "dashboard": "Mein Kurs",

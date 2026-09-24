@@ -3,6 +3,7 @@
 One FastAPI process, server-rendered templates, no build step. Run with
 `mise run serve` (see mise.toml) or `uvicorn app.main:app`.
 """
+
 from __future__ import annotations
 
 import json
@@ -67,7 +68,7 @@ templates.env.globals["t"] = t  # type: ignore
 templates.env.globals["doc_files"] = annotations_module.documents()  # type: ignore
 
 PREFS_COOKIE = "ilr_session_prefs"
-LEARNER_COOKIE = "ilr_learner"   # the current course learner's account.id (specs/LEARN.md §6.1)
+LEARNER_COOKIE = "ilr_learner"  # the current course learner's account.id (specs/LEARN.md §6.1)
 GITHUB_REPO = "sgrimee/ham-trainer-lu"
 
 
@@ -87,9 +88,15 @@ def get_course(request: Request) -> course_module.Course:
 PAGE_LABELS = {"/": "/ (landing page)"}
 
 
-def report_issue_url(request: Request, q: dict | None = None, attempt: dict | None = None,
-                     n: int | None = None, module: course_module.Module | None = None,
-                     step: course_module.Step | None = None, ui: str | None = None) -> str:
+def report_issue_url(
+    request: Request,
+    q: dict | None = None,
+    attempt: dict | None = None,
+    n: int | None = None,
+    module: course_module.Module | None = None,
+    step: course_module.Step | None = None,
+    ui: str | None = None,
+) -> str:
     """A GitHub "new issue" link pre-filled with whatever context is on
     screen -- question id/section/page, question language, exam mode, course
     module and step -- so a report doesn't need the candidate to retype it
@@ -111,8 +118,7 @@ def report_issue_url(request: Request, q: dict | None = None, attempt: dict | No
     if n is not None:
         lines.append(f"Numéro dans la session : {n}")
     lines += ["", "Décrivez le problème ci-dessous :", ""]
-    params = {"template": "probleme.md", "title": "Problème sur " + page,
-             "body": "\n".join(lines)}
+    params = {"template": "probleme.md", "title": "Problème sur " + page, "body": "\n".join(lines)}
     return f"https://github.com/{GITHUB_REPO}/issues/new?{urlencode(params)}"
 
 
@@ -137,8 +143,11 @@ def form_str(form: FormData, key: str, default: str = "") -> str:
 
 @app.get("/healthz")
 def healthz(llm_grader: LLMGrader | None = Depends(get_llm_grader)):
-    return {"status": "ok", "questions": len(cat.questions),
-            "model": llm_grader.model if llm_grader else None}
+    return {
+        "status": "ok",
+        "questions": len(cat.questions),
+        "model": llm_grader.model if llm_grader else None,
+    }
 
 
 def _load_attempt_or_404(store: Store, attempt_id: str) -> dict:
@@ -158,12 +167,14 @@ def _section_options() -> list[dict]:
         part_code = q["section"].split(".", 1)[0]
         parts.setdefault(part_code, {"code": part_code, "part_name": catalogue.PART_NAMES[part_code]})
         subsections.setdefault(part_code, {}).setdefault(
-            q["section"], {"code": q["section"], "fr": q["section_fr"], "de": q["section_de"]})
+            q["section"], {"code": q["section"], "fr": q["section_fr"], "de": q["section_de"]}
+        )
     out = []
     for part_code in sorted(parts, key=int):
         part = dict(parts[part_code])
-        part["subsections"] = sorted(subsections[part_code].values(),
-                                     key=lambda s: [int(p) for p in s["code"].split(".")])
+        part["subsections"] = sorted(
+            subsections[part_code].values(), key=lambda s: [int(p) for p in s["code"].split(".")]
+        )
         out.append(part)
     return out
 
@@ -180,8 +191,14 @@ def _section_labels(ui: str) -> dict[str, str]:
     return labels
 
 
-DEFAULT_PREFS = {"tag": "base", "mode": "study", "lang": "fr", "section": "", "count": "all",
-                 "shuffle_options": "on"}
+DEFAULT_PREFS = {
+    "tag": "base",
+    "mode": "study",
+    "lang": "fr",
+    "section": "",
+    "count": "all",
+    "shuffle_options": "on",
+}
 
 
 def _read_prefs(request: Request) -> dict:
@@ -211,16 +228,21 @@ def _read_prefs(request: Request) -> dict:
 
 # -- landing page (specs/LEARN.md §10.1) ---------------------------------------
 
+
 @app.get("/")
 def landing(request: Request, store: Store = Depends(get_store)):
     """What the site is for and which half to start with. Static apart from
     the language, which follows the preferences cookie, and the current
     learner's "not you? change" line when there is one."""
-    return templates.TemplateResponse(request=request, name="landing.html", context={
-        "ui": ui_lang(_read_prefs(request)["lang"]), "learner": current_learner(request, store)})
+    return templates.TemplateResponse(
+        request=request,
+        name="landing.html",
+        context={"ui": ui_lang(_read_prefs(request)["lang"]), "learner": current_learner(request, store)},
+    )
 
 
 # -- exam trainer home: pick a session, or resume one --------------------------
+
 
 @app.get("/exam")
 def home(request: Request, lang: str = "fr", store: Store = Depends(get_store)):
@@ -232,21 +254,42 @@ def home(request: Request, lang: str = "fr", store: Store = Depends(get_store)):
         grades = store.grades(a["id"])
         done = grades if a["mode"] == "study" else responses
         section = a["spec"].get("section")
-        resumes.append({**a, "answered": len(done), "total": len(a["question_ids"]),
-                        "next_n": session.next_unanswered_n(a, responses, grades),
-                        "section_label": section_names.get(section) or t(ui, "all_sections")})
-    return templates.TemplateResponse(request=request, name="home.html", context={
-        "ui": ui, "lang": lang, "tags": catalogue.TAGS,
-        "counts": {tg: len(cat.filter(tg)) for tg in catalogue.TAGS},
-        "sections": _section_options(), "resumes": resumes, "blueprint": BLUEPRINT,
-        "prefs": _read_prefs(request), "learner": current_learner(request, store),
-    })
+        resumes.append(
+            {
+                **a,
+                "answered": len(done),
+                "total": len(a["question_ids"]),
+                "next_n": session.next_unanswered_n(a, responses, grades),
+                "section_label": section_names.get(section) or t(ui, "all_sections"),
+            }
+        )
+    return templates.TemplateResponse(
+        request=request,
+        name="home.html",
+        context={
+            "ui": ui,
+            "lang": lang,
+            "tags": catalogue.TAGS,
+            "counts": {tg: len(cat.filter(tg)) for tg in catalogue.TAGS},
+            "sections": _section_options(),
+            "resumes": resumes,
+            "blueprint": BLUEPRINT,
+            "prefs": _read_prefs(request),
+            "learner": current_learner(request, store),
+        },
+    )
 
 
 @app.post("/attempts")
-def create_attempt(tag: str = Form(...), mode: str = Form(...), lang: str = Form(...),
-                   section: str = Form(""), count: str = Form("all"),
-                   shuffle_options: str = Form(""), store: Store = Depends(get_store)):
+def create_attempt(
+    tag: str = Form(...),
+    mode: str = Form(...),
+    lang: str = Form(...),
+    section: str = Form(""),
+    count: str = Form("all"),
+    shuffle_options: str = Form(""),
+    store: Store = Depends(get_store),
+):
     if tag not in catalogue.TAGS:
         raise HTTPException(400, "unknown tag")
     section_filter = section or None
@@ -263,18 +306,28 @@ def create_attempt(tag: str = Form(...), mode: str = Form(...), lang: str = Form
     # sample_exam ignores section, so don't record one the exam never applied.
     stored_section = section_filter if mode == "study" else None
     attempt_id = store.create_attempt(
-        catalogue="ra-2024", tag=tag, mode=mode, lang=lang,
+        catalogue="ra-2024",
+        tag=tag,
+        mode=mode,
+        lang=lang,
         spec={"section": stored_section, "shuffle_options": shuffle, "option_order": option_order},
-        question_ids=question_ids)
+        question_ids=question_ids,
+    )
     response = RedirectResponse(f"/attempts/{attempt_id}/q/1", status_code=303)
-    prefs = {"tag": tag, "mode": mode, "lang": lang, "section": section or "",
-             "count": count, "shuffle_options": shuffle_options}
-    response.set_cookie(PREFS_COOKIE, json.dumps(prefs), max_age=60 * 60 * 24 * 365,
-                        samesite="lax")
+    prefs = {
+        "tag": tag,
+        "mode": mode,
+        "lang": lang,
+        "section": section or "",
+        "count": count,
+        "shuffle_options": shuffle_options,
+    }
+    response.set_cookie(PREFS_COOKIE, json.dumps(prefs), max_age=60 * 60 * 24 * 365, samesite="lax")
     return response
 
 
 # -- one question -------------------------------------------------------------
+
 
 @app.get("/attempts/{attempt_id}/q/{n}")
 def show_question(request: Request, attempt_id: str, n: int, store: Store = Depends(get_store)):
@@ -296,8 +349,13 @@ def show_question(request: Request, attempt_id: str, n: int, store: Store = Depe
     # Not "and llm_grader is None": an answered open question with no grade
     # rows also means the call failed (specs/TRAINER.md §7.3 -- "request failed"
     # is a survivable state, not just "no key"). Either way, self-grade it.
-    pending_self = (not graded and q["kind"] == "open" and attempt["mode"] == "study"
-                   and resp is not None and resp.get("answer") is not None)
+    pending_self = (
+        not graded
+        and q["kind"] == "open"
+        and attempt["mode"] == "study"
+        and resp is not None
+        and resp.get("answer") is not None
+    )
     read_only = graded or pending_self
     show_self_grade = pending_self or (graded and any(r["verdict"] == "ungraded" for r in rows))
 
@@ -306,26 +364,44 @@ def show_question(request: Request, attempt_id: str, n: int, store: Store = Depe
         counts = session.part_counts_for_ids(cat, attempt["question_ids"])
         weight = scoring.question_weight(counts[catalogue.part_of(q["section"])])
 
-    correct_letter = (next((o["letter"] for o in q["options"] if o["is_correct"]), None)
-                      if q["kind"] == "mcq" else None)
+    correct_letter = (
+        next((o["letter"] for o in q["options"] if o["is_correct"]), None) if q["kind"] == "mcq" else None
+    )
 
     ui = ui_lang(attempt["lang"])
-    return templates.TemplateResponse(request=request, name="question.html", context={
-        "ui": ui, "attempt": attempt, "n": n, "total": total, "q": view,
-        "response": resp, "grades": rows, "grades_by_item": {r["item_no"]: r for r in rows},
-        "graded": graded, "read_only": read_only,
-        "show_self_grade": show_self_grade, "weight": weight, "correct_letter": correct_letter,
-        "grid": session.grid_status(cat, attempt["question_ids"], responses, grades),
-        "annotation": annotations_module.load().get(qid, {}),
-        "submitted": bool(attempt["submitted_at"]),
-        "saved": request.query_params.get("saved") == "1",
-    })
+    return templates.TemplateResponse(
+        request=request,
+        name="question.html",
+        context={
+            "ui": ui,
+            "attempt": attempt,
+            "n": n,
+            "total": total,
+            "q": view,
+            "response": resp,
+            "grades": rows,
+            "grades_by_item": {r["item_no"]: r for r in rows},
+            "graded": graded,
+            "read_only": read_only,
+            "show_self_grade": show_self_grade,
+            "weight": weight,
+            "correct_letter": correct_letter,
+            "grid": session.grid_status(cat, attempt["question_ids"], responses, grades),
+            "annotation": annotations_module.load().get(qid, {}),
+            "submitted": bool(attempt["submitted_at"]),
+            "saved": request.query_params.get("saved") == "1",
+        },
+    )
 
 
 @app.post("/attempts/{attempt_id}/q/{n}/answer")
-async def submit_answer(request: Request, attempt_id: str, n: int,
-                        store: Store = Depends(get_store),
-                        llm_grader: LLMGrader | None = Depends(get_llm_grader)):
+async def submit_answer(
+    request: Request,
+    attempt_id: str,
+    n: int,
+    store: Store = Depends(get_store),
+    llm_grader: LLMGrader | None = Depends(get_llm_grader),
+):
     attempt = _load_attempt_or_404(store, attempt_id)
     total = len(attempt["question_ids"])
     if not 1 <= n <= total:
@@ -342,8 +418,9 @@ async def submit_answer(request: Request, attempt_id: str, n: int,
     if q["kind"] == "mcq":
         answer = form.get("answer") or None
     else:
-        answer = {str(item["item_no"]): form_str(form, f"item_{item['item_no']}").strip()
-                 for item in q["answer"]}
+        answer = {
+            str(item["item_no"]): form_str(form, f"item_{item['item_no']}").strip() for item in q["answer"]
+        }
     flagged = form.get("flag") == "on"
 
     if attempt["mode"] == "study":
@@ -365,8 +442,7 @@ async def submit_answer(request: Request, attempt_id: str, n: int,
 
 
 @app.post("/attempts/{attempt_id}/q/{n}/flag")
-async def toggle_flag(request: Request, attempt_id: str, n: int,
-                      store: Store = Depends(get_store)):
+async def toggle_flag(request: Request, attempt_id: str, n: int, store: Store = Depends(get_store)):
     attempt = _load_attempt_or_404(store, attempt_id)
     if not 1 <= n <= len(attempt["question_ids"]):
         raise not_found("no such question in this attempt")
@@ -377,8 +453,7 @@ async def toggle_flag(request: Request, attempt_id: str, n: int,
 
 
 @app.post("/attempts/{attempt_id}/questions/{qid}/self-grade")
-async def self_grade(request: Request, attempt_id: str, qid: int,
-                     store: Store = Depends(get_store)):
+async def self_grade(request: Request, attempt_id: str, qid: int, store: Store = Depends(get_store)):
     attempt = _load_attempt_or_404(store, attempt_id)
     if qid not in attempt["question_ids"]:
         raise not_found("no such question in this attempt")
@@ -395,8 +470,9 @@ async def self_grade(request: Request, attempt_id: str, qid: int,
 
 
 @app.post("/attempts/{attempt_id}/submit")
-async def submit_exam(attempt_id: str, store: Store = Depends(get_store),
-                      llm_grader: LLMGrader | None = Depends(get_llm_grader)):
+async def submit_exam(
+    attempt_id: str, store: Store = Depends(get_store), llm_grader: LLMGrader | None = Depends(get_llm_grader)
+):
     attempt = _load_attempt_or_404(store, attempt_id)
     if attempt["mode"] != "exam":
         raise HTTPException(400, "only exam attempts are submitted")
@@ -406,6 +482,7 @@ async def submit_exam(attempt_id: str, store: Store = Depends(get_store),
 
 
 # -- results and review (specs/TRAINER.md §9) ------------------------------------
+
 
 @app.get("/attempts/{attempt_id}/results")
 def results(request: Request, attempt_id: str, store: Store = Depends(get_store)):
@@ -419,22 +496,35 @@ def results(request: Request, attempt_id: str, store: Store = Depends(get_store)
     for qid in attempt["question_ids"]:
         q = cat.get(qid)
         option_order = attempt["spec"].get("option_order", {}).get(str(qid))
-        correct_letter = (next((o["letter"] for o in q["options"] if o["is_correct"]), None)
-                          if q["kind"] == "mcq" else None)
+        correct_letter = (
+            next((o["letter"] for o in q["options"] if o["is_correct"]), None) if q["kind"] == "mcq" else None
+        )
         rows_for_q = grades.get(qid, [])
         resp = responses.get(qid)
-        weight = (scoring.question_weight(counts[catalogue.part_of(q["section"])])
-                 if attempt["mode"] == "exam" else 1.0)
-        pending_self = (not rows_for_q and q["kind"] == "open"
-                       and attempt["mode"] == "study" and resp is not None and resp.get("answer"))
-        rows.append({
-            "q": session.localize_question(q, attempt["lang"], option_order),
-            "response": resp, "grades": rows_for_q,
-            "grades_by_item": {r["item_no"]: r for r in rows_for_q},
-            "correct_letter": correct_letter, "annotation": ann.get(qid, {}),
-            "weight": weight,
-            "show_self_grade": pending_self or any(r["verdict"] == "ungraded" for r in rows_for_q),
-        })
+        weight = (
+            scoring.question_weight(counts[catalogue.part_of(q["section"])])
+            if attempt["mode"] == "exam"
+            else 1.0
+        )
+        pending_self = (
+            not rows_for_q
+            and q["kind"] == "open"
+            and attempt["mode"] == "study"
+            and resp is not None
+            and resp.get("answer")
+        )
+        rows.append(
+            {
+                "q": session.localize_question(q, attempt["lang"], option_order),
+                "response": resp,
+                "grades": rows_for_q,
+                "grades_by_item": {r["item_no"]: r for r in rows_for_q},
+                "correct_letter": correct_letter,
+                "annotation": ann.get(qid, {}),
+                "weight": weight,
+                "show_self_grade": pending_self or any(r["verdict"] == "ungraded" for r in rows_for_q),
+            }
+        )
 
     extra = {}
     if attempt["mode"] == "exam":
@@ -442,9 +532,16 @@ def results(request: Request, attempt_id: str, store: Store = Depends(get_store)
     else:
         extra["recap"] = session.recap_study(store, cat, attempt)
 
-    return templates.TemplateResponse(request=request, name="results.html", context={
-        "ui": ui_lang(attempt["lang"]), "attempt": attempt, "rows": rows, **extra,
-    })
+    return templates.TemplateResponse(
+        request=request,
+        name="results.html",
+        context={
+            "ui": ui_lang(attempt["lang"]),
+            "attempt": attempt,
+            "rows": rows,
+            **extra,
+        },
+    )
 
 
 @app.post("/attempts/{attempt_id}/retry-wrong")
@@ -455,10 +552,13 @@ def retry_wrong(attempt_id: str, store: Store = Depends(get_store)):
         return RedirectResponse(f"/attempts/{attempt_id}/results", status_code=303)
     option_order = session.build_option_order(cat, ids, True)
     new_id = store.create_attempt(
-        catalogue="ra-2024", tag=attempt["tag"], mode="study", lang=attempt["lang"],
-        spec={"section": None, "shuffle_options": True, "option_order": option_order,
-              "retry_of": attempt_id},
-        question_ids=ids)
+        catalogue="ra-2024",
+        tag=attempt["tag"],
+        mode="study",
+        lang=attempt["lang"],
+        spec={"section": None, "shuffle_options": True, "option_order": option_order, "retry_of": attempt_id},
+        question_ids=ids,
+    )
     return RedirectResponse(f"/attempts/{new_id}/q/1", status_code=303)
 
 
@@ -471,13 +571,19 @@ def delete_attempt(attempt_id: str, lang: str = Form("fr"), store: Store = Depen
 
 # -- appendix (specs/TRAINER.md §4.2) --------------------------------------------
 
+
 @app.get("/appendix")
 def appendix(request: Request, lang: str = "fr"):
     index = json.loads((ROOT / "data" / "appendix" / "index.json").read_text())
-    return templates.TemplateResponse(request=request, name="appendix.html", context={
-        "ui": ui_lang(lang), "title": index["title_de"] if lang == "de" else index["title_fr"],
-        "pages": index["pages"],
-    })
+    return templates.TemplateResponse(
+        request=request,
+        name="appendix.html",
+        context={
+            "ui": ui_lang(lang),
+            "title": index["title_de"] if lang == "de" else index["title_fr"],
+            "pages": index["pages"],
+        },
+    )
 
 
 # -- the course (specs/LEARN.md §5, §6.1, §7, §10) -----------------------------
@@ -551,10 +657,12 @@ def _render_learn(request: Request, store: Store, name: str, context: dict) -> R
     shown (§9). Only rendered pages take them, never redirects, so a toast
     lands on the page the answer or "Next" redirected to."""
     course = request.app.state.course
-    labels = (badge_label(course, ref, context["ui"])
-              for ref in store.take_unseen_badges(context["learner"]["id"]))
-    return templates.TemplateResponse(request=request, name=name, context={
-        **context, "toasts": [label for label in labels if label]})
+    labels = (
+        badge_label(course, ref, context["ui"]) for ref in store.take_unseen_badges(context["learner"]["id"])
+    )
+    return templates.TemplateResponse(
+        request=request, name=name, context={**context, "toasts": [label for label in labels if label]}
+    )
 
 
 def _step_title(step: course_module.Step, lang: str) -> str:
@@ -564,39 +672,61 @@ def _step_title(step: course_module.Step, lang: str) -> str:
 
 
 @app.get("/learn")
-def learn_home(request: Request, store: Store = Depends(get_store),
-               course: course_module.Course = Depends(get_course)):
+def learn_home(
+    request: Request, store: Store = Depends(get_store), course: course_module.Course = Depends(get_course)
+):
     ui = course_ui(request)
     learner = current_learner(request, store)
     if learner is None:
-        response = templates.TemplateResponse(request=request, name="learn_who.html", context={
-            "ui": ui, "accounts": store.accounts()})
+        response = templates.TemplateResponse(
+            request=request, name="learn_who.html", context={"ui": ui, "accounts": store.accounts()}
+        )
         if request.cookies.get(LEARNER_COOKIE):
             response.delete_cookie(LEARNER_COOKIE)
         return response
     completed = store.completed_steps(learner["id"])
     earned = store.awards(learner["id"])
     badges_earned = {a["ref"] for a in earned if a["kind"] == "badge"}
-    shelf = [{"label": label, "earned": ref in badges_earned}
-             for ref in awards.badges(course) if (label := badge_label(course, ref, ui))]
+    shelf = [
+        {"label": label, "earned": ref in badges_earned}
+        for ref in awards.badges(course)
+        if (label := badge_label(course, ref, ui))
+    ]
     practice = [s for s in course.steps if s.kind == "practice"]
-    modules = [{"module": m, "title": m.title.get(ui, m.title["fr"]),
-                "state": course.module_state(m, completed),
-                "done": sum(1 for s in m.steps if s.id in completed), "total": len(m.steps)}
-               for m in course.modules]
-    return _render_learn(request, store, "learn_home.html", {
-        "ui": ui, "learner": learner, "modules": modules, "next_up": course.next_up(completed),
-        "xp": sum(a["amount"] or 0 for a in earned if a["kind"] == "xp"), "shelf": shelf,
-        "questions_remaining": sum(1 for s in practice if s.id not in completed),
-        "questions_total": len(practice)})
+    modules = [
+        {
+            "module": m,
+            "title": m.title.get(ui, m.title["fr"]),
+            "state": course.module_state(m, completed),
+            "done": sum(1 for s in m.steps if s.id in completed),
+            "total": len(m.steps),
+        }
+        for m in course.modules
+    ]
+    return _render_learn(
+        request,
+        store,
+        "learn_home.html",
+        {
+            "ui": ui,
+            "learner": learner,
+            "modules": modules,
+            "next_up": course.next_up(completed),
+            "xp": sum(a["amount"] or 0 for a in earned if a["kind"] == "xp"),
+            "shelf": shelf,
+            "questions_remaining": sum(1 for s in practice if s.id not in completed),
+            "questions_total": len(practice),
+        },
+    )
 
 
 @app.post("/learn/who")
 def learn_pick(account_id: str = Form(""), store: Store = Depends(get_store)):
     response = _to_dashboard()
     if store.get_account(account_id) is not None:
-        response.set_cookie(LEARNER_COOKIE, account_id, max_age=60 * 60 * 24 * 365,
-                            httponly=True, samesite="lax")
+        response.set_cookie(
+            LEARNER_COOKIE, account_id, max_age=60 * 60 * 24 * 365, httponly=True, samesite="lax"
+        )
     return response
 
 
@@ -608,8 +738,12 @@ def learn_clear():
 
 
 @app.get(COURSE_PREFIX + "/{module_slug}")
-def learn_module(request: Request, module_slug: str, store: Store = Depends(get_store),
-                 course: course_module.Course = Depends(get_course)):
+def learn_module(
+    request: Request,
+    module_slug: str,
+    store: Store = Depends(get_store),
+    course: course_module.Course = Depends(get_course),
+):
     learner = current_learner(request, store)
     if learner is None:
         return _to_dashboard()
@@ -618,17 +752,38 @@ def learn_module(request: Request, module_slug: str, store: Store = Depends(get_
     if module is None or course.module_state(module, completed) == "locked":
         return _to_next_up(course, completed)
     ui = course_ui(request, module)
-    steps = [{"step": s, "title": _step_title(s, ui), "done": s.id in completed,
-              "reachable": course.reachable(s, completed)} for s in module.steps]
-    return _render_learn(request, store, "learn_module.html", {
-        "ui": ui, "learner": learner, "module": module,
-        "title": module.title.get(ui, module.title["fr"]), "steps": steps})
+    steps = [
+        {
+            "step": s,
+            "title": _step_title(s, ui),
+            "done": s.id in completed,
+            "reachable": course.reachable(s, completed),
+        }
+        for s in module.steps
+    ]
+    return _render_learn(
+        request,
+        store,
+        "learn_module.html",
+        {
+            "ui": ui,
+            "learner": learner,
+            "module": module,
+            "title": module.title.get(ui, module.title["fr"]),
+            "steps": steps,
+        },
+    )
 
 
 @app.get(COURSE_PREFIX + "/{module_slug}/{step_slug}")
-def learn_step(request: Request, module_slug: str, step_slug: str, picked: str = "",
-               store: Store = Depends(get_store),
-               course: course_module.Course = Depends(get_course)):
+def learn_step(
+    request: Request,
+    module_slug: str,
+    step_slug: str,
+    picked: str = "",
+    store: Store = Depends(get_store),
+    course: course_module.Course = Depends(get_course),
+):
     learner = current_learner(request, store)
     if learner is None:
         return _to_dashboard()
@@ -640,15 +795,21 @@ def learn_step(request: Request, module_slug: str, step_slug: str, picked: str =
     assert module is not None
     ui = course_ui(request, module)
     context = {
-        "ui": ui, "learner": learner, "step": step, "module": module,
+        "ui": ui,
+        "learner": learner,
+        "step": step,
+        "module": module,
         "module_title": module.title.get(ui, module.title["fr"]),
-        "position": module.steps.index(step) + 1, "module_total": len(module.steps),
-        "previous": course.preceding(step), "following": course.following(step),
+        "position": module.steps.index(step) + 1,
+        "module_total": len(module.steps),
+        "previous": course.preceding(step),
+        "following": course.following(step),
     }
     if step.kind != "practice":
         page = course_module.page(step, ui)
-        return _render_learn(request, store, "learn_page.html", {
-            **context, "page": page, "title": page.title})
+        return _render_learn(
+            request, store, "learn_page.html", {**context, "page": page, "title": page.title}
+        )
 
     q = _question(step)
     correct_letter = next(o["letter"] for o in q["options"] if o["is_correct"])
@@ -667,22 +828,40 @@ def learn_step(request: Request, module_slug: str, step_slug: str, picked: str =
         wrong_letters = result["wrong_letters"] if result else ""
         marks = {letter: "wrong" for letter in wrong_letters}
         picked, solved, wrong = "", False, bool(wrong_letters)
-    return _render_learn(request, store, "learn_practice.html", {
-        **context, "title": t(ui, "question_n", id=step.question_id),
-        "q": session.localize_question(q, ui, None), "marks": marks, "picked": picked,
-        "solved": solved, "wrong": wrong, "done": done,
-        "note": course_module.answer_note(step, ui) if solved else None,
-        # A review lesson may sit in an earlier module, which need not offer
-        # the same language as this one (§4.3): each title in its own.
-        "review": [(s, course_module.page(s, course_ui(request, course.module(s.module))).title)
-                   for s in course.review_lessons(step)] if wrong else [],
-    })
+    return _render_learn(
+        request,
+        store,
+        "learn_practice.html",
+        {
+            **context,
+            "title": t(ui, "question_n", id=step.question_id),
+            "q": session.localize_question(q, ui, None),
+            "marks": marks,
+            "picked": picked,
+            "solved": solved,
+            "wrong": wrong,
+            "done": done,
+            "note": course_module.answer_note(step, ui) if solved else None,
+            # A review lesson may sit in an earlier module, which need not offer
+            # the same language as this one (§4.3): each title in its own.
+            "review": [
+                (s, course_module.page(s, course_ui(request, course.module(s.module))).title)
+                for s in course.review_lessons(step)
+            ]
+            if wrong
+            else [],
+        },
+    )
 
 
 @app.post(COURSE_PREFIX + "/{module_slug}/{step_slug}/next")
-def learn_next(request: Request, module_slug: str, step_slug: str,
-               store: Store = Depends(get_store),
-               course: course_module.Course = Depends(get_course)):
+def learn_next(
+    request: Request,
+    module_slug: str,
+    step_slug: str,
+    store: Store = Depends(get_store),
+    course: course_module.Course = Depends(get_course),
+):
     """Completes a lesson or learn-more step (§5.1) and moves on. A practice
     step is completed by its answer instead; its "Next" is a plain link."""
     learner = current_learner(request, store)
@@ -691,8 +870,9 @@ def learn_next(request: Request, module_slug: str, step_slug: str,
     step = course.step(module_slug, step_slug)
     if step is None or step.kind == "practice":
         return _to_next_up(course, store.completed_steps(learner["id"]))
-    result = store.complete_step(learner["id"], step.id, lambda done: course.reachable(step, done),
-                                 _awards(course, step))
+    result = store.complete_step(
+        learner["id"], step.id, lambda done: course.reachable(step, done), _awards(course, step)
+    )
     if result is None:
         return _to_dashboard()
     if result is False:
@@ -701,9 +881,14 @@ def learn_next(request: Request, module_slug: str, step_slug: str,
 
 
 @app.post(COURSE_PREFIX + "/{module_slug}/{step_slug}/answer")
-def learn_answer(request: Request, module_slug: str, step_slug: str, answer: str = Form(""),
-                 store: Store = Depends(get_store),
-                 course: course_module.Course = Depends(get_course)):
+def learn_answer(
+    request: Request,
+    module_slug: str,
+    step_slug: str,
+    answer: str = Form(""),
+    store: Store = Depends(get_store),
+    course: course_module.Course = Depends(get_course),
+):
     """Grades a practice answer by exact match and redirects back to the step
     (post/redirect/get, §5.1). On the first pass the answer is recorded and a
     right one completes the step; a revisit's answer changes nothing stored
@@ -718,10 +903,17 @@ def learn_answer(request: Request, module_slug: str, step_slug: str, answer: str
     q = _question(step)
     here = step_url(step)
     if answer not in {o["letter"] for o in q["options"]}:
-        return RedirectResponse(here, status_code=303)   # nothing picked (or a forged value)
+        return RedirectResponse(here, status_code=303)  # nothing picked (or a forged value)
     correct = next(o["letter"] for o in q["options"] if o["is_correct"])
-    result = store.answer_practice(learner["id"], step.id, q["id"], answer, answer == correct,
-                                   lambda done: course.reachable(step, done), _awards(course, step))
+    result = store.answer_practice(
+        learner["id"],
+        step.id,
+        q["id"],
+        answer,
+        answer == correct,
+        lambda done: course.reachable(step, done),
+        _awards(course, step),
+    )
     if result is None:
         return _to_dashboard()
     if result == "locked":
@@ -741,8 +933,9 @@ NOINDEX = {"X-Robots-Tag": "noindex, nofollow"}
 
 
 def _admin_page(request: Request, name: str, context: dict) -> Response:
-    response = templates.TemplateResponse(request=request, name=name,
-                                          context={"ui": course_ui(request), **context})
+    response = templates.TemplateResponse(
+        request=request, name=name, context={"ui": course_ui(request), **context}
+    )
     response.headers.update(NOINDEX)
     return response
 
@@ -751,10 +944,10 @@ def _admin_redirect(url: str) -> Response:
     return RedirectResponse(url, status_code=303, headers=NOINDEX)
 
 
-def _learners_page(request: Request, store: Store, error: str | None = None,
-                   name: str = "") -> Response:
-    return _admin_page(request, "admin_learners.html", {
-        "accounts": store.accounts(), "error": error, "name": name})
+def _learners_page(request: Request, store: Store, error: str | None = None, name: str = "") -> Response:
+    return _admin_page(
+        request, "admin_learners.html", {"accounts": store.accounts(), "error": error, "name": name}
+    )
 
 
 @admin_router.get("/learners")
@@ -763,8 +956,7 @@ def admin_learners(request: Request, store: Store = Depends(get_store)):
 
 
 @admin_router.post("/learners")
-def admin_add_learner(request: Request, display_name: str = Form(""),
-                      store: Store = Depends(get_store)):
+def admin_add_learner(request: Request, display_name: str = Form(""), store: Store = Depends(get_store)):
     ui = course_ui(request)
     try:
         store.create_account(display_name)
@@ -781,8 +973,9 @@ def admin_confirm_delete(request: Request, account_id: str, store: Store = Depen
     account = store.get_account(account_id)
     if account is None:
         return _admin_redirect("/admin/learners")
-    return _admin_page(request, "admin_delete.html", {
-        "account": account, "summary": store.account_summary(account_id)})
+    return _admin_page(
+        request, "admin_delete.html", {"account": account, "summary": store.account_summary(account_id)}
+    )
 
 
 @admin_router.post("/learners/{account_id}/delete")

@@ -6,6 +6,7 @@ is also what development and tests run against by default, so UI work and
 test runs never spend tokens (§7.3): the caller falls back to showing the
 reference answer and collecting a self-verdict via `SelfGrader.self_result`.
 """
+
 from __future__ import annotations
 
 import json
@@ -26,7 +27,7 @@ class GradeResult:
     elements: list[dict]
     incorrect: list[str]
     comment: str
-    source: str          # 'llm' | 'self'
+    source: str  # 'llm' | 'self'
     model: str | None
 
 
@@ -51,8 +52,7 @@ class LLMGrader:
     of paying a fresh TCP+TLS handshake per sub-item.
     """
 
-    def __init__(self, base_url: str, api_key: str, model: str, timeout: float,
-                 client: httpx.AsyncClient):
+    def __init__(self, base_url: str, api_key: str, model: str, timeout: float, client: httpx.AsyncClient):
         self.base_url = base_url.rstrip("/")
         self.api_key = api_key
         self.model = model
@@ -63,8 +63,9 @@ class LLMGrader:
         # spend avoided; process-lifetime is enough for a single-user app.
         self._cache: dict[tuple[int, str, str], GradeResult] = {}
 
-    async def grade(self, *, question_id: int, lang: str, question: str,
-                    reference: str, candidate: str) -> GradeResult:
+    async def grade(
+        self, *, question_id: int, lang: str, question: str, reference: str, candidate: str
+    ) -> GradeResult:
         key = (question_id, self.model, _normalise(candidate))
         if key in self._cache:
             return self._cache[key]
@@ -72,13 +73,21 @@ class LLMGrader:
         # executed (specs/TRAINER.md §7.2); `request_body` wraps it in <candidate>.
         body = request_body(self.model, lang, question, reference, candidate)
         resp = await self.client.post(
-            f"{self.base_url}/chat/completions", json=body,
-            headers={"Authorization": f"Bearer {self.api_key}"}, timeout=self.timeout)
+            f"{self.base_url}/chat/completions",
+            json=body,
+            headers={"Authorization": f"Bearer {self.api_key}"},
+            timeout=self.timeout,
+        )
         resp.raise_for_status()
         content = resp.json()["choices"][0]["message"]["content"]
         parsed = json.loads(content)
-        result = GradeResult(elements=parsed["elements"], incorrect=parsed["incorrect"],
-                              comment=parsed["comment"], source="llm", model=self.model)
+        result = GradeResult(
+            elements=parsed["elements"],
+            incorrect=parsed["incorrect"],
+            comment=parsed["comment"],
+            source="llm",
+            model=self.model,
+        )
         self._cache[key] = result
         return result
 
@@ -94,7 +103,11 @@ class SelfGrader:
     def self_result(correct: bool) -> GradeResult:
         return GradeResult(
             elements=[{"element": "self-assessed", "present": correct, "note": ""}],
-            incorrect=[], comment="", source="self", model=None)
+            incorrect=[],
+            comment="",
+            source="self",
+            model=None,
+        )
 
 
 def from_env(client: httpx.AsyncClient) -> LLMGrader | None:

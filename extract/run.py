@@ -7,6 +7,7 @@ normalisation beyond joining soft-wrapped lines. Run with:
 
     uv run --with pymupdf python extract/run.py
 """
+
 from __future__ import annotations
 
 import json
@@ -63,8 +64,7 @@ def record(q, assets_by_q):
         "tags": tags_of(q.raw_tag),
         "text": by_lang(q.stem),
         "options": [
-            {"letter": o.letter, "is_correct": o.is_correct, "text": by_lang(o.lines)}
-            for o in q.options
+            {"letter": o.letter, "is_correct": o.is_correct, "text": by_lang(o.lines)} for o in q.options
         ],
         "answer": q.answer,
         "assets": assets_by_q.get(q.id, []),
@@ -81,9 +81,7 @@ def main():
 
     by_q = {}
     for a in assets:
-        by_q.setdefault(a["question_id"], []).append(
-            {k: v for k, v in a.items() if k != "question_id"}
-        )
+        by_q.setdefault(a["question_id"], []).append({k: v for k, v in a.items() if k != "question_id"})
 
     DATA.mkdir(exist_ok=True)
     out = DATA / "questions.jsonl"

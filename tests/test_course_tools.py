@@ -1,4 +1,5 @@
 """The course authoring tools (scripts/course_tools.py)."""
+
 from app import course
 from scripts import course_tools as tools
 
@@ -7,8 +8,9 @@ NB = " "
 
 def test_typeset_punctuation_guillemets_and_digit_groups():
     text = "Quelle tension ? « un volt » : 1 000 000 W ; ok !\n"
-    assert tools.typeset(text) == (f"Quelle tension{NB}? «{NB}un volt{NB}»{NB}: "
-                                   f"1{NB}000{NB}000 W{NB}; ok{NB}!\n")
+    assert tools.typeset(text) == (
+        f"Quelle tension{NB}? «{NB}un volt{NB}»{NB}: 1{NB}000{NB}000 W{NB}; ok{NB}!\n"
+    )
 
 
 def test_typeset_leaves_frontmatter_alone():
@@ -17,8 +19,10 @@ def test_typeset_leaves_frontmatter_alone():
 
 
 def test_typeset_never_touches_svg_markup_and_repairs_it():
-    svg = ('<svg viewBox="0 0 320 130" width="320" aria-label="large : ok">'
-           f'<ellipse transform="rotate(60{NB}110 90)"/><text>1 000 ?</text></svg>')
+    svg = (
+        '<svg viewBox="0 0 320 130" width="320" aria-label="large : ok">'
+        f'<ellipse transform="rotate(60{NB}110 90)"/><text>1 000 ?</text></svg>'
+    )
     out = tools.typeset(f"<figure>\n{svg}\n<figcaption>Un atome : ici</figcaption>\n</figure>\n")
     assert 'viewBox="0 0 320 130"' in out and "rotate(60 110 90)" in out
     assert "<text>1 000 ?</text>" in out and 'aria-label="large : ok"' in out
