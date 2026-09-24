@@ -22,15 +22,15 @@ dans les fils, comme une scie qu'on pousse et qu'on tire. C'est le
 **courant alternatif**, écrit **AC** (*alternating current*).
 
 <figure>
-<svg viewBox="0 0 340 170" width="340" role="img" aria-label="Deux graphiques du courant en fonction du temps. En haut, le courant continu est une ligne droite, toujours du même côté. En bas, le courant alternatif est une vague qui passe d'un côté à l'autre de la ligne zéro.">
+<svg viewBox="0 0 340 210" width="340" role="img" aria-label="Deux graphiques du courant en fonction du temps, le temps à l'horizontale et le courant à la verticale. En haut, le courant continu est une ligne droite, toujours du même côté de la ligne zéro. En bas, le courant alternatif est une vague qui passe d'un côté à l'autre de la ligne zéro.">
 <g font-size="13" font-weight="bold" fill="#1c1f26">
-<text x="10" y="18">Continu (DC)</text><text x="10" y="98">Alternatif (AC)</text>
+<text x="10" y="18">Continu (DC)</text><text x="10" y="123">Alternatif (AC)</text>
 </g>
-<g stroke="#9aa3b5" stroke-width="1.5"><path d="M110 55 H330"/><path d="M110 135 H330"/></g>
-<g font-size="11" fill="#6b7280"><text x="100" y="59" text-anchor="end">0</text><text x="100" y="139" text-anchor="end">0</text><text x="330" y="70" text-anchor="end">temps</text></g>
-<path d="M110 30 H330" stroke="#2f5fd6" stroke-width="2"/>
-<path d="M110 135 Q137 95 165 135 Q192 175 220 135 Q247 95 275 135 Q302 175 330 135" fill="none" stroke="#c0362c" stroke-width="2"/>
-<g font-size="11" fill="#6b7280"><text x="137" y="94" text-anchor="middle">un sens</text><text x="192" y="168" text-anchor="middle">l'autre sens</text></g>
+<g stroke="#1c1f26" stroke-width="1.5" fill="none"><path d="M110 82 V24"/><path d="M106 30 L110 24 L114 30"/><path d="M110 70 H328"/><path d="M322 66 L328 70 L322 74"/><path d="M110 200 V129"/><path d="M106 135 L110 129 L114 135"/><path d="M110 165 H328"/><path d="M322 161 L328 165 L322 169"/></g>
+<g font-size="11" fill="#6b7280"><text x="102" y="74" text-anchor="end">0</text><text x="102" y="169" text-anchor="end">0</text><text x="117" y="30">courant</text><text x="117" y="135">courant</text><text x="328" y="62" text-anchor="end">temps</text><text x="328" y="157" text-anchor="end">temps</text></g>
+<path d="M110 45 H316" stroke="#2f5fd6" stroke-width="2"/>
+<path d="M110 165 Q137 125 165 165 Q192 205 220 165 Q247 125 275 165 Q302 205 316 180" fill="none" stroke="#c0362c" stroke-width="2"/>
+<g font-size="11" fill="#6b7280" text-anchor="middle"><text x="247" y="138">un sens</text><text x="192" y="202">l'autre sens</text></g>
 </svg>
 <figcaption>Le courant continu garde son sens ; le courant alternatif change de sens sans arrêt.</figcaption>
 </figure>

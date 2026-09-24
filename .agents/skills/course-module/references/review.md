@@ -31,7 +31,8 @@ Report findings; don't rewrite the module yourself.
 8. **Links**: each one opens and matches its comment (spot-check at least
    the videos and anything surprising); videos carry a language note.
 9. **Diagrams**: each supports the text and is drawn correctly (look at
-   the preview, checks.md §3, when you have the browser to yourself).
+   the preview, checks.md §3, when you have the browser to yourself); a
+   graph names both of its axes (diagrams.md).
 10. **Mechanics**: `uv run python -m app.course` and
     `uv run python -m scripts.course_tools check <module>` are clean.
 

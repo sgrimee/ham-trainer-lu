@@ -16,15 +16,16 @@ Chaque répétition complète s'appelle un **cycle** : pour la balançoire, un
 aller **et** un retour.
 
 <figure>
-<svg viewBox="0 0 340 115" width="340" role="img" aria-label="Une ligne du temps d'une seconde, avec trois cycles complets, chacun une bosse vers le haut puis un creux vers le bas : la fréquence est de 3 hertz">
-<path d="M20 55 H320" stroke="#9aa3b5" stroke-width="1.5"/>
+<svg viewBox="0 -14 340 130" width="340" role="img" aria-label="Graphique d'une vibration, le temps à l'horizontale et la position à la verticale. Sur une seconde, trois cycles complets, chacun une bosse vers le haut puis un creux vers le bas : la fréquence est de 3 hertz.">
+<g stroke="#1c1f26" stroke-width="1.5" fill="none"><path d="M20 95 V-8"/><path d="M16 -2 L20 -8 L24 -2"/><path d="M20 55 H330"/><path d="M324 51 L330 55 L324 59"/></g>
 <path d="M120 20 V90 M220 20 V90" stroke="#9aa3b5" stroke-width="1" stroke-dasharray="3 3"/>
-<path d="M20 50 V60 M320 50 V60" stroke="#1c1f26" stroke-width="2"/>
+<path d="M320 50 V60" stroke="#1c1f26" stroke-width="2"/>
 <path d="M20 55 Q45 5 70 55 Q95 105 120 55 Q145 5 170 55 Q195 105 220 55 Q245 5 270 55 Q295 105 320 55" fill="none" stroke="#2f5fd6" stroke-width="2"/>
 <g font-size="12" fill="#6b7280" text-anchor="middle">
 <text x="70" y="14">cycle 1</text><text x="170" y="14">cycle 2</text><text x="270" y="14">cycle 3</text>
 <text x="20" y="108">0 s</text><text x="320" y="108">1 s</text>
 </g>
+<g font-size="11" fill="#6b7280"><text x="27" y="-3">position</text><text x="330" y="46" text-anchor="end">temps</text></g>
 <text x="170" y="108" font-size="14" font-weight="bold" text-anchor="middle" fill="#c0362c">3 cycles en 1 s = 3 Hz</text>
 </svg>
 <figcaption>Trois cycles complets en une seconde : la fréquence est de 3 hertz.</figcaption>

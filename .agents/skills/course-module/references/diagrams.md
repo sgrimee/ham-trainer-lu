@@ -52,6 +52,20 @@ unit definition. About one per lesson is the ceiling, not the target.
 Stroke width 2 for outlines and wires, 1.5 for thin details. Arrows are two
 paths: the shaft and a small `L`-shaped head (see `courant.fr.md`).
 
+## Graphs name their axes
+
+A graph (a quantity plotted against time or distance: a wave, a current
+over time) always names **both** axes, on the drawing. Draw each axis as a
+`#1c1f26` line of stroke width 1.5 ending in an arrowhead, and put a short
+horizontal label at the arrow tip: `font-size="11"` `fill="#6b7280"`
+(`hauteur`, `courant`, `distance`, `temps`). No rotated text: beginners
+read it badly. The words must match the lesson: a wave frozen at one
+instant is plotted against **distance**, a vibration or a current against
+**temps**. Say the axes in the `aria-label` too. If a panel gets crowded,
+re-lay it out or grow the viewBox (a negative min-y is fine) rather than
+dropping a label; the figcaption is the fallback only. Examples:
+`ondes/frequence.fr.md`, `ondes/courant-alternatif.fr.md`.
+
 ## Examples to copy from (module A)
 
 - `piles.fr.md` — two side-by-side circuits with labels and a coloured result
