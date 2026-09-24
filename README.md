@@ -66,12 +66,13 @@ mise run install-hooks            # run the lint gate as a git pre-commit hook
 mise run add-learner "<name>"     # add a course learner (python -m app.learners add|delete|list)
 mise run docker-build             # build the container image
 mise run serve-docker             # build and run it (compose.yaml) at http://127.0.0.1:8000
+mise run docker-publish           # push amd64+arm64 to Docker Hub (sgrimee/examen-ilr)
 mise run eval-grader <model>...   # score grading models (needs LLM_API_KEY)
 mise tasks        # everything else
 ```
 
 The ILR's PDFs are not committed. Tasks that need them (`extract`, `appendix`,
-`verify`, `serve`, `docker-build`) first run `mise run download-refs`, which
+`verify`) first run `mise run download-refs`, which
 fetches whatever is missing from `reference/documents.yaml` and checks every
 file, new or already present, against the sha256 pinned there. With the files in
 place it is a no-op of a fraction of a second.

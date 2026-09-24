@@ -118,7 +118,6 @@ browser ──HTTP──► app (FastAPI, app/main.py)
                    ├── catalogue   read-only, loaded at boot       (§4)
                    ├── attempts    SQLite, read-write               (§5)
                    ├── /data       static: assets, appendix         (§4.2)
-                   ├── /reference  static: the reference PDFs       (§4.4)
                    └── grader ──OpenAI-compatible──► model          (§7)
 ```
 
@@ -219,7 +218,8 @@ The rules behind that shape:
 - **A reference names a document id, not a URL.** The registry carries the URL
   and filename, so when the ILR moves a PDF the fix is one line, not hundreds.
 - **Where to look is stored apart from the link.** The app derives the deep link:
-  `/reference/<filename>#page=N` for a registry document, served from disk. A
+  `<url>#page=N` for a registry document, pointing at the publisher's own copy
+  (the PDFs are never served by the app). A
   pre-built URL would bake link syntax into every row and lose the page number.
 - **`status` is the load-bearing field.** An agent matching 509 questions against
   hundreds of pages will get some wrong, and a confidently wrong *"see page 47"*
@@ -679,10 +679,11 @@ Makefile. `mise tasks` lists everything:
 | `test`, `lint` | pytest; ruff + ty |
 | `eval-grader` | §8.3 |
 | `docker-build`, `serve-docker` | build the image; run it with `compose.yaml` (§11.2) |
+| `docker-publish` | push the image, amd64 + arm64, to Docker Hub as `sgrimee/examen-ilr:latest` and `:<git sha>` |
 | `data`, `extract`, `appendix`, `verify`, `download-refs` | the pipeline, EXTRACTION.md §7 |
 
-`serve` and `docker-build` depend on `download-refs`, because the app serves the
-reference PDFs (§4.4).
+Only the pipeline tasks depend on `download-refs`; the app links to the
+registry documents at their publisher's URL (§4.4) and never reads the PDFs.
 
 **The dependency split matters for the container.** `pymupdf` sits in the
 `extract` dependency group, apart from the runtime dependencies. The pipeline and
@@ -691,13 +692,12 @@ that group and carries no PDF toolchain.
 
 ### 11.2 The container
 
-The `Dockerfile` builds the **application, `data/` and the reference PDFs,
-nothing else**.
+The `Dockerfile` builds the **application and `data/`, nothing else**.
 
 ```
 builder   python:3.13-slim + uv; uv sync --frozen --no-default-groups -> /app/.venv
 runtime   python:3.13-slim + the venv + app/ + data/
-          + reference/documents.yaml + reference/*.pdf
+          + reference/documents.yaml
           non-root user `examen`, EXPOSE 8000, HEALTHCHECK on /healthz
           ENV ATTEMPTS_DB=/var/lib/examen/attempts.db
           VOLUME /var/lib/examen
@@ -706,9 +706,9 @@ runtime   python:3.13-slim + the venv + app/ + data/
 - **`data/` is copied, not mounted.** It is committed, immutable and a few
   megabytes, so there is no volume, no init step, and no way for a running
   container to disagree with the catalogue it was built from.
-- **`reference/` PDFs are copied** because question references deep-link into
-  them at `/reference/<filename>` (§4.4). `extract/` is not; a container that
-  cannot re-extract is a feature.
+- **Only `reference/documents.yaml` is copied, not the PDFs.** Question
+  references deep-link to the publisher's URL it lists (§4.4). `extract/` is not
+  copied either; a container that cannot re-extract is a feature.
 - **The attempts database is the only mutable state, so it is the only volume.**
   The image sets `ATTEMPTS_DB` into that volume. The repo-relative default is for
   local development; a container left on it would write attempts into a layer and

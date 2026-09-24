@@ -10,3 +10,4 @@ tests
 .github
 .env
 .DS_Store
+reference/*.pdf

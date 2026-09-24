@@ -55,8 +55,8 @@
     {% for ref in annotation.references %}
       {% set doc = doc_files.get(ref.doc) if ref.doc else None %}
       <li>
-        {% if doc and doc.filename %}
-          <a href="/reference/{{ doc.filename }}{% if ref.page %}#page={{ ref.page }}{% endif %}" target="_blank" rel="noopener">
+        {% if doc and doc.url %}
+          <a href="{{ doc.url }}{% if ref.page %}#page={{ ref.page }}{% endif %}" target="_blank" rel="noopener">
             {{ doc.name or ref.doc }}{% if ref.page %} p.{{ ref.page }}{% endif %}{% if ref.locator %} — {{ ref.locator }}{% endif %}
           </a>
         {% elif ref.url %}

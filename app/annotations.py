@@ -73,7 +73,8 @@ def documents(path: pathlib.Path = REGISTRY) -> dict[str, dict[str, str]]:
     """Document metadata (name, filename, url) keyed by id, from reference/documents.yaml.
 
     Regex-based like `document_ids`, so the application can build a `doc` deep
-    link (`/reference/<filename>#page=N`) without a `pyyaml` runtime dependency.
+    link (`<url>#page=N`, straight to the publisher's copy) without a `pyyaml`
+    runtime dependency.
     """
     if not path.exists():
         return {}

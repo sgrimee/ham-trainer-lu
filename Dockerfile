@@ -1,8 +1,8 @@
-# The application, data/ and the reference PDFs, nothing else (specs/TRAINER.md
-# §11.2). extract/ and its PyMuPDF dependency never ship -- the image serves
-# data/, it doesn't rebuild it. reference/ ships because the question-to-guide
-# links (app/templates/_feedback.html) serve those PDFs straight from disk at
-# /reference/<filename>.
+# The application and data/, nothing else (specs/TRAINER.md §11.2). extract/
+# and its PyMuPDF dependency never ship -- the image serves data/, it doesn't
+# rebuild it. Only reference/documents.yaml ships: the question-to-guide links
+# (app/templates/_feedback.html) point at the publisher's URL it lists, so the
+# PDFs themselves are never needed at runtime.
 
 FROM python:3.13-slim AS builder
 
@@ -22,7 +22,6 @@ COPY --from=builder /app/.venv .venv
 COPY app/ app/
 COPY data/ data/
 COPY reference/documents.yaml reference/
-COPY reference/*.pdf reference/
 
 ENV PATH="/app/.venv/bin:${PATH}" \
     ATTEMPTS_DB=/var/lib/examen/attempts.db

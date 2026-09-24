@@ -1,6 +1,5 @@
 # Run the container image locally (specs/TRAINER.md §11.2). `mise run
-# serve-docker` wraps `docker compose up --build`, after downloading the
-# reference PDFs the image copies.
+# serve-docker` wraps `docker compose up --build`.
 
 services:
   app:

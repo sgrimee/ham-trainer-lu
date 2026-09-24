@@ -62,7 +62,6 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
 app = FastAPI(title="ILR exam trainer", lifespan=lifespan)
 app.mount("/data", StaticFiles(directory=ROOT / "data"), name="data")
 app.mount("/static", StaticFiles(directory=ROOT / "app" / "static"), name="static")
-app.mount("/reference", StaticFiles(directory=ROOT / "reference"), name="reference")
 templates = Jinja2Templates(directory=ROOT / "app" / "templates")
 templates.env.globals["t"] = t  # type: ignore
 templates.env.globals["doc_files"] = annotations_module.documents()  # type: ignore
