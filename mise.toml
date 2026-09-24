@@ -55,6 +55,11 @@ description = "Add a course learner account: mise run add-learner \"<name>\" (sp
 # `list` and `delete`, and is what to run inside the container.
 run = "uv run python -m app.learners add"
 
+[tasks.remove-learner]
+description = "Delete a course learner account and all its progress: mise run remove-learner \"<name>\""
+# The name is appended as the argument. There is no confirmation prompt.
+run = "uv run python -m app.learners delete"
+
 [tasks.docker-build]
 description = "Build the container image (compose.yaml); the reference PDFs it copies are downloaded first"
 depends = ["download-refs"]
