@@ -5,11 +5,13 @@ pure navigation helpers behind them. Runs against the real course:
 navigation depends only on its structure, never on the prose."""
 from __future__ import annotations
 
+import html
 import pathlib
 import re
 import shutil
 import sys
 import threading
+from urllib.parse import parse_qsl, urlsplit
 
 import pytest
 
@@ -240,6 +242,27 @@ def test_practice_page_renders_the_catalogue_question(client, store: Store, lear
     stem = cat.get(QID)["text"]["fr"]
     assert stem.split("\n")[0][:30] in page
     assert page.count('name="answer"') == 4 and "id=\"next-link\"" not in page
+
+
+def report_link(page: str) -> dict[str, str]:
+    """The footer's pre-filled GitHub issue, as its query parameters."""
+    href = html.unescape(re.search(r'href="(https://github\.com/[^"]+)"', page).group(1))
+    return dict(parse_qsl(urlsplit(href).query))
+
+
+def test_report_link_carries_the_course_context(client, store: Store, learner):
+    seed(store, learner, steps_before(Q2))
+    issue = report_link(client.get(url(Q2)).text)
+    assert issue["title"] == f"Problème sur {url(Q2)}"
+    for line in (f"Page : {url(Q2)}", "Mode : cours", f"Module : {Q2.module}",
+                 f"Étape : {Q2.slug} (practice)", f"Question : {QID}"):
+        assert line in issue["body"]
+
+
+def test_report_link_names_the_landing_page(client):
+    issue = report_link(client.get("/").text)
+    assert issue["title"] == "Problème sur / (landing page)"
+    assert "Page : / (landing page)" in issue["body"]
 
 
 def test_wrong_answer_is_remembered_and_offers_review(client, store: Store, learner):

@@ -29,7 +29,8 @@
 {% block content %}{% endblock %}
 </main>
 <footer class="footer">
-  <a href="{{ report_issue_url(request, q=q|default(none), attempt=attempt|default(none), n=n|default(none)) }}"
+  <a href="{{ report_issue_url(request, q=q|default(none), attempt=attempt|default(none), n=n|default(none),
+                        module=module|default(none), step=step|default(none), ui=ui|default(none)) }}"
      target="_blank" rel="noopener">{{ t(ui, 'report_problem') }}</a>
 </footer>
 <script src="/static/app.js"></script>

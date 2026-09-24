@@ -83,14 +83,27 @@ def get_course(request: Request) -> course_module.Course:
     return request.app.state.course
 
 
+# Paths whose bare form means little to someone filing a report.
+PAGE_LABELS = {"/": "/ (landing page)"}
+
+
 def report_issue_url(request: Request, q: dict | None = None, attempt: dict | None = None,
-                     n: int | None = None) -> str:
+                     n: int | None = None, module: course_module.Module | None = None,
+                     step: course_module.Step | None = None, ui: str | None = None) -> str:
     """A GitHub "new issue" link pre-filled with whatever context is on
-    screen -- question id/section/page, question language, exam mode -- so a
-    report doesn't need the candidate to retype it (feedback.txt #9). Needs
-    the Markdown issue template, not a YAML issue form: forms key their
-    prefill off field ids and ignore `body` entirely."""
-    lines = [f"Page : {request.url.path}"]
+    screen -- question id/section/page, question language, exam mode, course
+    module and step -- so a report doesn't need the candidate to retype it
+    (feedback.txt #9). Needs the Markdown issue template, not a YAML issue
+    form: forms key their prefill off field ids and ignore `body` entirely."""
+    path = request.url.path
+    page = PAGE_LABELS.get(path, path)
+    lines = [f"Page : {page}"]
+    if module is not None:
+        lines += ["Mode : cours", f"Module : {module.slug}"]
+        if step is not None:
+            lines.append(f"Étape : {step.slug} ({step.kind})")
+        if ui is not None:
+            lines.append(f"Langue du cours : {ui}")
     if q is not None:
         lines += [f"Question : {q['id']}", f"Section : {q['section']}", f"Page catalogue : {q['page']}"]
     if attempt is not None:
@@ -98,7 +111,7 @@ def report_issue_url(request: Request, q: dict | None = None, attempt: dict | No
     if n is not None:
         lines.append(f"Numéro dans la session : {n}")
     lines += ["", "Décrivez le problème ci-dessous :", ""]
-    params = {"template": "probleme.md", "title": "Problème sur " + request.url.path,
+    params = {"template": "probleme.md", "title": "Problème sur " + page,
              "body": "\n".join(lines)}
     return f"https://github.com/{GITHUB_REPO}/issues/new?{urlencode(params)}"
 
