@@ -5,4 +5,4 @@ links:
   comment: 'Wikipédia : l''antenne dipôle. Provisoire : à choisir en phase 5.'
 ---
 
-Plan : liens choisis à la main pour aller plus loin, à compléter en phase 5.
+Plan : liens choisis à la main pour aller plus loin, à compléter en phase 5.

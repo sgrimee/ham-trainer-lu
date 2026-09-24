@@ -28,9 +28,9 @@ dans le tuyau. Le courant électrique, c'est pareil : ce sont des électrons qu
 </figure>
 
 Pour que l'eau coule, il faut un tuyau. Pour que le courant passe, il faut un
-**chemin** en métal, sans interruption, qui fait une boucle complète : on appelle ça un **circuit**. Si le
-fil est coupé, le courant s'arrête — exactement comme quand tu fermes un
-robinet.
+**chemin** en métal, sans interruption, qui fait une boucle complète : on
+appelle ça un **circuit**. Si le fil est coupé, le courant s'arrête —
+exactement comme quand tu fermes un robinet.
 
 ## Plus ou moins de courant
 
