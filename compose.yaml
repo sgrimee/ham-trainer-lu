@@ -1,0 +1,19 @@
+# Run the container image locally (specs/TRAINER.md §11.2). `mise run
+# serve-docker` wraps `docker compose up --build`, after downloading the
+# reference PDFs the image copies.
+
+services:
+  app:
+    build: .
+    image: examen-ilr
+    ports:
+      - "8000:8000"
+    # Bare names pass through from the environment, which mise loads from .env.
+    environment:
+      - LLM_BASE_URL
+      - LLM_API_KEY
+      - LLM_MODEL
+    # The repo's var/ is the data directory, so the container shares
+    # var/attempts.db with `mise run serve`. Don't run both at once.
+    volumes:
+      - ./var:/var/lib/examen

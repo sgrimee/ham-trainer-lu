@@ -678,7 +678,7 @@ Makefile. `mise tasks` lists everything:
 | `serve` | run the app with reload (`uvicorn app.main:app`) |
 | `test`, `lint` | pytest; ruff + ty |
 | `eval-grader` | §8.3 |
-| `docker-build` | build the image (§11.2) |
+| `docker-build`, `serve-docker` | build the image; run it with `compose.yaml` (§11.2) |
 | `data`, `extract`, `appendix`, `verify`, `download-refs` | the pipeline, EXTRACTION.md §7 |
 
 `serve` and `docker-build` depend on `download-refs`, because the app serves the

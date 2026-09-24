@@ -63,7 +63,7 @@ mise run serve    # run the training application at http://127.0.0.1:8000
 mise run test     # unit tests
 mise run add-learner "<name>"     # add a course learner (python -m app.learners add|delete|list)
 mise run docker-build             # build the container image
-mise run serve-docker             # build and run it at http://127.0.0.1:8000
+mise run serve-docker             # build and run it (compose.yaml) at http://127.0.0.1:8000
 mise run eval-grader <model>...   # score grading models (needs LLM_API_KEY)
 mise tasks        # everything else
 ```

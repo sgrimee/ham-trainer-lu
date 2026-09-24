@@ -56,21 +56,14 @@ description = "Add a course learner account: mise run add-learner \"<name>\" (sp
 run = "uv run python -m app.learners add"
 
 [tasks.docker-build]
-description = "Build the container image (Dockerfile); the reference PDFs it copies are downloaded first"
+description = "Build the container image (compose.yaml); the reference PDFs it copies are downloaded first"
 depends = ["download-refs"]
-run = "docker build -t examen-ilr ."
+run = "docker compose build"
 
 [tasks.serve-docker]
-description = "Build and run the container image at http://127.0.0.1:8000"
+description = "Build and run the container image at http://127.0.0.1:8000 (compose.yaml)"
 depends = ["docker-build"]
-# The LLM_* names come from the environment mise loaded from .env (bare -e passes
-# them through when set). Attempts persist in the examen-ilr-data named volume.
-run = """
-docker run --rm -p 8000:8000 \
-  -e LLM_BASE_URL -e LLM_API_KEY -e LLM_MODEL \
-  -v examen-ilr-data:/var/lib/examen \
-  examen-ilr
-"""
+run = "docker compose up"
 
 [tasks.eval-grader]
 description = "Score models against the golden grading cases -- run after any grader-prompt change"
