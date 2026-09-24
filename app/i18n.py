@@ -93,6 +93,9 @@ MESSAGES = {
         "landing_path_text": ("Commence par le cours, puis passe à l'entraînement une fois le cours terminé. "
                               "Pour les parties 2 et 3 de l'examen (procédures et réglementation), que le "
                               "cours ne couvre pas encore, tu peux t'entraîner tout de suite."),
+        "landing_guide_text": ("Pour apprendre ces parties 2 et 3, la référence est le guide du "
+                               "radioamateur publié par l'ILR :"),
+        "landing_guide_link": "Guide du radioamateur (ILR, PDF)",
         "course_title": "Cours BASE — partie 1 : Techniques",
         "dashboard": "Mon parcours",
         "continue": "Continuer",
@@ -215,6 +218,9 @@ MESSAGES = {
         "landing_path_text": ("Fang mit dem Kurs an und wechsle zum Training, wenn du ihn abgeschlossen "
                               "hast. Für die Teile 2 und 3 der Prüfung (Verfahren und Vorschriften), die "
                               "der Kurs noch nicht abdeckt, kannst du sofort üben."),
+        "landing_guide_text": ("Um diese Teile 2 und 3 zu lernen, ist der vom ILR veröffentlichte "
+                               "Leitfaden für Funkamateure die Referenz (auf Französisch):"),
+        "landing_guide_link": "Guide du radioamateur (ILR, PDF)",
         "course_title": "BASE-Kurs — Teil 1: Technik",
         "dashboard": "Mein Kurs",
         "continue": "Weiter",
