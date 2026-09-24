@@ -563,12 +563,21 @@ container, `.env.example` documents it):
   merely encoded. On the family's private network over plain HTTP, that is
   an accepted risk. Once the server is reachable beyond it, HTTPS is required
   (§6.2 needs it for the same reason).
+- **Cross-site posts are refused (403).** The browser attaches the cached
+  Basic credentials to any request to the server, including a form another
+  site submits, and account ids are public in the `/learn` dropdown. A
+  non-GET `/admin` request whose `Sec-Fetch-Site` is not `same-origin` (or,
+  from an older browser, whose `Origin` is not this host) is refused before
+  the password is checked.
+- **An unreadable `ADMIN_PASSWORD_FILE` stops startup**, like an unreadable
+  `LLM_API_KEY_FILE`, rather than turning every `/admin` request into a 500.
 - The password is never logged, never rendered, and never stored in the
   database.
 
 Tests cover: `/admin` returns 404 with no password configured, 401 without or
 with wrong credentials, 200 with the right one; the `_FILE` variant winning;
-and the rate limit engaging.
+the rate limit engaging; cross-site posts refused; and an unreadable password
+file stopping startup.
 
 ### 6.2 Later: authentication
 

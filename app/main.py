@@ -45,6 +45,9 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         for p in course_problems:
             log.error("course: %s", p)
         raise course_module.CourseError(course_problems)
+    # A configured but unreadable ADMIN_PASSWORD_FILE fails here, like a bad
+    # LLM_API_KEY_FILE does, rather than as a 500 on every /admin request.
+    admin.admin_password()
     async with httpx.AsyncClient() as client:
         app.state.store = Store()
         app.state.llm_grader = grader.from_env(client)

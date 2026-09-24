@@ -155,6 +155,40 @@ def test_admin_password_file_wins(client, monkeypatch, tmp_path):
     assert client.get("/admin/learners", auth=("a", "from-file")).status_code == 200
 
 
+def test_unreadable_password_file_stops_startup(monkeypatch, tmp_path):
+    from starlette.testclient import TestClient
+
+    from app.main import app
+
+    monkeypatch.setenv("ADMIN_PASSWORD_FILE", str(tmp_path / "missing"))
+    with pytest.raises(admin.AdminConfigError, match="ADMIN_PASSWORD_FILE"), TestClient(app):
+        pass
+
+
+def test_admin_refuses_cross_site_posts(client, store: Store, with_password):
+    account_id = store.create_account("Léa")
+    url = f"/admin/learners/{account_id}/delete"
+    for headers in ({"Sec-Fetch-Site": "cross-site"}, {"Sec-Fetch-Site": "same-site"},
+                    {"Origin": "http://evil.example"}, {"Origin": "null"}):
+        resp = client.post(url, auth=AUTH, headers=headers, follow_redirects=False)
+        assert resp.status_code == 403, headers
+    assert store.get_account(account_id) is not None
+    # A cross-site GET changes nothing and is allowed (a link to the page).
+    assert client.get("/admin/learners", auth=AUTH,
+                      headers={"Sec-Fetch-Site": "cross-site"}).status_code == 200
+    # The admin's own form: same origin.
+    resp = client.post(url, auth=AUTH, follow_redirects=False,
+                       headers={"Sec-Fetch-Site": "same-origin", "Origin": "http://testserver"})
+    assert resp.status_code == 303
+    assert store.get_account(account_id) is None
+
+
+def test_admin_origin_check_without_fetch_metadata(client, with_password):
+    resp = client.post("/admin/learners", data={"display_name": "Tom"}, auth=AUTH,
+                       headers={"Origin": "http://testserver"}, follow_redirects=False)
+    assert resp.status_code == 303
+
+
 def test_admin_rate_limit(client, with_password):
     for _ in range(admin.MAX_FAILURES):
         assert client.get("/admin/learners", auth=("a", "wrong")).status_code == 401
