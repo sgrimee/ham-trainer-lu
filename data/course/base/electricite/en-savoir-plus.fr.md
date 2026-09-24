@@ -13,15 +13,16 @@ links:
   comment: 'Vikidia : la loi d''Ohm.'
 - url: https://fr.vikidia.org/wiki/Pile_%C3%A9lectrique
   comment: 'Vikidia : la pile électrique, et la différence entre une pile et une batterie.'
-- url: https://www.lumni.fr/video/les-lois-de-lelectricite-14-mai
-  comment: 'Lumni, cours vidéo de collège (5e, 30 min) : tension, intensité, circuits en série et en dérivation.'
+- url: https://www.youtube.com/watch?v=R6WpdF0BO60
+  comment: 'Vidéo d''un professeur de physique (collège, 4 min) : la loi d''Ohm, U = R × I, avec un exemple de calcul.'
   language_note: 🇫🇷 uniquement
-- url: https://www.lumni.fr/video/la-loi-dohm
-  comment: 'Lumni, cours vidéo de collège (3e, 30 min) : la loi d''Ohm, pour ceux qui veulent aller plus loin.'
+- url: https://www.youtube.com/watch?v=py88xUzawiw
+  comment: 'C''est pas sorcier, « Électricité : quand les branchés disjonctent » (26 min) : d''où vient le courant, ce que sont la tension et l''intensité, et pourquoi ça disjoncte.'
   language_note: 🇫🇷 uniquement
 ---
 
 Tu as fini le module ! Si tu veux jouer avec ce que tu viens d'apprendre, les
 deux simulations sont le meilleur point de départ : rien ne peut griller, tu
-peux tout essayer. Les pages Vikidia sont écrites pour les jeunes, et les
-vidéos Lumni sont de vrais cours de collège, un peu plus longs.
+peux tout essayer. Les pages Vikidia sont écrites pour les jeunes. La petite
+vidéo sur la loi d'Ohm dure quatre minutes ; l'épisode de C'est pas sorcier
+est plus long, garde-le pour quand tu as le temps.

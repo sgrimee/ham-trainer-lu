@@ -10,15 +10,15 @@ title: En savoir plus
 links:
 - url: https://phet.colorado.edu/fr/simulations/ohms-law
   comment: 'Simulation PhET « Loi d''Ohm » : bouge les curseurs…'
-- url: https://www.lumni.fr/video/la-loi-dohm
-  comment: 'Lumni, cours vidéo de collège (3e, 30 min) : …'
+- url: https://www.youtube.com/watch?v=R6WpdF0BO60
+  comment: 'Vidéo d''un professeur de physique (collège, 4 min) : …'
   language_note: 🇫🇷 uniquement
 ---
 ```
 
 - Keys: `url`, `comment`, `language_note`. `language_note` is required by
   the validator for YouTube, Vimeo and Dailymotion, and by this skill for
-  **any** video (Lumni included): « 🇫🇷 uniquement », « sous-titres DE
+  **any** video: « 🇫🇷 uniquement », « sous-titres DE
   disponibles »…
 - The comment says what the page is and what the kid will do there, and
   the level when it's a school resource (« 5e », « 3e »).
@@ -29,7 +29,14 @@ links:
 
 - **PhET**, French versions: `https://phet.colorado.edu/fr/simulations/<slug>`
 - **Vikidia** (encyclopedia for 8–13 year olds): `https://fr.vikidia.org/wiki/<Titre>`
-- **Lumni** (France Télévisions, school videos): `https://www.lumni.fr/video/<slug>`
+- **Alloprof** (Quebec, free, secondary level, no geo-blocking):
+  `https://www.alloprof.qc.ca/fr/eleves/bv/<matiere>/<slug>`
+- **YouTube** official channels: C'est pas sorcier, Vasco (formerly
+  L'Esprit Sorcier), Paul Olivier (a collège physics teacher, 4–5 min clips).
+
+**Never use Lumni (lumni.fr) or france.tv**: their videos are geo-blocked
+outside France, and this course's learners are in Luxembourg. The same
+episodes are often on the official C'est pas sorcier YouTube channel.
 - Worth searching for the radio modules: C'est pas sorcier (YouTube),
   fr.wikipedia.org for depth, radio-amateur associations' beginner pages
   (Luxembourg's RL, France's REF), official Luxembourg pages (ILR, guichet.lu)
@@ -51,5 +58,7 @@ The built-in WebFetch/WebSearch tools do not work in this environment. Use:
 
 Drop a page that is a stub, garbled, or wrong on the physics, even if it is
 on-topic (module A dropped Vikidia's « Résistance électrique » for that).
-A school video may be geo-restricted: say so in the report if you could not
-confirm it plays.
+Videos must play in Luxembourg. For YouTube, confirm it from the watch page:
+`curl -sL "https://www.youtube.com/watch?v=<id>" | grep -o '"availableCountries":\[[^]]*\]' | grep -c '"LU"'`
+must print 1 (the same page has `"title":{"simpleText":…`, `"lengthSeconds"`
+and `"ownerChannelName"` to check title, length and channel).

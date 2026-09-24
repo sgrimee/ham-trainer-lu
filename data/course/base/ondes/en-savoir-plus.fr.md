@@ -11,14 +11,12 @@ links:
   comment: 'Vikidia, l''encyclopédie des jeunes : la fréquence, avec l''exemple du cœur et du son grave ou aigu.'
 - url: https://fr.vikidia.org/wiki/Ondes_radio
   comment: 'Vikidia : les ondes radio, avec un grand tableau des familles de fréquences (HF, VHF, UHF…) et leurs longueurs d''onde.'
-- url: https://www.lumni.fr/video/qu-est-ce-qu-une-onde-electromagnetique
-  comment: 'Lumni, « C''est toujours pas sorcier + » (6e, 2 min 30) : qu''est-ce qu''une onde électromagnétique ?'
-  language_note: 🇫🇷 uniquement
-- url: https://www.lumni.fr/video/courant-alternatif-et-courant-continu
-  comment: 'Lumni, « C''est toujours pas sorcier + » (6e, 3 min) : la différence entre courant alternatif et courant continu.'
-  language_note: 🇫🇷 uniquement
-- url: https://www.lumni.fr/video/les-signaux-sonores-et-lumineux
-  comment: 'Lumni, cours vidéo de collège (4e, 30 min) : comment voyagent le son et la lumière, et à quelle vitesse.'
+- url: https://www.alloprof.qc.ca/fr/eleves/bv/sciences/les-caracteristiques-d-une-onde-s1141
+  comment: 'Alloprof (secondaire) : amplitude, longueur d''onde, fréquence et vitesse d''une onde, et pourquoi on voit l''éclair avant d''entendre le tonnerre.'
+- url: https://www.alloprof.qc.ca/fr/eleves/bv/sciences/le-courant-continu-et-le-courant-alternatif-s1162
+  comment: 'Alloprof : la différence entre courant continu (piles, batteries) et courant alternatif (prises de la maison).'
+- url: https://www.youtube.com/watch?v=D7ya7Gjblvo
+  comment: 'L''Esprit Sorcier (devenu Vasco), avec Fred de C''est pas sorcier (32 min) : c''est quoi une onde électromagnétique, comment un SMS voyage, et l''histoire de la radio de Hertz à Marconi.'
   language_note: 🇫🇷 uniquement
 - url: https://rl.lu/fr/lx-frequenvy-plan/
   comment: 'Radioamateurs du Luxembourg (RL) : le vrai plan des bandes au Luxembourg, pour les curieux qui veulent voir toutes les bandes et leurs usages.'
@@ -26,6 +24,6 @@ links:
 
 Tu as fini le module ! Commence par la simulation « Onde sur une corde » :
 tu y verras la fréquence, l'amplitude et la longueur d'onde bouger sous tes
-yeux. Les pages Vikidia sont écrites pour les jeunes, les deux petites
-vidéos durent moins de quatre minutes, et le plan du RL montre les bandes
-que tu utiliseras un jour.
+yeux. Les pages Vikidia sont écrites pour les jeunes, celles d'Alloprof vont
+un peu plus loin, la vidéo de L'Esprit Sorcier raconte toute l'histoire des
+ondes radio, et le plan du RL montre les bandes que tu utiliseras un jour.
