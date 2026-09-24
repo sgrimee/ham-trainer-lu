@@ -622,9 +622,12 @@ def learn_step(request: Request, module_slug: str, step_slug: str, picked: str =
     return templates.TemplateResponse(request=request, name="learn_practice.html", context={
         **context, "title": t(ui, "question_n", id=step.question_id),
         "q": session.localize_question(q, ui, None), "marks": marks, "picked": picked,
-        "solved": solved, "wrong": bool(picked) and not solved,
+        "solved": solved, "wrong": bool(picked) and not solved, "done": done,
         "note": course_module.answer_note(step, ui) if solved else None,
-        "review": [(s, course_module.page(s, ui).title) for s in course.review_lessons(step)]
+        # A review lesson may sit in an earlier module, which need not offer
+        # the same language as this one (§4.3): each title in its own.
+        "review": [(s, course_module.page(s, course_ui(request, course.module(s.module))).title)
+                   for s in course.review_lessons(step)]
         if picked and not solved else [],
     })
 

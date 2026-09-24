@@ -15,6 +15,9 @@
   </header>
   <div class="stem">
     {% for c in q.stem %}<p>{{ cell(c) }}</p>{% endfor %}
+    {% for asset in q.assets %}
+      <img src="/data/{{ asset.path }}" alt="">
+    {% endfor %}
   </div>
 
   {% if solved %}
@@ -36,7 +39,8 @@
 
   <nav class="prev-next">
     {% if previous %}{{ previous_link(ui, previous) }}{% endif %}
-    {% if solved %}<a id="next-link" href="{{ step_url(following) }}">{{ t(ui, 'next') }} &rarr;</a>{% endif %}
+    {#- A completed step is already done: a revisit need not be re-answered to move on. #}
+    {% if done %}<a id="next-link" href="{{ step_url(following) }}">{{ t(ui, 'next') }} &rarr;</a>{% endif %}
   </nav>
 </article>
 {% endblock %}

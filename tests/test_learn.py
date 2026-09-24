@@ -251,6 +251,7 @@ def test_revisit_gets_feedback_but_stores_nothing(client, store: Store, learner)
     before = store.completed_steps(learner)
     page = client.get(url(Q2)).text
     assert "disabled" not in page                 # fresh question
+    assert f'id="next-link" href="{url(following(Q2))}"' in page   # no need to re-answer
     _, wrong = options(QID)
     assert location(post(client, url(Q2) + "/answer", {"answer": wrong[0]})) == f"{url(Q2)}?picked={wrong[0]}"
     assert "Essaie encore" in client.get(f"{url(Q2)}?picked={wrong[0]}").text
@@ -267,6 +268,37 @@ def test_answer_note_shows_once_answered_correctly(client, store: Store, learner
     assert "<strong>c'est ainsi</strong>" in client.get(f"{url(Q2)}?picked={correct}").text
     assert "c'est ainsi" not in client.get(f"{url(Q2)}?picked={wrong[0]}").text
     assert "c'est ainsi" not in client.get(url(Q2)).text
+
+
+def test_practice_shows_the_question_figure(client, store: Store, learner, monkeypatch):
+    """Like question.html: the stem's own images (none of today's 44 have one)."""
+    from app import main
+    figure = {**cat.get(QID), "assets": [{"path": "assets/fig.png", "option_letter": None}]}
+    monkeypatch.setattr(main, "_question", lambda step: figure)
+    seed(store, learner, steps_before(Q2))
+    assert '<img src="/data/assets/fig.png"' in client.get(url(Q2)).text
+
+
+def test_review_links_use_each_lessons_own_language(client, store: Store, learner, tmp_path, monkeypatch):
+    """A German module's wrong answer links back to a French-only module (§4.3)."""
+    from app import main
+    course_dir = tmp_path / "base"
+    shutil.copytree(course_module.COURSE_DIR, course_dir)
+    for f in (course_dir / "ondes").glob("*.fr.md"):
+        f.with_name(f.name.replace(".fr.md", ".de.md")).write_text(f.read_text())
+    curriculum = course_dir / "curriculum.yaml"
+    curriculum.write_text(curriculum.read_text().replace(
+        'title: {fr: "Ondes et fréquences"}', 'title: {fr: "Ondes et fréquences", de: "Wellen"}'))
+    monkeypatch.setattr(course_module, "COURSE_DIR", course_dir)
+    monkeypatch.setattr(main.app.state, "course", course_module.load(questions=cat.questions))
+    client.cookies.set(PREFS_COOKIE, '{"lang": "de"}')
+    q5 = next(s for s in module("ondes").steps if s.slug == "q5")
+    unites = next(s for s in module("electricite").steps if s.slug == "unites")
+    seed(store, learner, steps_before(q5))
+    _, wrong = options(5)
+    page = client.get(f"{url(q5)}?picked={wrong[0]}").text
+    assert "Wiederholen:" in page
+    assert course_module.page(unites, "fr").title.replace("'", "&#39;") in page
 
 
 # -- lesson rendering (§4.2) -----------------------------------------------------------

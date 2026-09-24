@@ -467,7 +467,9 @@ coming back tomorrow shows the same disabled options instead of a fresh
 question.
 
 **Revisiting a completed practice step** shows the question fresh, so it can
-be practiced again. Answers given on a revisit get the same right/wrong
+be practiced again, with "Next" already available: the step is done, so
+walking back with "Previous" never forces re-answering on the way forward.
+Answers given on a revisit get the same right/wrong
 feedback but change nothing stored: completion, attempt counts and XP are
 decided by the first pass only. Because nothing is stored, the redirect
 carries the picked letter in the query string (`…/q15?picked=b`) and the GET
@@ -646,8 +648,9 @@ which a reorderable plan would undermine. Concretely:
   jumping ahead of an unmet prerequisite is exactly what §3 exists to prevent.
   "Next" on a lesson or learn-more step is a form post that records
   completion and redirects to the following step. On a practice step it is a
-  plain link that appears only once the question is answered correctly
-  (§5.1). "Previous" is always available.
+  plain link that appears once the question is answered correctly, and
+  straight away on a revisit of a completed step (§5.1). "Previous" is always
+  available.
 - **Revisiting any reachable step is always allowed** (§5.1 covers what
   re-answering does). A completed module stays browsable from the dashboard,
   and its module page lists all its steps.
