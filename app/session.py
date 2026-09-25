@@ -9,7 +9,7 @@ from __future__ import annotations
 import asyncio
 import random
 
-from . import scoring
+from . import official_wordings, scoring
 from .catalogue import BLUEPRINT, Catalogue, localized, part_of
 from .grader import LLMGrader, SelfGrader
 from .store import Store
@@ -171,6 +171,8 @@ async def _grade_open_item(
     reference: str,
     candidate: str,
     item_weight: float,
+    also_official: tuple[str, ...] = (),
+    notes: tuple[str, ...] = (),
 ) -> dict | None:
     """None means grading didn't happen -- no grader configured, or the call
     failed. Either way the caller leaves the item ungraded, pending a
@@ -185,6 +187,8 @@ async def _grade_open_item(
             question=question_text,
             reference=reference,
             candidate=candidate,
+            also_official=also_official,
+            notes=notes,
         )
         fraction = scoring.element_fraction(result.elements, result.incorrect)
         verdict = scoring.verdict_of(result.elements, result.incorrect)
@@ -215,8 +219,15 @@ async def grade_open_question(
         question_text = f"{stem}\n{item['label']}" if item.get("label") else stem
         reference = ref_text(item["text"], lang)
         candidate = (answer or {}).get(str(item["item_no"]), "") if isinstance(answer, dict) else ""
+        # The guide's wordings where they differ from the catalogue's, and its
+        # notes (specs/LEARN-2-3.md §4.5).
+        guide_lang = "fr" if lang == "both" else lang
+        others = official_wordings.for_item(q["id"], item["item_no"], guide_lang)
+        notes = official_wordings.notes_for_item(q["id"], item["item_no"], guide_lang)
         tasks.append(
-            _grade_open_item(grader, q["id"], lang, question_text, reference, candidate, item_weight)
+            _grade_open_item(
+                grader, q["id"], lang, question_text, reference, candidate, item_weight, others, notes
+            )
         )
     results = await asyncio.gather(*tasks)
     return list(zip(items, results, strict=True))

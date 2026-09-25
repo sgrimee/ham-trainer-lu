@@ -26,17 +26,24 @@ def element_fraction(elements: list[dict], incorrect: list[str]) -> float:
     Elements present score their equal share; each incorrect statement cancels
     one present element, one-for-one, floored at zero. A question with a
     single element (e.g. a Q-code paraphrase) is necessarily all-or-nothing.
+    A near element -- right in substance, not in the official form -- scores
+    as missing: the ILR marks strictly (specs/LEARN-2-3.md §4.2, §4.5).
     """
     if not elements:
         return 0.0
-    present = sum(1 for e in elements if e.get("present"))
-    net = max(0, present - len(incorrect))
+    net = max(0, _scored(elements) - len(incorrect))
     return net / len(elements)
+
+
+def _scored(elements: list[dict]) -> int:
+    """Elements that earn their share. Grades stored before `near` existed
+    lack the key and score as they always did."""
+    return sum(1 for e in elements if e.get("present") and not e.get("near"))
 
 
 def verdict_of(elements: list[dict], incorrect: list[str]) -> str:
     """Derived for display, never stored as an input (specs/TRAINER.md §7.2)."""
-    present = sum(1 for e in elements if e.get("present"))
+    present = _scored(elements)
     if present == len(elements) and not incorrect:
         return "correct"
     if present == 0:

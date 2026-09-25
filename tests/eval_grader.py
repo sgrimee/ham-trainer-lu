@@ -4,7 +4,9 @@
     mise run eval-grader openai/gpt-5.1                   # one candidate
     mise run eval-grader openai/gpt-5.1 mistralai/mistral-medium-3.1
     mise run eval-grader --runs 2 openai/gpt-5.1          # also report repeatability
-    mise run eval-grader --set spelling                   # the spelling battery (specs/LEARN-2-3.md §4.2)
+    mise run eval-grader --set spelling                   # the spelling battery (specs/LEARN-2-3.md §4.3)
+    mise run eval-grader --set parts-2-3                  # BASE parts 2-3 only (LEARN-2-3 §4.5)
+    mise run eval-grader --set all                        # golden (parts 2-3 included) and spelling
 
 Reads LLM_BASE_URL / LLM_API_KEY / LLM_MODEL from the environment, which mise
 autoloads from .env. Needs a key and spends a few cents per model, so it is
@@ -19,6 +21,7 @@ import argparse
 import json
 import os
 import pathlib
+import re
 import sys
 import time
 import urllib.error
@@ -32,18 +35,39 @@ sys.path.insert(0, str(HERE.parent))  # the repo root, for the app package
 import grading_fixtures  # noqa: E402
 import spelling_fixtures  # noqa: E402
 
+from app import catalogue, official_wordings  # noqa: E402
 from app.grading_prompt import request_body  # noqa: E402  (the exact body the app itself sends)
 
-SETS = {"golden": grading_fixtures.CASES, "spelling": spelling_fixtures.CASES}
+SETS = {
+    "golden": grading_fixtures.CASES,  # parts-2-3 included
+    "parts-2-3": grading_fixtures.PART_2_3,
+    "spelling": spelling_fixtures.CASES,
+}
 CASES = SETS["golden"]  # replaced by main() from --set
 
 OUT_DIR = HERE.parent / "var" / "eval"
 
 
+def guide_context(case) -> tuple[tuple[str, ...], tuple[str, ...]]:
+    """The other official wordings and guide notes the app would send for this
+    case (specs/LEARN-2-3.md §4.5): the case's question id is its id's leading
+    digits, and its sub-item the catalogue item whose reference is the case's."""
+    cid, lang, _, reference = case[:4]
+    qid = int(re.match(r"\d+", cid).group())
+    q = catalogue.load().by_id.get(qid)
+    items = [i for i in (q or {}).get("answer", []) if i["text"].get(lang) == reference]
+    if not items:
+        return (), ()
+    item_no = items[0]["item_no"]
+    return official_wordings.for_item(qid, item_no, lang), official_wordings.notes_for_item(
+        qid, item_no, lang
+    )
+
+
 def grade(model: str, case) -> dict:
     """One grading call. A failure is a result, not a crash."""
     cid, lang, question, reference, candidate = case[:5]
-    body = request_body(model, lang, question, reference, candidate)
+    body = request_body(model, lang, question, reference, candidate, *guide_context(case))
 
     req = urllib.request.Request(
         f"{os.environ['LLM_BASE_URL']}/chat/completions",
@@ -79,16 +103,22 @@ def grade(model: str, case) -> dict:
 
 
 def verdict(result: dict) -> tuple[str, float]:
-    """Derive the displayed verdict and the proportional score (specs/TRAINER.md §7.2)."""
+    """Derive the verdict and the proportional score (specs/TRAINER.md §7.2).
+
+    A near element (specs/LEARN-2-3.md §4.2) scores as missing, as in
+    app/scoring.py; the verdict is "near" when it is the only thing wrong.
+    """
     elements = result.get("elements", [])
-    found = sum(1 for e in elements if e["present"])
+    present = sum(1 for e in elements if e["present"])
+    near = sum(1 for e in elements if e["present"] and e.get("near"))
+    found = present - near
     total = len(elements)
     share = found / total if total else 0.0
     if result.get("incorrect"):
-        return ("partial" if found else "incorrect"), share
-    if total and found == total:
-        return "correct", 1.0
-    return ("incorrect" if found == 0 else "partial"), share
+        return ("partial" if present else "incorrect"), share
+    if total and present == total:
+        return ("near", share) if near else ("correct", 1.0)
+    return ("incorrect" if present == 0 else "partial"), share
 
 
 def one_run(model: str) -> dict[str, dict]:
@@ -114,7 +144,11 @@ def report(model: str, runs: list[dict[str, dict]]) -> dict:
         ok = got == expected or (expected == "near" and got == "partial")
         hits += ok
         note = ""
-        if must_flag:
+        if expected == "near":
+            # must_flag names the near word, which must be reported near, not false.
+            flagged = [e for e in r.get("elements", []) if e.get("near")]
+            note = f"near → {flagged[0].get('official', '')!r}" if flagged else ""
+        elif must_flag:
             traps += 1
             caught = any(must_flag.lower() in s.lower() for s in r.get("incorrect", []))
             traps_hit += caught
@@ -166,7 +200,7 @@ def main() -> int:
     parser.add_argument("--set", choices=[*SETS, "all"], default="golden", help="which cases to score")
     args = parser.parse_args()
     global CASES
-    CASES = [c for name, cases in SETS.items() if args.set in (name, "all") for c in cases]
+    CASES = SETS[args.set] if args.set != "all" else [*SETS["golden"], *SETS["spelling"]]
 
     for var in ("LLM_BASE_URL", "LLM_API_KEY"):
         if not os.environ.get(var):

@@ -42,6 +42,14 @@ def test_verdict_partial_and_incorrect():
     assert scoring.verdict_of([{"present": False}], []) == "incorrect"
 
 
+def test_a_near_element_scores_as_missing():
+    """specs/LEARN-2-3.md §4.2: right in substance, not in the ILR's form."""
+    elements = [{"present": True, "near": False}, {"present": True, "near": True}]
+    assert scoring.element_fraction(elements, []) == 1 / 2
+    assert scoring.verdict_of(elements, []) == "partial"
+    assert scoring.verdict_of([{"present": True, "near": True}], []) == "incorrect"
+
+
 def test_exam_outcome_pass():
     parts = {
         p: scoring.PartResult(name=p, points=40.0) for p in ("technique", "procedures", "reglementation")

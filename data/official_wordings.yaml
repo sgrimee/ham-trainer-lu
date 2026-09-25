@@ -1,0 +1,96 @@
+# Other official wordings of open-question answers (specs/LEARN-2-3.md §1.3, §4.5).
+#
+# The ILR marks against its catalogue and its guide. Where the guide words an
+# answer differently from the catalogue, or states a fact the catalogue's answer
+# leaves out, the LLM grader is given the guide's wording alongside the
+# catalogue's reference, so that it neither rejects nor contradicts the guide.
+#
+# question id -> sub-item (the catalogue's item_no; 0 for a single answer) ->
+# wordings, French only, verbatim from the guide: the lines of a list, or the
+# sentences of one section, may be joined, and a certificate's name may head its
+# sentence. `source` is the guide page, as `ilr-guide-2023 p.N §x`, or, for a
+# form the project owner decided to accept or refuse, `decision YYYY-MM-DD`.
+#
+# An entry may be a `note` instead of a `text`: a fact from the guide the grader
+# must apply, such as a neighbouring code's meaning that is a wrong answer here.
+#
+# Only differences belong here: a wording the catalogue already has adds
+# nothing. tests/test_official_wordings.py checks every entry against the
+# catalogue. Spelling (440-446) is graded by app/spelling.py and needs none.
+
+448:
+  1:  # QRT?
+    - text: "Devez-vous cesser la transmission ?"
+      source: ilr-guide-2023 p.19 §4.5
+  4:  # QSB?
+    - text: "La force de vos signaux varie-t-elle ?"
+      source: ilr-guide-2023 p.20 §4.5
+  5:  # QRL
+    - text: "Je suis occupé avec …. Prière de ne pas perturber"
+      source: ilr-guide-2023 p.19 §4.5
+  7:  # QTH?
+    - text: "Quelle est votre position en latitude et en longitude ? (ou d'après toute autre indication)."
+      source: ilr-guide-2023 p.20 §4.5
+
+449:
+  1:  # QSY?
+    - text: "Devez-vous changer de fréquence de transmission ?"
+      source: ilr-guide-2023 p.20 §4.5
+  2:  # QSA
+    - text: "La force de vos signaux est S (1-9)."
+      source: ilr-guide-2023 p.19 §4.5
+  3:  # QRN
+    - text: "Je suis troublé par des parasites atmosphériques."
+      source: ilr-guide-2023 p.19 §4.5
+    - note: "« Je suis brouillé » est le sens de QRM dans le même tableau du guide, pas celui de QRN : donner le sens de QRM pour QRN est une réponse fausse, ni présente ni near."
+      source: ilr-guide-2023 p.19 §4.5
+  4:  # QRO
+    - text: "Augmentez la puissance d'émission."
+      source: ilr-guide-2023 p.19 §4.5
+
+451:
+  3:  # R
+    - text: "Received"
+      source: decision 2026-09-25
+    - note: "Seuls « Reçu » et « Received » sont acceptés. « Roger », le mot employé à l'antenne, est une réponse fausse, ni présente ni near."
+      source: decision 2026-09-25
+
+459:
+  0:
+    - note: "Le nom de l'UIT exige le mot « internationale » : « l'Union des télécoms » ou « l'Union des télécommunications » n'est pas son nom, c'est une réponse fausse, ni présente ni near. Le sigle UIT seul est juste."
+      source: decision 2026-09-25
+
+466:
+  0:
+    - text: "144-146 MHz (2m), 430-440 MHz (70cm) et 28000-29700 kHz (10m)"
+      source: ilr-guide-2023 p.9 §2.1
+
+467:
+  0:
+    - text: "Le certificat de BASE limite le niveau de la puissance radioélectrique à 25W PEP à la sortie de l'émetteur."
+      source: ilr-guide-2023 p.9 §2.1
+
+468:
+  0:
+    - text: "Le certificat de BASE limite le niveau de la puissance radioélectrique à 25W PEP à la sortie de l'émetteur. Le certificat NOVICE limite le niveau de la puissance à 100 W PEP à la sortie de l'émetteur. HAREC : la puissance à la sortie de l'émetteur est limitée à 100 W PEP dans l'année qui suit l'obtention du certificat HAREC. Par après, la puissance est limitée à 1000 W PEP."
+      source: ilr-guide-2023 p.9 §2.1
+
+469:
+  0:
+    - note: "La question demande 6 sujets et la référence en liste 10 : six sujets valides de la liste forment une réponse complète. Construis 6 éléments ; les autres sujets de la référence ne manquent pas."
+      source: decision 2026-09-25
+
+471:
+  0:
+    - text: "Les radioamateurs ne peuvent en aucun cas : a. entrer en liaison avec des stations non autorisées b. échanger des communications pour le compte ou au profit d'un tiers c. effectuer des émissions ayant un caractère de publicité commerciale d. émettre de la musique ou un programme de radiodiffusion e. émettre de la publicité commerciale f. utiliser un dispositif d'encryptage des communications g. émettre des signaux et communications de nature à porter atteinte à la sûreté de l'État et/ou qui sont contraires aux bonnes mœurs, aux lois et à l'ordre public h. émettre des signaux de détresse faux ou frauduleux i. connecter leurs stations à un réseau de télécommunications sauf Internet."
+      source: ilr-guide-2023 p.17-18 §4.2
+
+476:
+  0:
+    - text: "www.itu.int"
+      source: ilr-guide-2023 p.36 §5.5
+
+495:
+  0:
+    - note: "« BASIC » est accepté pour le certificat de BASE : l'élément est présent, et pas near. Le nom attendu reste BASE."
+      source: decision 2026-09-25

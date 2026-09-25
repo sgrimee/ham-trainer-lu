@@ -1,19 +1,22 @@
-"""Spelling battery for questions 440-446 (specs/LEARN-2-3.md §4.2).
+"""Spelling battery for questions 440-446 (specs/LEARN-2-3.md §4.3).
 
-The same tuple shape as grading_fixtures.CASES, so tests/eval_grader.py can
-score a model on it (`--set spelling`) and tests/compare_spelling.py can score
-the string-matching prototype on it. Both apps grade the same way, so this
-battery decides which method grades spelling in both.
+Approved 2026-09-25. app/spelling.py grades spelling in both apps and must
+pass every case (tests/test_spelling.py). The tuple shape is that of
+grading_fixtures.CASES, so tests/eval_grader.py can still score a model on
+it (`--set spelling`) for comparison.
 
 The reference is the catalogue's answer verbatim, typos included (443's
-"JULLIET"): that is what the exam grader is given. Expected verdicts:
-  correct    every character spelled, every word in a form found in the ILR
-             guide (§4.3-4.4) or in a catalogue answer, nothing extra;
-  near       every character right, but at least one word in a form found in
-             neither (Juliette, Whisky, Charly, Zoulou, "stroke", French or
-             ITU digits, a numeral): right on the air, but the ILR marks
-             strictly, so the candidate is told the form the exam expects;
-  partial    some characters right, some wrong, missing or extra;
+"JULLIET"): that is what an LLM grader would be given. The string grader
+reads the word or callsign quoted in the question instead. Expected verdicts:
+  correct    every character spelled with the international alphabet,
+             nothing extra. Official forms are those of the ILR guide
+             (§4.3-4.4) or of a catalogue answer; near forms (Juliette,
+             Whisky, Charly, Zoulou, "stroke", French or ITU digits, a
+             numeral) are accepted too, and `must_flag` names the near word
+             the grader reports as a hint;
+  partial    some characters right, some wrong, missing or extra -- a word
+             from an old national alphabet (London, Robert) or an invented
+             one (Iceland, Zebra) is wrong;
   incorrect  nothing usable (letters not spelled, French letter names).
 
 Official forms: Alfa (guide) and Alpha (catalogue); Juliet (guide) and
@@ -44,7 +47,7 @@ def _case(cid, q, candidate, expected, must_flag, why):
 
 
 CASES = [
-    # --- correct, and near: right on the air, not in the ILR's form ----------
+    # --- correct, near forms included (accepted, reported as a hint) ---------
     _case("440-exact", Q440, "LIMA X-RAY ONE ROMEO TANGO GOLF YANKEE", "correct", None, "verbatim"),
     _case(
         "440-case", Q440, "lima, xray, one, romeo, tango, golf, yankee", "correct", None, "case, commas, Xray"
@@ -53,7 +56,7 @@ CASES = [
         "440-fr-digit",
         Q440,
         "Lima X-Ray Un Romeo Tango Golf Yankee",
-        "near",
+        "correct",
         "Un",
         "digit in French: the catalogue writes ONE",
     ),
@@ -61,7 +64,7 @@ CASES = [
         "440-itu-digit",
         Q440,
         "LIMA X-RAY UNAONE ROMEO TANGO GOLF YANKEE",
-        "near",
+        "correct",
         "UNAONE",
         "ITU figure word: in neither the guide nor the catalogue",
     ),
@@ -69,7 +72,7 @@ CASES = [
         "440-hyphens",
         Q440,
         "Lima - X ray - 1 - Romeo - Tango - Golf - Yankee",
-        "near",
+        "correct",
         "1",
         "'X ray' in two words is fine; the numeral 1 is not spelled",
     ),
@@ -78,7 +81,7 @@ CASES = [
         "441-stroke-papa",
         Q441,
         "Delta Lima stroke Lima X-ray One Romeo Tango Golf Yankee stroke Papa",
-        "near",
+        "correct",
         "stroke",
         "stroke is in neither the guide nor the catalogue; PAPA for /p is fine",
     ),
@@ -110,7 +113,7 @@ CASES = [
         "442-charly",
         Q442,
         "Bravo Alpha Romeo Charly Echo Lima Oscar November Alpha",
-        "near",
+        "correct",
         "Charly",
         "Charly: the right code word, misspelled",
     ),
@@ -126,7 +129,7 @@ CASES = [
         "443-juliette",
         Q443,
         "Romeo Echo Yankee Kilo Juliette Alpha Victor India Kilo",
-        "near",
+        "correct",
         "Juliette",
         "French spelling Juliette: the guide writes Juliet",
     ),
@@ -134,7 +137,7 @@ CASES = [
         "444-whisky",
         Q444,
         "LIMA XRAY THREE ROMEO ZULU WHISKY YANKEE",
-        "near",
+        "correct",
         "WHISKY",
         "Whisky: the guide and catalogue write WHISKEY",
     ),
@@ -142,7 +145,7 @@ CASES = [
         "444-fr",
         Q444,
         "Lima X-ray trois Romeo Zoulou Whiskey Yankee",
-        "near",
+        "correct",
         "trois",
         "French digit and Zoulou",
     ),

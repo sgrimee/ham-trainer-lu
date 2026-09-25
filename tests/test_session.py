@@ -74,3 +74,56 @@ def test_cache_keeps_sub_items_of_one_question_apart():
     assert len(calls) == 2
     assert first.comment != second.comment
     assert again is first
+
+
+def test_open_items_are_graded_with_the_guides_other_wordings():
+    """specs/LEARN-2-3.md §4.5: each sub-item goes out with its own guide wordings, French only."""
+    from app.catalogue import load
+    from app.session import grade_open_question
+
+    sent = []
+
+    class _Recorder:
+        async def grade(self, **kwargs):
+            sent.append((kwargs["reference"], kwargs["also_official"]))
+            return GradeResult(elements=[], incorrect=[], comment="", source="llm", model="fake")
+
+    q = load().get(448)
+    asyncio.run(grade_open_question(_Recorder(), q, "fr", 7.0, {}))  # type: ignore
+    by_reference = dict(sent)
+    assert by_reference["La force de mes signaux varie-t-elle ?"] == (
+        "La force de vos signaux varie-t-elle ?",
+    )
+    assert by_reference["Je suis brouillé."] == ()
+    sent.clear()
+    asyncio.run(grade_open_question(_Recorder(), q, "de", 7.0, {}))  # type: ignore
+    assert all(others == () for _, others in sent)
+
+
+def test_cache_key_includes_the_other_wordings():
+    import json
+
+    import httpx2 as httpx
+
+    from app.grader import LLMGrader
+
+    calls = []
+
+    def handler(request):
+        calls.append(json.loads(request.content)["messages"][1]["content"])
+        content = json.dumps({"elements": [], "incorrect": [], "comment": ""})
+        return httpx.Response(200, json={"choices": [{"message": {"content": content}}]})
+
+    async def run():
+        async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
+            grader = LLMGrader("http://llm", "key", "fake", 5.0, client)
+            args = dict(
+                question_id=476, lang="fr", question="Q ?", reference="www.itu.org", candidate="www.itu.int"
+            )
+            await grader.grade(**args)
+            await grader.grade(also_official=("www.itu.int",), **args)
+
+    asyncio.run(run())
+    assert len(calls) == 2
+    assert "<also_official>www.itu.int</also_official>" in calls[1]
+    assert "also_official" not in calls[0]

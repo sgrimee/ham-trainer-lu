@@ -121,6 +121,7 @@ textarea { max-width: 100%; }
 .elements { padding-left: 1.2rem; }
 .elements li.present { color: var(--correct); }
 .elements li.missing { color: var(--incorrect); }
+.elements li.near { color: var(--partial); }
 .source-tag, .comment { font-size: 0.85rem; color: var(--muted); }
 
 .prev-next { display: flex; gap: 1rem; align-items: center; margin-top: 1rem; }

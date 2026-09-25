@@ -1,10 +1,14 @@
-"""Score the string-matching prototype on the spelling battery (specs/LEARN-2-3.md §4.2).
+"""The spelling grader for questions 440-446 (specs/LEARN-2-3.md §4.3).
 
-    uv run python tests/compare_spelling.py
+The right answer follows mechanically from the international alphabet, so a
+string matcher grades it exactly, instantly and offline, where the LLM
+rejected official forms and accepted wrong ones. Both apps grade spelling
+with it. `tests/spelling_fixtures.py` is its battery, approved 2026-09-25.
 
-The model side of the comparison is `mise run eval-grader --set spelling`,
-which grades the same cases. The prototype lives here, not in app/, until the
-choice is confirmed (specs/LEARN-2-3.md §4.2).
+Only the international alphabet counts: old national alphabets (London,
+Robert), invented words (Iceland, Zebra) and French letter names are wrong.
+Near forms -- Juliette, Whisky, Charly, Zoulou, "stroke", French or ITU
+digits, a numeral -- are accepted, with the catalogue's form as a hint.
 """
 
 from __future__ import annotations
@@ -12,8 +16,19 @@ from __future__ import annotations
 import difflib
 import re
 import unicodedata
+from dataclasses import dataclass
 
-from spelling_fixtures import CASES
+SPELLING_QUESTIONS = frozenset(range(440, 447))
+
+
+@dataclass(frozen=True)
+class SpellingResult:
+    verdict: str  # "correct" | "partial" | "incorrect"
+    share: float  # of the expected characters, in order
+    extra: list[str]  # words typed that are wrong or out of place
+    missing: list[str]  # expected characters (or suffix words) not spelled
+    near: list[tuple[str, str]]  # accepted variant as typed -> the catalogue's form
+
 
 # Official forms: those found in the ILR guide (§4.3-4.4) or in a catalogue
 # answer, the catalogue's first: it is the one suggested for a near form.
@@ -57,8 +72,9 @@ OFFICIAL = {
     "9": {"nine"},
     "/": ["slash", "barre"],
 }
-# Near forms: right on the air, but in neither the guide nor the catalogue. The
-# ILR marks strictly, so they are reported with the form the exam expects.
+# Near forms: in neither the guide nor the catalogue, but international forms of
+# the same word, variant spellings or the digit itself. Accepted (decided
+# 2026-09-25), and reported as a hint with the form the catalogue writes.
 NEAR = {
     "c": {"charly"},
     "j": {"juliette"},
@@ -136,9 +152,9 @@ def unit_of(token: str) -> str:
     return f"?{token}"
 
 
-def grade(question: str, candidate: str) -> tuple[str, float, list[str]]:
-    """(verdict, share of expected units present, problems): wrong words as
-    typed, missing units prefixed with '-', near forms as '~word>OFFICIAL'."""
+def grade(question: str, candidate: str) -> SpellingResult:
+    """Grade a spelling answer against the word or callsign quoted in the question
+    (never the catalogue's answer text, so 443's typo does not matter)."""
     toks = tokens(candidate)
     got = [unit_of(t) for t in toks]
     best = None
@@ -150,44 +166,16 @@ def grade(question: str, candidate: str) -> tuple[str, float, list[str]]:
             if tag in ("replace", "insert"):
                 extra += toks[j1:j2]
             if tag in ("replace", "delete"):
-                missing += ["-" + u.lstrip("#") for u in want[i1:i2]]
+                missing += [u.lstrip("#") for u in want[i1:i2]]
         score = (found / len(want), -len(extra))
         if best is None or score > best[0]:
-            best = (score, found, len(want), extra + missing)
-    _, found, total, problems = best
+            best = (score, found, len(want), extra, missing)
+    _, found, total, extra, missing = best
     # Letters or numerals alone are not the alphabet: nothing was spelled.
     spelled = any(t in LOOKUP and not t.isdigit() and len(t) > 1 for t in toks)
     if not spelled:
-        return "incorrect", 0.0, problems
-    near = list(dict.fromkeys(f"~{t}>{[*OFFICIAL[LOOKUP[t]]][0].upper()}" for t in toks if t in NEAR_WORDS))
-    if found == total and not problems:
-        return ("near", 1.0, near) if near else ("correct", 1.0, [])
-    problems += near
-    return ("incorrect" if found == 0 else "partial"), found / total, problems
-
-
-def main() -> int:
-    hits = traps = traps_hit = 0
-    print(f"{'case':18} {'expected':10} {'got':10} {'score':>6}      flagged")
-    for cid, _, question, _, candidate, expected, must_flag, _why in CASES:
-        got, share, flagged = grade(question, candidate)
-        hits += got == expected
-        note = ""
-        if must_flag:
-            traps += 1
-            # The word itself (wrong or near), or the unit it displaced reported missing.
-            caught = any(norm(must_flag) == norm(f.split(">")[0]) for f in flagged) or (
-                expected == "partial" and any(f.startswith("-") for f in flagged)
-            )
-            traps_hit += caught
-            note = "" if caught else "  MISSED " + must_flag
-        print(
-            f"{cid:18} {expected:10} {got:10} {share * 100:5.0f}%  {'ok ' if got == expected else 'BAD'}  "
-            f"{' '.join(flagged)}{note}"
-        )
-    print(f"-> {hits}/{len(CASES)} verdicts, {traps_hit}/{traps} wrong or near words flagged")
-    return 0 if hits == len(CASES) and traps_hit == traps else 1
-
-
-if __name__ == "__main__":
-    raise SystemExit(main())
+        return SpellingResult("incorrect", 0.0, extra, missing, [])
+    near = list(dict.fromkeys((t, [*OFFICIAL[LOOKUP[t]]][0].upper()) for t in toks if t in NEAR_WORDS))
+    if found == total and not extra and not missing:
+        return SpellingResult("correct", 1.0, [], [], near)
+    return SpellingResult("incorrect" if found == 0 else "partial", found / total, extra, missing, near)

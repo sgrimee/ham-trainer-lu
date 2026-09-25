@@ -66,15 +66,17 @@ allows.
 ### 1.3 Where the catalogue, the guide and the truth disagree
 
 `LEARN.md` §4.4 applies unchanged: the lesson says both, before the
-question, and the step gets an answer note. Phase 1 (§8) re-checks every one
-of the 33; these are already known:
+question, and the step gets an answer note. Phase 1 (§8) re-checked all 33
+against the guide, the 2005 law and the catalogue (2026-09-25); each case
+below is recorded in the `Plan :` outline of the lesson that prepares it:
 
 | Q | Issue | Treatment |
 |---|---|---|
-| 489 | Expects "le ministre ayant dans ses attributions la gestion des ondes radioélectriques"; the guide describes the ILR's missions at length, so a reader of the guide answers "l'ILR". | Lesson: the law makes the minister responsible, the ILR does the work on its behalf. Exam answer named plainly. Verify against the coordinated law on Legilux in phase 1. |
+| 489 | Expects "le ministre ayant dans ses attributions la gestion des ondes radioélectriques"; the guide describes the ILR's missions at length, so a reader of the guide answers "l'ILR". | Lesson: the law makes the minister responsible, and entrusts the day-to-day work to the ILR. Exam answer named plainly. **Checked** against the law as first published (`loi-2005-05-30-ondes` in `reference/documents.yaml`, Mémorial A n° 73): art. 1er(2)(b) defines "ministre" in exactly the catalogue's words, art. 2 reserves the management of radio waves to the State, arts. 4, 6 and 9 give the minister the powers (bans in a crisis, licences, fines). The ILR's missions came with later amendments; Legilux's coordinated text is script-only and was not read. |
 | 476 | Expects `www.itu.org`; the ITU's address — and the guide's own annex 5.5 — is `www.itu.int` (`itu.org` only redirects there, checked 2026-09-25). | Teach `itu.int`, say the catalogue writes `itu.org`; both are graded correct. |
-| 440–446 | The catalogue's answers use "ALPHA", "JULIET"/"JULLIET" (443, a typo), "WHISKEY" and English digits ("ONE"); the ITU table (RR appendix 14) and the guide write "Alfa", "Juliett"/"Juliet". | Teach the forms of the guide and the catalogue; say which common variants the ILR may not accept (§4.2). The grader never requires the typo. |
-| 448, 449 | The catalogue's answers phrase a "?" code as "Dois-je …?" (QRT?, QSY?), the ITU convention; the guide's table phrases it "Devez-vous …?". Wording differs elsewhere too: QSB? "mes signaux" (catalogue) vs "vos signaux" (guide); QSY? "passer à la transmission sur une autre fréquence" vs "changer de fréquence de transmission"; QRN "parasites" vs "parasites atmosphériques"; QRL "Je suis occupé" vs "Je suis occupé avec …". Q448 also asks QTR, which is not in the guide's table at all. | Teach the ITU convention ("?" = the question I ask about what *I* should do), with QTR from ITU-R M.1172. Both wordings of each code are official (§4.2); the grading cases say so. |
+| 440–446 | The catalogue's answers use "ALPHA", "JULIETT" (445) and "JULLIET" (443, a typo), "WHISKEY" and English digits ("ONE"); the ITU table (RR appendix 14) writes "Alfa", "Juliett", the guide "Alfa", "Juliet". The guide has no word for digits at all: the English words come only from the catalogue's answers. | Teach the forms of the guide and the catalogue; say which common variants the ILR may not accept (§4.2). The grader never requires the typo. |
+| 448, 449 | The catalogue's answers phrase a "?" code as "Dois-je …?" (QRT?, QSY?), the ITU convention; the guide's table phrases it "Devez-vous …?". Wording differs elsewhere too: QSB? "mes signaux" (catalogue) vs "vos signaux" (guide); QSY? "passer à la transmission sur une autre fréquence" vs "changer de fréquence de transmission"; QRN "parasites" vs "parasites atmosphériques"; QRL "Je suis occupé" vs "Je suis occupé avec …"; QRO "puissance de transmission" vs "puissance d'émission"; QTH? "Quelle est votre position ?" vs "… en latitude et en longitude". Q448 also asks QTR, which is not in the guide's table at all. | Teach the ITU convention ("?" = the question I ask about what *I* should do), with QTR from ITU-R M.1172. Both wordings of each code are official (§4.2); the grading cases say so. |
+| 467 | Expects "À la sortie de l'émetteur : puissance de 25 W", without PEP; the guide says 25 W PEP (§2.1, §3.7). | Teach 25 W PEP; both forms are right. |
 | 468 | Expects HAREC = 1000 W PEP; the guide limits HAREC to 100 W PEP during its first year. | Lesson gives both; the exam expects 1000. |
 | 499, 500, 505 | Say "licence de base" and "licence HAREC": the catalogue names the licence where the guide would name the certificate (a BASE licence is the licence granted to a BASE certificate holder). | `certificat-et-licence` separates the two, then warns that the exam says "licence de base" for both; the answer notes of 499, 500 and 505 repeat it. |
 | 505 | Expects "réservés aux titulaires HAREC". Strictly, a group licence is *placed under the responsibility of* a HAREC holder; other members, a BASE holder included, may operate the club station under its callsign. | Lesson says what may and may not be done; the note explains why the expected answer is phrased that way. |
@@ -146,14 +148,15 @@ see `app/catalogue.py`), and a question the course silently skips is worse
 than a red check.
 
 Consequence, accepted: 460–462 and 466 become answerable at the end of
-module `ondes` but appear in part 2. `--report` will show them as "late";
-that is informational (`LEARN.md` §3.2), and the lesson just before them
-makes the link explicit ("tu l'as vu dans la partie 1").
+module `ondes` but appear in part 2. `--report` does not flag them as "late",
+because they also require the lesson just before them (`band-allocation`,
+`base-privileges`), which makes the link explicit ("tu l'as vu dans la
+partie 1").
 
 ## 3. Modules
 
-Eight modules, 33 questions. Concept slugs below are indicative; phase 1
-fixes them.
+Seven modules, 33 questions. The concept slugs below are the ones
+`curriculum.yaml` uses (fixed in phase 1).
 
 ### Partie 3 — Réglementation (8 questions)
 
@@ -249,7 +252,7 @@ but no question asks it.
 | practice 452 | ← `distress-signals` | |
 
 Totals: R1 3 + R2 5 = 8; P1 8 + P2 1 + P3 8 + P4 5 + P5 3 = 25. 33 questions,
-27 lessons, 8 learn-more pages.
+27 lessons, 7 modules and so 7 learn-more pages, 30 new concepts.
 
 ## 4. Practising an open question
 
@@ -291,6 +294,14 @@ answer, not two (decided 2026-09-25):
   anyway, so there is nothing left to withhold.
 - **Wrong**: a missing, extra or wrong element.
 
+**Spelling is the exception (decided 2026-09-25).** Only the international
+alphabet counts — a word from an old national alphabet (London, Robert) or
+an invented one is wrong — but a near form of it (Juliette, Whisky, Charly,
+Zoulou, "stroke", a French or ITU digit, a numeral) is **accepted**: the
+answer is correct, completes the step and earns first-try XP, and the
+catalogue's form is shown as a hint. Near stays a wrong-form answer for the
+questions the LLM grades.
+
 ### 4.3 Spelling: the comparison
 
 Both candidates grade the same battery, `tests/spelling_fixtures.py`: 34
@@ -303,7 +314,8 @@ cases across the seven questions, each with its expected verdict.
   MARITIME MOBILE). Case, hyphens and punctuation are typing, not form.
 - **Near** (8): Juliette, Whisky, Charly, Zoulou, stroke, French digits,
   ITU figure words (Unaone), a numeral. Each names the word the grader must
-  point out.
+  point out. Since the decision in §4.2 these are `correct` cases; the word
+  is still reported, as a hint.
 - **Partly right** (14): a missing, swapped, extra or wrong character, the
   prefix or suffix left out, old national alphabet words (London, Robert),
   invented words (Iceland, Zebra), /MOBILE for /MM, the usual word spelled
@@ -312,9 +324,9 @@ cases across the seven questions, each with its expected verdict.
 
 Runs:
 
-- `uv run python tests/compare_spelling.py`: the string-matching prototype.
-  It grades the target string taken from the question, not the catalogue's
-  answer text, so 443's typo does not matter.
+- The string-matching prototype, now `app/spelling.py` (run by
+  `tests/test_spelling.py`). It grades the target string taken from the
+  question, not the catalogue's answer text, so 443's typo does not matter.
 - `mise run eval-grader --set spelling <model>`: the configured LLM, with the
   exact prompt the app sends. A `partial` from the LLM counts as right on a
   near case: it withheld full marks, which is what the ILR would do.
@@ -341,15 +353,14 @@ rules. The string matcher's caveat goes the other way: it was written
 together with the battery, so 34/34 shows only that it does what the battery
 says.
 
-**Outcome: the string matcher grades spelling, in both apps**, once someone
-other than its author has extended the battery with misspellings real
-learners make and it still passes. Until then it is the recommended choice,
-not a settled one. The LLM keeps the other 17 open questions, where there is
-no table to match against and paraphrase matters.
+**Outcome (settled 2026-09-25): the string matcher grades spelling, in both
+apps.** The battery was reviewed and approved by the project owner, with
+near forms accepted (§4.2). The LLM keeps the other 17 open questions, where
+there is no table to match against and paraphrase matters.
 
-The string matcher then becomes a grader in `app/`, chosen per question in the
-same seam as the LLM (`grade.source` gains `'rule'`), and the battery becomes
-a pytest test, since it costs nothing to run.
+The string matcher is now `app/spelling.py` and the battery a pytest test
+(`tests/test_spelling.py`, 34/34). Phase 2 plugs it into both apps, chosen
+per question in the same seam as the LLM (`grade.source` gains `'rule'`).
 
 ### 4.4 The retry loop for open answers
 
@@ -363,7 +374,7 @@ a pytest test, since it costs nothing to run.
   `app/store.py`; the MCQ path ignores it).
 - **Correct means complete and official.** An answer counts only when the
   grader finds every expected element, nothing false, and nothing near
-  (§4.2). `partial` is a wrong answer here: the exam would not give full
+  (§4.2; spelling accepts near forms). `partial` is a wrong answer here: the exam would not give full
   marks either. The grader's comment is shown, as in the trainer's study
   mode, and a near element is shown with its official form.
 - **The answer after one miss** (decided 2026-09-25). After one wrong
@@ -392,8 +403,8 @@ For the 17 questions the LLM grades, §4.2 means a change to the grading
 prompt, and so to the exam trainer, which uses the same one for every open
 question of every certificate, NOVICE and HAREC included: the model must
 report an element that is right in substance but worded unlike the
-reference and the guide ("la friture" for QRN's "parasites" or "parasites atmosphériques",
-"l'Union des télécoms" for UIT) as **near**, alongside present and missing,
+reference and the guide ("la friture" for QRN's "parasites" or "parasites
+atmosphériques") as **near**, alongside present and missing,
 with the official wording. The response schema gains that field; the
 trainer shows it in its feedback, and the proportional scoring counts a near
 element as missing, which is the strict reading the ILR applies. Whether an
@@ -407,18 +418,95 @@ The risk is false "near" flags on NOVICE and HAREC questions, whose
 references are longer and more loosely worded; `--set all` covers them, and
 its results are compared with today's before the change ships.
 
-The trainer's golden cases (`tests/grading_fixtures.py`) cover 452, 495,
-445, 448 and 469 among BASE questions. Phase 1 adds, for each of the 19 open
-questions of parts 2–3 they do not cover, the catalogue's reference answer (which must be
-graded `correct`), one near paraphrase (which must be flagged near), and the
-classic wrong answers (QRN answered as QRM, "l'ILR" for 489, 100 W for
-BASE's power, SOS for the voice distress signal). `mise run eval-grader
+The trainer's golden cases (`tests/grading_fixtures.py`) covered 452, 495,
+445 and 448 among BASE questions (469 only in a docstring). Phase 1 added
+`PART_2_3`: 66 cases over the 17 open questions the LLM grades (the 7
+spelling questions are the battery of §4.3). They are built from the
+catalogue exactly as the app sends them, and hold the reference answer
+(which must be graded `correct`), near forms (which must be flagged near),
+the guide's wording where it differs (§1.3: `correct`), and the classic
+wrong answers (QRN answered as QRM, "l'ILR" for 489, 100 W for BASE's power,
+SOS for the voice distress signal). `mise run eval-grader --set parts-2-3`
+runs them alone. `mise run eval-grader
 --set all` must pass before the course ships these parts, and again after
 any prompt or model change. It needs a key and costs a few cents, so it
 stays out of `mise run verify`, as today.
 
 Learner answers are sent to the grading provider, as the trainer's already
 are: the answer text only, never a name or an account id.
+
+**Phase 1 results (2026-09-25, `openai/gpt-5.1`).** Each element of the
+response gained `near` and `official`; `app/scoring.py` counts a near
+element as missing, and the trainer's feedback shows it with the form the
+ILR expects. The first wording of the rule flagged ordinary French
+rewording as near (chiffrer for encryptage, la météo); the rule now names
+the three cases (familiar register, a mangled or described name, a foreign
+or jargon word) and says "in doubt, not near".
+
+| Prompt | Golden (78) | Spelling (34) | Golden traps | Stable |
+|---|---|---|---|---|
+| Before (no near) | 66 | 27 (§4.3) | 7/7 | — |
+| Near rule, final | 71 | 27 | 7/7 | 96 % |
+
+Near forms are now caught (friture, jus, l'Union des télécoms, le
+régulateur luxembourgeois, Roger) and no trap regressed. What still fails
+is mostly one thing: **the grader sees only the catalogue's reference, so it
+rejects the guide's official wording and facts** — "vos signaux" for QSB?,
+HAREC's first year at 100 W (it tells the candidate this is false),
+the guide's ninth prohibition, `itu.int`, and in the spelling battery Alfa,
+"barre" and suffixes as letters. Two flip between runs: QRN answered as QRM
+(accepted as near in one run of two), and a one-word near form (Roger,
+BASIC). The §4.3 experiment already showed the remedy: give the grader, with
+the reference, the other official wordings (from the guide) for the
+questions of §1.3. That needs a curated per-question list and a change to
+the message the grader receives, measured like any prompt change; it is
+open in §10.
+
+**The guide's wordings, given to the grader (decided and done 2026-09-25).**
+`data/official_wordings.yaml` lists, per question and sub-item, the guide's
+wording where it differs from the catalogue's (the cases of §1.3: the Q codes
+of 448–449, 466–468, 471, 476), verbatim with its page; a test checks each
+entry against the catalogue. `app/official_wordings.py` loads it, and the
+grader receives each as an `<also_official>` element after the reference
+(French answers only; the cache key includes them). The prompt treats them
+as alternatives, never additions: elements come from the reference alone,
+either form of an element is present, and nothing a guide wording states is
+ever incorrect. A first wording of that rule let the model add elements
+from the guide (it then required both `itu.org` and `itu.int`).
+
+| Prompt | Golden (78) | Golden traps | Stable (2 runs) |
+|---|---|---|---|
+| Before (no near) | 66 | 7/7 | — |
+| Near rule | 71 | 7/7 | 96 % |
+| Near rule + guide wordings | 74 | 7/7 | 100 % |
+| + guide note on QRN, 459 revised | 76 | 7/7 | 99 % |
+| + owner decisions on 451, 459, 495 | 79 (first run) | 7/7 | 97 % |
+| + note on 469 | 78 | 7/7 | 100 % |
+
+Every guide-wording case now passes. Decided 2026-09-25 by the project
+owner: a near answer scores 0 outside spelling (§4.2 unchanged); a name
+without "internationale" is not the UIT's name, so "l'Union des télécoms" is
+wrong, not near (459). QRN answered with QRM's meaning was called near, so
+its hint said "juste en radio" where it is not: an entry of the file may now
+be a `note`, a fact from the guide sent as `<grading_note>`, and QRN's note
+quotes the guide's QRM line as a wrong answer. Left: "BASIC" for BASE is
+accepted (495), and 469-SIX, which passed before, came out partial in one
+run of two.
+
+Decided 2026-09-25 by the project owner, and recorded in the file with the
+source `decision 2026-09-25`: for 451's R only "Reçu" or "Received" is
+accepted ("Received" is sent as a wording, and a note makes "Roger" wrong,
+not near); for 495, "BASIC" is accepted for BASE (a note, since the model
+otherwise flipped between correct and near); 459 gets a note for its
+decision above. The prompt's near examples no longer use "Roger" or
+"l'Union des télécoms".
+
+469-SIX (six topics asked, ten listed) came out partial in one run of two
+despite the prompt's element-count rule; a note for 469 (decision
+2026-09-25) now says six valid topics are complete, and it passes in both
+runs, its trap still caught. One case is left, in both runs: "Mets plus de
+jus !" for QRO is graded wrong rather than near. Both score 0; only the
+hint differs.
 
 ## 5. Writing the lessons
 
@@ -479,7 +567,9 @@ Small, and all driven by §2 and §4:
 - **Grading**: the course calls the trainer's grader (`app/grader.py`)
   through the same seam and cache; the grader is created once at startup and
   shared by both apps. The grading prompt and response gain the near
-  element (§4.5). The rule-based spelling grader, as §4.3 recommends.
+  element (§4.5), and the guide's other official wordings
+  (`app/official_wordings.py`, done in phase 1). The rule-based spelling
+  grader (`app/spelling.py`, §4.3), wired in per question.
 - **Routes**: `/learn/base/<part>/<module>/…` for all three parts; a step
   URL with the wrong part redirects like an unknown module does today.
 - **Templates**: the practice page renders open steps (fields, locked
@@ -502,14 +592,16 @@ Morse (not examined in BASE).
 
 ## 8. Phases
 
-1. **Structure and grading.** `curriculum.yaml` with `parts` and the eight
-   new modules; stub lessons (title + `Plan :` line, as `LEARN.md` phase 1)
+1. **Structure and grading** (done 2026-09-25). `curriculum.yaml` with
+   `parts` and the seven new modules; stub lessons (title + `Plan :` line, as `LEARN.md` phase 1)
    and stub learn-more pages; the validator changes; the grading cases of
    §4.5 for all 24 open questions, with the prompt change for near elements;
-   the spelling battery extended by a second person and the choice confirmed
-   (§4.3); the §1.3 list re-checked against the guide and Legilux,
+   the spelling battery reviewed by a second person and the choice confirmed
+   (§4.3; approved by the project owner, near forms accepted); the §1.3 list re-checked against the guide and Legilux,
    each case recorded in the outline of the lesson that prepares it.
-   Reviewed before any prose.
+   Reviewed before any prose. Until phase 2 the application serves part 1
+   alone (`SERVED_PART` in `app/main.py`, `Course.only`): parts 2–3 are
+   validated but not routed, since their open steps have no page yet.
 2. **Application.** Routes, open-step rendering and retry loop, the
    `solved_items` column, dashboard by part, awards, interface text. Tests:
    per-part coverage failures, answers locking per item, the reveal after
@@ -535,14 +627,14 @@ plan.
 
 ## 10. Still to decide
 
-- **Spelling (§4.3)**: string matching, as the comparison recommends,
-  confirmed once the battery has been extended by someone other than its
-  author.
-- **Near paraphrases (§4.5)**: whether the prompt change catches them
-  reliably without flagging legitimate short answers, measured on the new
-  golden cases.
+- **449.4-near (§4.5)**: slang for "puissance" is graded wrong, not near
+  (same score, no hint). The gate asks `--set all` to pass; whether this
+  label-only miss blocks shipping parts 2–3 is open.
 
 Decided 2026-09-25: réglementation before procédures (§2.2); the same
 grading method in the course and the exam trainer, the LLM for open
-questions (§4.1); near answers reported with the official form (§4.2);
-the expected answer is revealed after one wrong submission (§4.4).
+questions (§4.1); near answers reported with the official form (§4.2),
+and accepted in spelling, which only the international alphabet satisfies;
+the string matcher grades spelling (§4.3); the guide's wordings go to the
+LLM with the catalogue's (§4.5); the expected answer is revealed after one
+wrong submission (§4.4).

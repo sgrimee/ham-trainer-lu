@@ -27,7 +27,7 @@
         {% if g.detail %}
           <ul class="elements">
             {% for e in g.detail.elements %}
-              <li class="{{ 'present' if e.present else 'missing' }}">{{ e.element }}{% if e.note %} — {{ e.note }}{% endif %}</li>
+              <li class="{{ 'missing' if not e.present else ('near' if e.near else 'present') }}">{{ e.element }}{% if e.near and e.official %} — {{ t(ui, 'official_form', form=e.official) }}{% endif %}{% if e.note %} — {{ e.note }}{% endif %}</li>
             {% endfor %}
           </ul>
           {% if g.detail.incorrect %}
