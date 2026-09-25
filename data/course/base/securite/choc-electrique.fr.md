@@ -27,8 +27,9 @@ Loi d'Ohm : I = U ÷ R.
 - Une prise de 230 V : I = 230 ÷ 1 000 = 0,23 A = **230 mA**. Bien assez
   pour tuer.
 
-Voilà pourquoi on ne mesure jamais une prise soi-même : un doigt qui glisse
-sur la pointe d'un fil de mesure suffit.
+Voilà pourquoi on ne mesure jamais une prise soi-même : il suffit qu'un
+doigt glisse sur la pointe métallique d'un fil de mesure pour que ce
+courant te traverse.
 
 ## La tension de contact
 

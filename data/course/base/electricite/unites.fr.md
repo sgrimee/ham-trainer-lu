@@ -2,11 +2,14 @@
 title: Grandeurs et unités
 ---
 
-Avant de parler d'électricité, il faut savoir **mesurer**. Et pour mesurer
-quelque chose, il faut deux ingrédients.
+Avant de parler d'électricité, il faut savoir **mesurer**.
 
 **Une grandeur**, c'est ce qu'on mesure. Ta taille, le temps d'une course,
 la masse d'un sac : ce sont des grandeurs.
+
+Quand on mesure une grandeur, on écrit le résultat avec deux ingrédients :
+**un nombre** et **une unité**. Par exemple, ta taille (la grandeur) vaut
+« 1,5 mètre » : 1,5 est le nombre, le mètre est l'unité.
 
 **Une unité**, c'est « dans quoi » on compte cette grandeur. Ta taille se
 compte en **mètres**, le temps en **secondes**, la masse en **kilogrammes**.
