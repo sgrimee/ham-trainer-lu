@@ -58,7 +58,7 @@ Tout est dans le guide de l'ILR, si tu es curieux.
 Ton indicatif est inscrit dans ta licence. Tel quel, sans rien devant ni
 derrière, il ne s'emploie qu'au **Luxembourg**. Et quand tu émets depuis
 une voiture ou loin de chez toi, on y ajoute quelque chose : on verra ça
-dans la partie 2.
+dans la partie 3.
 
 > **À retenir :** **LX** + **un chiffre** + **quatre lettres au plus**. Le
 > chiffre **7** annonce un certificat de **BASE**.

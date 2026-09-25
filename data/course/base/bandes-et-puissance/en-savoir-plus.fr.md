@@ -11,7 +11,7 @@ links:
   comment: 'Wikipédia : l''UIT et les conférences mondiales des radiocommunications, où les pays se répartissent les bandes.'
 ---
 
-Ce module relie les parties 1 et 3 : les bandes que tu connais, et qui
+Ce module relie les parties 1 et 2 : les bandes que tu connais, et qui
 les a attribuées. Pour voir tout ce que la BASE permet et interdit, lis
 les deux pages du guide sur les certificats. Le grand tableau des bandes
 est pour plus tard, quand tu viseras NOVICE ou HAREC.

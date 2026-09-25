@@ -19,7 +19,6 @@
 {% for p in parts %}
 <section class="course-part" id="part-{{ p.part.slug }}">
   <h2>{{ t(ui, 'part_heading', n=p.part.number, title=p.title) }}</h2>
-  {% if p.after %}<p class="hint part-after">{{ t(ui, 'part_after', parts=p.after|join(', ')) }}</p>{% endif %}
   {% if p.next_up %}
     <a class="button part-continue" href="{{ step_url(p.next_up) }}">{{ t(ui, 'continue_part', n=p.part.number) }} &rarr;</a>
   {% else %}

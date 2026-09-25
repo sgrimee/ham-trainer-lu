@@ -41,7 +41,7 @@ import pathlib
 import re
 import sys
 from collections import Counter
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from urllib.parse import urlparse
 
 import yaml
@@ -54,9 +54,10 @@ COURSE_DIR = ROOT / "data" / "course" / "base"
 CURRICULUM = "curriculum.yaml"
 
 CERT = "base"
-# A part's slug is the catalogue's name for its section; its number comes from
-# inverting PART_NAMES and is never written in the YAML (LEARN-2-3 §2.2).
-PART_NUMBERS = {name: number for number, name in catalogue.PART_NAMES.items()}
+# A part's slug is the catalogue's name for its section, which ties its
+# practice steps to the exam's section prefix (LEARN-2-3 §2.3). Its number is
+# its place in the course, never the section's (§2.2).
+SECTION_OF_PART = {name: number for number, name in catalogue.PART_NAMES.items()}
 LANGS = ("fr", "de")
 LEARN_MORE = "en-savoir-plus"
 
@@ -114,11 +115,7 @@ class Part:
     slug: str  # catalogue.PART_NAMES value: "technique", "procedures", ...
     title: dict[str, str]
     modules: tuple[Module, ...]
-
-    @property
-    def number(self) -> str:
-        """The exam's part number, "1" to "3": the catalogue section prefix."""
-        return PART_NUMBERS[self.slug]
+    number: str = ""  # "1" to "3", its place in the course (LEARN-2-3 §2.2)
 
 
 @dataclass(frozen=True)
@@ -346,8 +343,8 @@ def _parse_part(raw: object, where: str, problems: list[str]) -> Part | None:
     for key in set(raw) - PART_KEYS:
         problems.append(f"{where}: unknown key {key!r} on a part")
     slug = raw.get("slug")
-    if slug not in PART_NUMBERS:
-        problems.append(f"{where}: part slug {slug!r} is not one of {list(PART_NUMBERS)}")
+    if slug not in SECTION_OF_PART:
+        problems.append(f"{where}: part slug {slug!r} is not one of {list(SECTION_OF_PART)}")
         return None
     assert isinstance(slug, str)
     where = f"part {slug}"
@@ -374,7 +371,9 @@ def _parse(raw: object, problems: list[str]) -> Course | None:
         problems.append(f"{CURRICULUM}: `parts` must be a non-empty list")
         return None
     parts = [_parse_part(p, f"part {i + 1}", problems) for i, p in enumerate(raw_parts)]
-    return Course(tuple(p for p in parts if p is not None))
+    return Course(
+        tuple(replace(p, number=str(i + 1)) for i, p in enumerate(p for p in parts if p is not None))
+    )
 
 
 def _check_uniqueness(course: Course, problems: list[str]) -> None:
@@ -432,7 +431,7 @@ def _part_of_step(course: Course) -> dict[Step, Part]:
 
 def _base_ids_by_part(questions: list[dict]) -> dict[str, set[int]]:
     """Part slug -> the BASE questions of its catalogue section."""
-    out: dict[str, set[int]] = {slug: set() for slug in PART_NUMBERS}
+    out: dict[str, set[int]] = {slug: set() for slug in SECTION_OF_PART}
     for q in questions:
         if CERT in q["tags"]:
             out[catalogue.part_of(q["section"])].add(q["id"])
@@ -452,7 +451,8 @@ def _check_coverage(course: Course, questions: list[dict], problems: list[str]) 
     for part, ids in _base_ids_by_part(questions).items():
         for qid in sorted(ids - set(used)):
             problems.append(
-                f"question {qid} (BASE, section {PART_NUMBERS[part]}.x) has no practice step in part {part}"
+                f"question {qid} (BASE, section {SECTION_OF_PART[part]}.x)"
+                f" has no practice step in part {part}"
             )
 
 
@@ -474,7 +474,8 @@ def _check_question_shape(course: Course, questions: list[dict], problems: list[
         part = part_of[s]
         if catalogue.part_of(q["section"]) != part.slug:
             problems.append(
-                f"{where}: question is in section {q['section']}, not {part.number}.x (part {part.slug})"
+                f"{where}: question is in section {q['section']},"
+                f" not {SECTION_OF_PART[part.slug]}.x (part {part.slug})"
             )
         if q["kind"] == "mcq":
             correct = sum(1 for o in q["options"] if o.get("is_correct"))

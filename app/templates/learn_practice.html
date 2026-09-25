@@ -26,12 +26,14 @@
 {{ crumbs(ui, module, module_title, position, module_total) }}
 {{ missing_lessons(ui, missing) }}
 {# A practice question looks exactly like an exam question (specs/LEARN.md §5):
-   same view model, same options markup, catalogue order, no "show answer". #}
+   same view model, same options markup, catalogue order, no "show answer".
+   The section is named, not numbered: the course numbers its parts in its
+   own order (specs/LEARN-2-3.md §2.2). #}
 <article class="question practice">
   {{ prev_next(top=true) }}
   <header class="q-meta">
     <span>{{ title }}</span>
-    <span>{{ t(ui, 'section_label') }} {{ q.section }}</span>
+    <span>{{ q.section_de if ui == 'de' and q.section_de else q.section_fr }}</span>
   </header>
   <div class="stem">
     {% for c in q.stem %}<p>{{ cell(c) }}</p>{% endfor %}

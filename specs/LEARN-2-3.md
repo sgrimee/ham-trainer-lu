@@ -127,9 +127,22 @@ internationally, 459; BASE's power limit, 467; spelling a callsign, 440).
 Taught in catalogue order, part 2 would have to introduce the certificate,
 the callsign and the UIT in passing and part 3 would then ask about them
 cold. The order is a recommendation, as everywhere else (`LEARN.md` §7):
-every step stays open, and the dashboard still lists parts 1, 2, 3 by
-number. The YAML holds the course order; a part's number comes from
-inverting `PART_NAMES` and is never written in the YAML.
+every step stays open.
+
+**The course numbers its parts in its own order** (decided 2026-09-25,
+after phase 3): Techniques is part 1, Réglementation part 2, Procédures
+part 3, on the dashboard, in badges and in the lessons' prose. The number
+is a part's place in the YAML, never written there. It is not the exam's
+section number, and the course never shows section numbers: a practice
+page names its section (« Code Q et les abréviations opérationnelles »),
+and the lessons point to the trainer's sections by name. The exam trainer
+keeps the catalogue's numbering. Internally, a part's slug still maps to
+its section prefix (`SECTION_OF_PART` in `app/course.py`) for the
+coverage check of §2.3.
+
+In the rest of this plan, "part 2" and "part 3" and the P/R module labels
+follow the catalogue (P = procédures, R = réglementation), as written
+before this decision.
 
 ### 2.3 What the validator enforces per part
 
@@ -622,7 +635,8 @@ Morse (not examined in BASE).
      and is not graded again on a revisit (§5.1 of `LEARN.md` regrades an
      MCQ for free; an open answer costs a call).
    - The dashboard lists parts 1, 2, 3, each with its own "Continue"; part 2
-     says it comes after part 3 until part 3 is done. Badges: one per part
+     said it came after part 3 until part 3 was done, until the parts were
+     renumbered in course order (§2.2). Badges: one per part
      (`base-technique` keeps its ref) and `base` for the whole course.
    - The trainer grades 440–446 with `app/spelling.py` (`source = 'rule'`),
      showing a near form as a hint with the catalogue's form.

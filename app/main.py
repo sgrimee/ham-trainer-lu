@@ -710,22 +710,13 @@ def learn_home(
     ]
     practice = [s for s in course.steps if s.kind == "practice"]
 
-    def part_done(p: course_module.Part) -> bool:
-        return course.next_up_in(p, completed) is None
-
-    # Listed by exam number, while next up follows the course order, which
-    # takes part 3 before part 2 (specs/LEARN-2-3.md §2.2): a part says which
-    # higher-numbered parts it comes after, until they are done.
+    # Listed and numbered in course order (specs/LEARN-2-3.md §2.2), each
+    # part with its own "Continue".
     parts = [
         {
             "part": p,
             "title": p.title.get(ui, p.title["fr"]),
             "next_up": course.next_up_in(p, completed),
-            "after": [
-                q.number
-                for q in course.parts[: course.parts.index(p)]
-                if q.number > p.number and not part_done(q)
-            ],
             "modules": [
                 {
                     "module": m,
@@ -737,7 +728,7 @@ def learn_home(
                 for m in p.modules
             ],
         }
-        for p in sorted(course.parts, key=lambda p: p.number)
+        for p in course.parts
     ]
     return _render_learn(
         request,

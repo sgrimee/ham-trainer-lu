@@ -13,7 +13,7 @@ links:
   comment: 'Le 112, le numéro des secours au Luxembourg : ce qu''il faut dire quand on l''appelle (où, qui, ce qui s''est passé).'
 ---
 
-Ce module finit la partie 2 : tu connais maintenant les règles de
-conduite du radioamateur. Relis les pages du guide, elles tiennent en
+Ce module termine la partie 3, et tout le cours : tu connais maintenant
+les règles de conduite du radioamateur. Relis les pages du guide, elles tiennent en
 deux pages. Et si l'histoire t'intéresse, les articles sur MAYDAY et SOS
 racontent comment le monde entier s'est mis d'accord sur ces mots.

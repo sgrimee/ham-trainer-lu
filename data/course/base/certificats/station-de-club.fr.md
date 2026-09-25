@@ -41,7 +41,7 @@ d'autre.
 
 Ce qui ne t'empêche pas d'**utiliser** la station du club : avec ta BASE,
 tu pourras t'en servir, sous son indicatif LX9, mais **dans les limites de
-ta BASE** (les bandes et la puissance que tu verras dans la partie 2).
+ta BASE** (les bandes et la puissance que tu verras dans la partie 3).
 
 > **À l'examen :** la réponse attendue est que les indicatifs de groupe
 > (LX9) sont **réservés aux titulaires d'une licence HAREC**. Comprends :

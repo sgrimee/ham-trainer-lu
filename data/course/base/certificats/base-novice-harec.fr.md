@@ -45,7 +45,7 @@ On écrit les trois noms en **majuscules**, comme l'ILR.
 L'examen de BASE est plus simple que l'examen NOVICE, qui est plus simple
 que l'examen HAREC. En échange, les deux premiers certificats ont des
 **limites** : moins de puissance, et la BASE a aussi moins de bandes. Tu verras dans la
-partie 2 ce que la BASE te permet exactement.
+partie 3 ce que la BASE te permet exactement.
 
 L'idée est de progresser à ton rythme. Avec la BASE, tu peux déjà émettre
 et parler avec d'autres radioamateurs. Plus tard, si tu en as envie, tu

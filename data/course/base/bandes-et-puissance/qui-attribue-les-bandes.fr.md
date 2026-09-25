@@ -10,7 +10,7 @@ sources:
 ---
 
 Dans la partie 1, tu as découvert les bandes des radioamateurs. Dans la
-partie 3, tu as rencontré l'UIT et l'ILR. Il est temps de relier les
+partie 2, tu as rencontré l'UIT et l'ILR. Il est temps de relier les
 deux : qui a décidé que ces bandes-là seraient pour nous ?
 
 ## Deux niveaux, deux institutions

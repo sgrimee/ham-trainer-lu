@@ -675,17 +675,25 @@ def test_part_1_progress_survives_the_parts_level():
     assert all(s.part == "technique" for s in COURSE.only("technique").steps)
 
 
-def test_dashboard_lists_parts_by_number_with_their_own_continue(client, store: Store, learner):
+def test_dashboard_numbers_parts_in_course_order_with_their_own_continue(client, store: Store, learner):
+    """Parts are numbered by their place in the course, not by exam section
+    (LEARN-2-3 §2.2): Réglementation, taught second, is part 2."""
     page = client.get("/learn").text
-    positions = [page.index(f'id="part-{slug}"') for slug in ("technique", "procedures", "reglementation")]
+    positions = [page.index(f'id="part-{slug}"') for slug in ("technique", "reglementation", "procedures")]
     assert positions == sorted(positions)
+    assert "Partie 2 — Réglementation" in page and "Partie 3 — Règles et procédures" in page
     for part in COURSE.parts:
         assert f'href="{url(part.modules[0].steps[0])}"' in page
-    # Part 2 comes after part 3 in the course: said until part 3 is done.
-    assert "Conseillé après la partie 3" in page
-    seed(store, learner, COURSE.only("reglementation").steps)
-    page = client.get("/learn").text
-    assert "Conseillé après" not in page and "Partie terminée" in page
+    assert "Conseillé après" not in page
+
+
+def test_a_practice_page_names_its_section_without_its_number(client, learner):
+    step = next(s for s in COURSE.only("procedures").steps if s.kind == "practice")
+    page = html.unescape(client.get(url(step)).text)
+    assert step.question_id is not None
+    q = cat.get(step.question_id)
+    assert q["section_fr"] in page
+    assert f"Section {q['section']}" not in page
 
 
 def test_finishing_a_part_earns_its_badge(client, store: Store, learner):

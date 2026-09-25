@@ -13,6 +13,6 @@ links:
 
 Les codes, comme l'alphabet, s'apprennent en y revenant plusieurs jours
 de suite. Sur ce site, l'entraînement à l'examen en mode étude sur la
-section 2.2 (« Code Q et les abréviations opérationnelles ») te repose les questions jusqu'à
+section « Code Q et les abréviations opérationnelles » te repose les questions jusqu'à
 ce qu'elles soient faciles. Le reste des codes est dans le guide et sur
 Wikipédia, quand tu en auras besoin.

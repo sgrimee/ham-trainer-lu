@@ -9,7 +9,7 @@ links:
 
 L'alphabet ne s'apprend pas en une fois : il faut y revenir plusieurs
 jours de suite. Le meilleur outil est sur ce site : l'entraînement à
-l'examen, en mode étude sur la section 2.1 (« Alphabet international
-d'épellation »), te repose les questions jusqu'à ce qu'elles soient
+l'examen, en mode étude sur la section « Alphabet international
+d'épellation », te repose les questions jusqu'à ce qu'elles soient
 faciles. Et chaque fois que tu vois une plaque de voiture, épelle-la
 dans ta tête !
