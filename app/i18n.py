@@ -54,6 +54,7 @@ MESSAGES = {
         "elements_present": "Éléments présents",
         "incorrect_statements": "Affirmations incorrectes",
         "official_form": "juste en radio, mais l'ILR attend : {form}",
+        "spelling_hint": "« {typed} » est accepté ; le questionnaire écrit {form}.",
         "score": "Score",
         "part": "Partie",
         "technique": "Techniques",
@@ -97,10 +98,10 @@ MESSAGES = {
             "les certificats BASE, NOVICE et HAREC. Il a deux parties."
         ),
         "landing_learn_text": (
-            "Le cours pour qui part de zéro : la partie 1 de l'examen BASE, les "
-            "techniques, expliquée une idée à la fois. Dès que tu en sais assez pour "
-            "répondre, une vraie question d'examen apparaît. Ta progression est "
-            "enregistrée à ton nom."
+            "Le cours pour qui part de zéro : les trois parties de l'examen BASE "
+            "(techniques, réglementation, procédures), expliquées une idée à la fois. "
+            "Dès que tu en sais assez pour répondre, une vraie question d'examen "
+            "apparaît. Ta progression est enregistrée à ton nom."
         ),
         "landing_learn_button": "Commencer le cours",
         "landing_exam_text": (
@@ -111,15 +112,15 @@ MESSAGES = {
         "landing_exam_button": "S'entraîner",
         "landing_path_title": "Par où commencer ?",
         "landing_path_text": (
-            "Commence par le cours, puis passe à l'entraînement une fois le cours terminé. "
-            "Pour les parties 2 et 3 de l'examen (procédures et réglementation), que le "
-            "cours ne couvre pas encore, tu peux t'entraîner tout de suite."
+            "Commence par le cours, puis passe à l'entraînement une fois le cours terminé, "
+            "pour t'exercer dans les conditions de l'examen."
         ),
         "landing_guide_text": (
-            "Pour apprendre ces parties 2 et 3, la référence est le guide du radioamateur publié par l'ILR :"
+            "Pour aller plus loin sur la réglementation et les procédures, la référence est "
+            "le guide du radioamateur publié par l'ILR :"
         ),
         "landing_guide_link": "Guide du radioamateur (ILR, PDF)",
-        "course_title": "Cours BASE — partie 1 : Techniques",
+        "course_title": "Cours BASE",
         "dashboard": "Mon parcours",
         "continue": "Continuer",
         "course_done": "Bravo, tu as terminé tout le cours !",
@@ -142,7 +143,16 @@ MESSAGES = {
         "badge_locked": "pas encore gagné",
         "badge_first_lesson": "Première leçon",
         "badge_module": "Module terminé : {title}",
-        "badge_course_done": "BASE partie 1 terminée",
+        "badge_part": "BASE partie {n} terminée",
+        "part_heading": "Partie {n} — {title}",
+        "continue_part": "Continuer la partie {n}",
+        "part_done": "Partie terminée !",
+        "part_after": "Conseillé après la partie {parts}, sur laquelle celle-ci s'appuie.",
+        "expected_answer": "Réponse attendue",
+        "open_try_again": "Pas encore tout juste. Corrige les réponses qui ne sont pas encore validées.",
+        "self_grade_learner": "La correction automatique n'est pas disponible pour l'instant.",
+        "self_grade_learner_prompt": "Compare ta réponse à la réponse attendue : l'avais-tu ?",
+        "badge_course_done": "Cours BASE terminé",
         "admin_learners": "Élèves",
         "add_learner": "Ajouter",
         "display_name": "Prénom ou surnom",
@@ -204,6 +214,7 @@ MESSAGES = {
         "elements_present": "Vorhandene Elemente",
         "incorrect_statements": "Falsche Aussagen",
         "official_form": "im Funkverkehr richtig, aber das ILR erwartet: {form}",
+        "spelling_hint": "„{typed}“ wird akzeptiert; der Fragenkatalog schreibt {form}.",
         "score": "Punkte",
         "part": "Teil",
         "technique": "Technik",
@@ -247,10 +258,10 @@ MESSAGES = {
             "Luxemburg: die Zertifikate BASE, NOVICE und HAREC. Sie hat zwei Teile."
         ),
         "landing_learn_text": (
-            "Der Kurs für alle, die bei null anfangen: Teil 1 der BASE-Prüfung, die "
-            "Technik, eine Idee nach der anderen erklärt. Sobald du genug weißt, um zu "
-            "antworten, erscheint eine echte Prüfungsfrage. Dein Fortschritt wird unter "
-            "deinem Namen gespeichert."
+            "Der Kurs für alle, die bei null anfangen: die drei Teile der BASE-Prüfung "
+            "(Technik, Vorschriften, Verfahren), eine Idee nach der anderen erklärt. "
+            "Sobald du genug weißt, um zu antworten, erscheint eine echte Prüfungsfrage. "
+            "Dein Fortschritt wird unter deinem Namen gespeichert."
         ),
         "landing_learn_button": "Kurs starten",
         "landing_exam_text": (
@@ -262,15 +273,14 @@ MESSAGES = {
         "landing_path_title": "Womit anfangen?",
         "landing_path_text": (
             "Fang mit dem Kurs an und wechsle zum Training, wenn du ihn abgeschlossen "
-            "hast. Für die Teile 2 und 3 der Prüfung (Verfahren und Vorschriften), die "
-            "der Kurs noch nicht abdeckt, kannst du sofort üben."
+            "hast, um unter Prüfungsbedingungen zu üben."
         ),
         "landing_guide_text": (
-            "Um diese Teile 2 und 3 zu lernen, ist der vom ILR veröffentlichte "
-            "Leitfaden für Funkamateure die Referenz (auf Französisch):"
+            "Um mehr über Vorschriften und Verfahren zu erfahren, ist der vom ILR "
+            "veröffentlichte Leitfaden für Funkamateure die Referenz (auf Französisch):"
         ),
         "landing_guide_link": "Guide du radioamateur (ILR, PDF)",
-        "course_title": "BASE-Kurs — Teil 1: Technik",
+        "course_title": "BASE-Kurs",
         "dashboard": "Mein Kurs",
         "continue": "Weiter",
         "course_done": "Bravo, du hast den ganzen Kurs abgeschlossen!",
@@ -293,7 +303,16 @@ MESSAGES = {
         "badge_locked": "noch nicht verdient",
         "badge_first_lesson": "Erste Lektion",
         "badge_module": "Modul abgeschlossen: {title}",
-        "badge_course_done": "BASE Teil 1 abgeschlossen",
+        "badge_part": "BASE Teil {n} abgeschlossen",
+        "part_heading": "Teil {n} — {title}",
+        "continue_part": "Teil {n} fortsetzen",
+        "part_done": "Teil abgeschlossen!",
+        "part_after": "Empfohlen nach Teil {parts}, auf dem dieser Teil aufbaut.",
+        "expected_answer": "Erwartete Antwort",
+        "open_try_again": "Noch nicht ganz richtig. Verbessere die Antworten, die noch nicht bestätigt sind.",
+        "self_grade_learner": "Die automatische Korrektur ist gerade nicht verfügbar.",
+        "self_grade_learner_prompt": "Vergleiche deine Antwort mit der erwarteten: Hattest du sie?",
+        "badge_course_done": "BASE-Kurs abgeschlossen",
         "admin_learners": "Lernende",
         "add_learner": "Hinzufügen",
         "display_name": "Vorname oder Spitzname",

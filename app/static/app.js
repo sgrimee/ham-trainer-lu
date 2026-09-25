@@ -39,3 +39,15 @@ if (modeRadios.length && studyOnly) {
   modeRadios.forEach((r) => r.addEventListener("change", syncStudyOnly));
   syncStudyOnly();
 }
+
+// An open course answer waits for the grader, a few seconds (specs/LEARN-2-3.md
+// §4.4): the button says so, and a second click cannot post it twice.
+document.querySelectorAll("form.open-answer").forEach((form) => {
+  form.addEventListener("submit", () => {
+    const button = form.querySelector("button[data-grading]");
+    if (button) {
+      button.textContent = button.dataset.grading;
+      button.disabled = true;
+    }
+  });
+});

@@ -68,7 +68,12 @@ def test_open_answer_without_grader_is_self_graded(client, store: Store):
     attempt_id = _create_study_attempt(client)
     attempt = store.get_attempt(attempt_id)
     assert attempt is not None
-    open_qid = next(qid for qid in attempt["question_ids"] if cat.get(qid)["kind"] == "open")
+    # Spelling is graded by rule, offline (specs/LEARN-2-3.md §4.3): not this path.
+    open_qid = next(
+        qid
+        for qid in attempt["question_ids"]
+        if cat.get(qid)["kind"] == "open" and len(cat.get(qid)["answer"]) == 1 and qid not in range(440, 447)
+    )
     n = attempt["question_ids"].index(open_qid) + 1
     item_field = f"item_{cat.get(open_qid)['answer'][0]['item_no']}"
 
@@ -93,3 +98,31 @@ def test_toggle_flag_out_of_range_is_404_not_a_crash(client):
     attempt_id = _create_study_attempt(client)
     assert client.post(f"/attempts/{attempt_id}/q/0/flag", data={"flagged": "1"}).status_code == 404
     assert client.post(f"/attempts/{attempt_id}/q/9999/flag", data={"flagged": "1"}).status_code == 404
+
+
+def test_open_answer_partly_blank_without_grader_waits_for_a_self_verdict(client, store: Store):
+    """A blank sub-item is wrong without a call; the others, ungraded, still
+    get the self-verdict."""
+    attempt_id = _create_study_attempt(client)
+    attempt = store.get_attempt(attempt_id)
+    assert attempt is not None
+    n = attempt["question_ids"].index(448) + 1
+    client.post(f"/attempts/{attempt_id}/q/{n}/answer", data={"item_1": "Dois-je arrêter ?"})
+    verdicts = {r["item_no"]: r["verdict"] for r in store.grades(attempt_id)[448]}
+    assert verdicts[1] == "ungraded" and verdicts[2] == "incorrect"
+    assert 'class="self-grade"' in client.get(f"/attempts/{attempt_id}/q/{n}").text
+
+
+def test_spelling_is_graded_by_rule_without_a_model(client, store: Store):
+    """specs/LEARN-2-3.md §4.3: the trainer grades 440-446 with the string
+    matcher, offline, and a near form is accepted with the catalogue's form."""
+    attempt_id = _create_study_attempt(client)
+    attempt = store.get_attempt(attempt_id)
+    assert attempt is not None
+    n = attempt["question_ids"].index(440) + 1
+    answer = "Lima X-ray Un Romeo Tango Golf Yankee"
+    client.post(f"/attempts/{attempt_id}/q/{n}/answer", data={"item_0": answer})
+    (row,) = store.grades(attempt_id)[440]
+    assert (row["verdict"], row["source"], row["points"]) == ("correct", "rule", 1.0)
+    page = client.get(f"/attempts/{attempt_id}/q/{n}").text
+    assert "ONE" in page and "self-grade" not in page

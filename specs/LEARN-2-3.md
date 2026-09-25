@@ -599,16 +599,33 @@ Morse (not examined in BASE).
    the spelling battery reviewed by a second person and the choice confirmed
    (§4.3; approved by the project owner, near forms accepted); the §1.3 list re-checked against the guide and Legilux,
    each case recorded in the outline of the lesson that prepares it.
-   Reviewed before any prose. Until phase 2 the application serves part 1
-   alone (`SERVED_PART` in `app/main.py`, `Course.only`): parts 2–3 are
-   validated but not routed, since their open steps have no page yet.
-2. **Application.** Routes, open-step rendering and retry loop, the
+   Reviewed before any prose. Until phase 2 the application served part 1
+   alone: parts 2–3 were validated but not routed.
+2. **Application** (done 2026-09-25). Routes, open-step rendering and retry loop, the
    `solved_items` column, dashboard by part, awards, interface text. Tests:
    per-part coverage failures, answers locking per item, the reveal after
    one wrong submission, first-try XP on an open step, no XP when
    self-graded, old progress intact after the `parts` migration. All with no
    grader or a fake one injected, as the trainer's tests do: no test spends
-   tokens.
+   tokens. What the plan left open was settled as follows:
+   - `practice_result` gains `solved_items` ({item: answer, source, spelling
+     hints}) and `last_try` (the other fields' grades at the last
+     submission, for their feedback after the redirect), both by an
+     idempotent `ALTER TABLE` at startup.
+   - Grading runs before the write transaction, never under the lock; only
+     the unsolved fields are sent. A blank field is wrong without a call, in
+     both apps; in the trainer's study mode, fields left ungraded beside it
+     are stored as `ungraded` placeholders so the self-verdict still applies.
+   - Self-grading in the course: "j'avais raison" solves the ungraded
+     fields (never XP); "j'avais tort" makes them wrong, to be typed again.
+   - A completed open step is shown read-only with the reference answers
+     and is not graded again on a revisit (§5.1 of `LEARN.md` regrades an
+     MCQ for free; an open answer costs a call).
+   - The dashboard lists parts 1, 2, 3, each with its own "Continue"; part 2
+     says it comes after part 3 until part 3 is done. Badges: one per part
+     (`base-technique` keeps its ref) and `base` for the whole course.
+   - The trainer grades 440–446 with `app/spelling.py` (`source = 'rule'`),
+     showing a near form as a hint with the catalogue's form.
 3. **Content.** First **R2 `certificats`** alone, end to end: it mixes MCQ
    and open steps, rules and a diagram, and the rest of both parts leans on
    it. Then **P3 `alphabet`**, the first rote-memory module, to settle how

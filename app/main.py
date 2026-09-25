@@ -42,7 +42,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     # half-valid course must fail the deploy here rather than render as a
     # broken page in front of a learner.
     try:
-        app.state.course = course_module.load(questions=cat.questions).only(SERVED_PART)
+        app.state.course = course_module.load(questions=cat.questions)
     except course_module.CourseError as e:
         for p in e.problems:
             log.error("course: %s", p)
@@ -592,15 +592,12 @@ def appendix(request: Request, lang: str = "fr"):
 # (§6.2) must land before the course is opened to anyone else.
 #
 # Every step is open, in any order (§7); next up is only the recommended path.
-# A step that isn't in the named module and an unknown module redirect to next
-# up, and a post for either writes nothing. Practice grading is an exact
-# match on `is_correct` -- no LLM belongs on this path (§2).
+# A step that isn't in the named part and module, and an unknown part or
+# module, redirect to next up, and a post for any of them writes nothing.
+# An MCQ is graded by exact match on `is_correct`, no LLM (§2); an open
+# question exactly as the exam trainer grades it (specs/LEARN-2-3.md §4.1).
 
-# Parts 2 and 3 are in the curriculum and validated, but their practice steps
-# include open questions this page cannot grade yet: until specs/LEARN-2-3.md
-# phase 2 (routes per part, open steps), the course served is part 1 alone.
-SERVED_PART = "technique"
-COURSE_PREFIX = f"/learn/{course_module.CERT}/{SERVED_PART}"
+COURSE_PREFIX = f"/learn/{course_module.CERT}"
 
 
 def course_ui(request: Request, module: course_module.Module | None = None) -> str:
@@ -619,11 +616,15 @@ def current_learner(request: Request, store: Store) -> dict | None:
 
 def step_url(step: course_module.Step | None) -> str:
     """A step's address; the dashboard once there is no step (course done)."""
-    return f"{COURSE_PREFIX}/{step.module}/{step.slug}" if step else "/learn"
+    return f"{COURSE_PREFIX}/{step.part}/{step.module}/{step.slug}" if step else "/learn"
+
+
+def module_url(module: course_module.Module) -> str:
+    return f"{COURSE_PREFIX}/{module.part}/{module.slug}"
 
 
 templates.env.globals["step_url"] = step_url  # type: ignore
-templates.env.globals["course_prefix"] = COURSE_PREFIX  # type: ignore
+templates.env.globals["module_url"] = module_url  # type: ignore
 
 
 def _to_dashboard() -> Response:
@@ -646,11 +647,15 @@ def _awards(course: course_module.Course, step: course_module.Step):
 
 
 def badge_label(course: course_module.Course, ref: str, ui: str) -> str | None:
-    """A badge's name; None for a module badge whose module is gone (§7)."""
+    """A badge's name; None for a module or part badge whose module or part
+    is gone (§7)."""
     if ref == awards.FIRST_LESSON:
         return t(ui, "badge_first_lesson")
     if ref == awards.COURSE_DONE:
         return t(ui, "badge_course_done")
+    if ref.startswith(awards.PART_PREFIX):
+        p = course.part(ref.removeprefix(awards.PART_PREFIX))
+        return t(ui, "badge_part", n=p.number) if p else None
     m = course.module(ref.removeprefix("module:"))
     return t(ui, "badge_module", title=m.title.get(ui, m.title["fr"])) if m else None
 
@@ -704,15 +709,35 @@ def learn_home(
         if (label := badge_label(course, ref, ui))
     ]
     practice = [s for s in course.steps if s.kind == "practice"]
-    modules = [
+
+    def part_done(p: course_module.Part) -> bool:
+        return course.next_up_in(p, completed) is None
+
+    # Listed by exam number, while next up follows the course order, which
+    # takes part 3 before part 2 (specs/LEARN-2-3.md §2.2): a part says which
+    # higher-numbered parts it comes after, until they are done.
+    parts = [
         {
-            "module": m,
-            "title": m.title.get(ui, m.title["fr"]),
-            "state": course.module_state(m, completed),
-            "done": sum(1 for s in m.steps if s.id in completed),
-            "total": len(m.steps),
+            "part": p,
+            "title": p.title.get(ui, p.title["fr"]),
+            "next_up": course.next_up_in(p, completed),
+            "after": [
+                q.number
+                for q in course.parts[: course.parts.index(p)]
+                if q.number > p.number and not part_done(q)
+            ],
+            "modules": [
+                {
+                    "module": m,
+                    "title": m.title.get(ui, m.title["fr"]),
+                    "state": course.module_state(m, completed),
+                    "done": sum(1 for s in m.steps if s.id in completed),
+                    "total": len(m.steps),
+                }
+                for m in p.modules
+            ],
         }
-        for m in course.modules
+        for p in sorted(course.parts, key=lambda p: p.number)
     ]
     return _render_learn(
         request,
@@ -721,7 +746,7 @@ def learn_home(
         {
             "ui": ui,
             "learner": learner,
-            "modules": modules,
+            "parts": parts,
             "next_up": course.next_up(completed),
             "xp": sum(a["amount"] or 0 for a in earned if a["kind"] == "xp"),
             "shelf": shelf,
@@ -748,9 +773,18 @@ def learn_clear():
     return response
 
 
-@app.get(COURSE_PREFIX + "/{module_slug}")
+def _step(
+    course: course_module.Course, part_slug: str, module_slug: str, step_slug: str
+) -> course_module.Step | None:
+    """The step at that address; None unless all three segments agree."""
+    step = course.step(module_slug, step_slug)
+    return step if step is not None and step.part == part_slug else None
+
+
+@app.get(COURSE_PREFIX + "/{part_slug}/{module_slug}")
 def learn_module(
     request: Request,
+    part_slug: str,
     module_slug: str,
     store: Store = Depends(get_store),
     course: course_module.Course = Depends(get_course),
@@ -760,7 +794,7 @@ def learn_module(
         return _to_dashboard()
     completed = store.completed_steps(learner["id"])
     module = course.module(module_slug)
-    if module is None:
+    if module is None or module.part != part_slug:
         return _to_next_up(course, completed)
     ui = course_ui(request, module)
     next_up = course.next_up(completed)
@@ -782,9 +816,10 @@ def learn_module(
     )
 
 
-@app.get(COURSE_PREFIX + "/{module_slug}/{step_slug}")
+@app.get(COURSE_PREFIX + "/{part_slug}/{module_slug}/{step_slug}")
 def learn_step(
     request: Request,
+    part_slug: str,
     module_slug: str,
     step_slug: str,
     picked: str = "",
@@ -795,7 +830,7 @@ def learn_step(
     if learner is None:
         return _to_dashboard()
     completed = store.completed_steps(learner["id"])
-    step = course.step(module_slug, step_slug)
+    step = _step(course, part_slug, module_slug, step_slug)
     if step is None:
         return _to_next_up(course, completed)
     module = course.module(module_slug)
@@ -821,8 +856,10 @@ def learn_step(
         )
 
     q = _question(step)
-    correct_letter = next(o["letter"] for o in q["options"] if o["is_correct"])
     done = step.id in completed
+    if q["kind"] == "open":
+        return _render_open_practice(request, store, course, context, step, q, done)
+    correct_letter = next(o["letter"] for o in q["options"] if o["is_correct"])
     if done:
         # A revisit stores nothing, so the redirect's `picked` is the only
         # record of the answer just given (§5.1).
@@ -858,9 +895,59 @@ def learn_step(
     )
 
 
-@app.post(COURSE_PREFIX + "/{module_slug}/{step_slug}/next")
+def _render_open_practice(
+    request: Request,
+    store: Store,
+    course: course_module.Course,
+    context: dict,
+    step: course_module.Step,
+    q: dict,
+    done: bool,
+) -> Response:
+    """An open practice step (specs/LEARN-2-3.md §4.4): one field per
+    sub-item. Solved fields are locked; the others keep the last answer and
+    its feedback, and show the reference answer once a submission has
+    missed. A completed step is shown read-only with the reference: it is
+    not graded again on a revisit, since a grading call costs time and money."""
+    ui = context["ui"]
+    result = store.practice_result(context["learner"]["id"], q["id"])
+    solved = result["solved_items"] if result else {}
+    last_try = result["last_try"] if result else {}
+    missed = bool(result and result["submissions"]) and not done
+    view = session.localize_question(q, ui, None)
+    fields = [
+        {
+            **item,
+            "solved": solved.get(item["item_no"]),
+            "last": last_try.get(item["item_no"]),
+            "reveal": done or missed,
+        }
+        for item in view["sub_items"]
+    ]
+    pending = not done and any(g["verdict"] == "ungraded" for g in last_try.values())
+    return _render_learn(
+        request,
+        store,
+        "learn_practice.html",
+        {
+            **context,
+            "title": t(ui, "question_n", id=step.question_id),
+            "q": view,
+            "fields": fields,
+            "solved": done,
+            "wrong": missed and not pending,
+            "pending": pending,
+            "done": done,
+            "note": course_module.answer_note(step, ui) if done else None,
+            "review": _lesson_links(request, course, course.review_lessons(step)) if missed else [],
+        },
+    )
+
+
+@app.post(COURSE_PREFIX + "/{part_slug}/{module_slug}/{step_slug}/next")
 def learn_next(
     request: Request,
+    part_slug: str,
     module_slug: str,
     step_slug: str,
     store: Store = Depends(get_store),
@@ -871,7 +958,7 @@ def learn_next(
     learner = current_learner(request, store)
     if learner is None:
         return _to_dashboard()
-    step = course.step(module_slug, step_slug)
+    step = _step(course, part_slug, module_slug, step_slug)
     if step is None or step.kind == "practice":
         return _to_next_up(course, store.completed_steps(learner["id"]))
     if store.complete_step(learner["id"], step.id, _awards(course, step)) is None:
@@ -879,28 +966,34 @@ def learn_next(
     return RedirectResponse(step_url(course.following(step)), status_code=303)
 
 
-@app.post(COURSE_PREFIX + "/{module_slug}/{step_slug}/answer")
-def learn_answer(
+@app.post(COURSE_PREFIX + "/{part_slug}/{module_slug}/{step_slug}/answer")
+async def learn_answer(
     request: Request,
+    part_slug: str,
     module_slug: str,
     step_slug: str,
-    answer: str = Form(""),
     store: Store = Depends(get_store),
+    llm_grader: LLMGrader | None = Depends(get_llm_grader),
     course: course_module.Course = Depends(get_course),
 ):
-    """Grades a practice answer by exact match and redirects back to the step
-    (post/redirect/get, §5.1). On the first pass the answer is recorded and a
-    right one completes the step; a revisit's answer changes nothing stored
-    and travels in the query string instead. Reading, deciding and writing
-    happen in one transaction (§8.1)."""
+    """Grades a practice answer and redirects back to the step
+    (post/redirect/get, §5.1). An MCQ: on the first pass the answer is
+    recorded and a right one completes the step; a revisit's answer changes
+    nothing stored and travels in the query string instead. Reading,
+    deciding and writing happen in one transaction (§8.1). An open question:
+    see `_answer_open`."""
     learner = current_learner(request, store)
     if learner is None:
         return _to_dashboard()
-    step = course.step(module_slug, step_slug)
+    step = _step(course, part_slug, module_slug, step_slug)
     if step is None or step.kind != "practice":
         return _to_next_up(course, store.completed_steps(learner["id"]))
     q = _question(step)
     here = step_url(step)
+    form = await request.form()
+    if q["kind"] == "open":
+        return await _answer_open(request, store, llm_grader, course, learner, step, q, form)
+    answer = form_str(form, "answer")
     if answer not in {o["letter"] for o in q["options"]}:
         return RedirectResponse(here, status_code=303)  # nothing picked (or a forged value)
     correct = next(o["letter"] for o in q["options"] if o["is_correct"])
@@ -917,6 +1010,71 @@ def learn_answer(
     if result == "wrong":
         return RedirectResponse(here, status_code=303)
     return RedirectResponse(f"{here}?{urlencode({'picked': answer})}", status_code=303)
+
+
+async def _answer_open(
+    request: Request,
+    store: Store,
+    llm_grader: LLMGrader | None,
+    course: course_module.Course,
+    learner: dict,
+    step: course_module.Step,
+    q: dict,
+    form: FormData,
+) -> Response:
+    """Grades the fields not yet solved, as the exam trainer would (spelling
+    by rule, the rest by the LLM, concurrently), then records the result in
+    one transaction (specs/LEARN-2-3.md §4.4). Grading happens before the
+    transaction, never under the write lock: it can take seconds. A field
+    the grader could not grade awaits the learner's own verdict. A completed
+    step is not graded again (see `_render_open_practice`)."""
+    here = step_url(step)
+    if step.id in store.completed_steps(learner["id"]):
+        return RedirectResponse(here, status_code=303)
+    result = store.practice_result(learner["id"], q["id"])
+    solved = result["solved_items"] if result else {}
+    todo = {item["item_no"] for item in q["answer"]} - set(solved)
+    answer = {str(n): form_str(form, f"item_{n}").strip() for n in todo}
+    if not any(answer.values()):
+        return RedirectResponse(here, status_code=303)  # nothing typed
+    ui = course_ui(request, course.module(step.module))
+    pairs = await session.grade_open_question(llm_grader, q, ui, 1.0, answer, todo)
+    graded = {
+        item["item_no"]: {**(grade or session.UNGRADED), "answer": answer[str(item["item_no"])]}
+        for item, grade in pairs
+    }
+    items = [item["item_no"] for item in q["answer"]]
+    if store.answer_open(learner["id"], step.id, q["id"], items, graded, _awards(course, step)) is None:
+        return _to_dashboard()
+    return RedirectResponse(here, status_code=303)
+
+
+@app.post(COURSE_PREFIX + "/{part_slug}/{module_slug}/{step_slug}/self-grade")
+def learn_self_grade(
+    request: Request,
+    part_slug: str,
+    module_slug: str,
+    step_slug: str,
+    correct: str = Form(""),
+    store: Store = Depends(get_store),
+    course: course_module.Course = Depends(get_course),
+):
+    """The learner's own verdict on fields no grader could grade
+    (specs/LEARN-2-3.md §4.4): it can complete the step, never with XP."""
+    learner = current_learner(request, store)
+    if learner is None:
+        return _to_dashboard()
+    step = _step(course, part_slug, module_slug, step_slug)
+    if step is None or step.kind != "practice" or _question(step)["kind"] != "open":
+        return _to_next_up(course, store.completed_steps(learner["id"]))
+    q = _question(step)
+    items = [item["item_no"] for item in q["answer"]]
+    if (
+        store.self_grade_open(learner["id"], step.id, q["id"], items, correct == "1", _awards(course, step))
+        is None
+    ):
+        return _to_dashboard()
+    return RedirectResponse(step_url(step), status_code=303)
 
 
 # -- admin (specs/LEARN.md §6.1, §6.1.1) ----------------------------------------

@@ -14,15 +14,28 @@
     <p class="course-done">{{ t(ui, 'course_done') }}</p>
   {% endif %}
 </section>
-<ol class="module-list">
-  {% for m in modules %}
-  <li class="module-item module-{{ m.state }}">
-    <a class="module-title" href="{{ course_prefix }}/{{ m.module.slug }}">{{ m.title }}</a>
-    <span class="module-state">{{ t(ui, 'module_state_' + m.state) }}</span>
-    <span class="hint">{{ t(ui, 'steps_progress', done=m.done, total=m.total) }}</span>
-  </li>
-  {% endfor %}
-</ol>
+{#- Parts by exam number; each has its own "Continue", which follows the
+    course order within it (specs/LEARN-2-3.md §2.2, §6). #}
+{% for p in parts %}
+<section class="course-part" id="part-{{ p.part.slug }}">
+  <h2>{{ t(ui, 'part_heading', n=p.part.number, title=p.title) }}</h2>
+  {% if p.after %}<p class="hint part-after">{{ t(ui, 'part_after', parts=p.after|join(', ')) }}</p>{% endif %}
+  {% if p.next_up %}
+    <a class="button part-continue" href="{{ step_url(p.next_up) }}">{{ t(ui, 'continue_part', n=p.part.number) }} &rarr;</a>
+  {% else %}
+    <p class="part-done">{{ t(ui, 'part_done') }}</p>
+  {% endif %}
+  <ol class="module-list">
+    {% for m in p.modules %}
+    <li class="module-item module-{{ m.state }}">
+      <a class="module-title" href="{{ module_url(m.module) }}">{{ m.title }}</a>
+      <span class="module-state">{{ t(ui, 'module_state_' + m.state) }}</span>
+      <span class="hint">{{ t(ui, 'steps_progress', done=m.done, total=m.total) }}</span>
+    </li>
+    {% endfor %}
+  </ol>
+</section>
+{% endfor %}
 <section class="card badge-shelf">
   <h2>{{ t(ui, 'badges') }}</h2>
   <ul>

@@ -89,14 +89,15 @@ def test_open_items_are_graded_with_the_guides_other_wordings():
             return GradeResult(elements=[], incorrect=[], comment="", source="llm", model="fake")
 
     q = load().get(448)
-    asyncio.run(grade_open_question(_Recorder(), q, "fr", 7.0, {}))  # type: ignore
+    answer = {str(item["item_no"]): "une réponse" for item in q["answer"]}
+    asyncio.run(grade_open_question(_Recorder(), q, "fr", 7.0, answer))  # type: ignore
     by_reference = dict(sent)
     assert by_reference["La force de mes signaux varie-t-elle ?"] == (
         "La force de vos signaux varie-t-elle ?",
     )
     assert by_reference["Je suis brouillé."] == ()
     sent.clear()
-    asyncio.run(grade_open_question(_Recorder(), q, "de", 7.0, {}))  # type: ignore
+    asyncio.run(grade_open_question(_Recorder(), q, "de", 7.0, answer))  # type: ignore
     assert all(others == () for _, others in sent)
 
 

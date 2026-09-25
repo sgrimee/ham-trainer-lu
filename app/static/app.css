@@ -228,6 +228,16 @@ a.button:hover { background: var(--accent-hover); color: #fff; }
 .verdict-incorrect { color: var(--incorrect); }
 .answer-note { border-left: 3px solid var(--correct); padding: 0.2rem 0 0.2rem 0.8rem; margin: 0.5rem 0; }
 .review-links { font-size: 0.9rem; }
+.practice-field { border-left: 3px solid var(--border); padding-left: 0.6rem; }
+.practice-field textarea { width: 100%; }
+.practice-field.field-solved { border-left-color: var(--correct); }
+.practice-field.field-wrong { border-left-color: var(--incorrect); }
+.solved-answer { background: #f2fbf5; border: 1px solid var(--correct); border-radius: var(--radius); padding: 0.4rem 0.6rem; margin: 0.3rem 0; }
+.spelling-hint { font-size: 0.9rem; color: var(--partial); }
+.course-part { margin: 1.5rem 0; }
+.course-part h2 { font-size: 1.15rem; margin-bottom: 0.4rem; }
+.course-part .part-continue { margin-bottom: 0.6rem; }
+.part-done { font-weight: 600; color: var(--correct); }
 .xp-total { font-size: 1.1rem; font-weight: 700; color: var(--accent); }
 .badge-shelf h2 { font-size: 1rem; margin-top: 0; }
 .badge-shelf ul { list-style: none; padding: 0; margin: 0; display: flex; flex-wrap: wrap; gap: 0.5rem; }

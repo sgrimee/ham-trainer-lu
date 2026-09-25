@@ -13,11 +13,12 @@ from dataclasses import dataclass
 
 from .course import Course, Step
 
-XP_FIRST_TRY = 10  # a practice step completed with no wrong option (§8)
+XP_FIRST_TRY = 10  # a practice step completed with no wrong option, or on the first submission (§8)
 XP_MODULE = 50  # every step of a module, its learn-more included
 
 FIRST_LESSON = "premiere-lecon"
-COURSE_DONE = "base-technique"
+COURSE_DONE = "base"  # every part (specs/LEARN-2-3.md §6)
+PART_PREFIX = "base-"  # + part slug; "base-technique" is the ref part 1 always had
 
 
 @dataclass(frozen=True)
@@ -31,9 +32,17 @@ def module_ref(slug: str) -> str:
     return f"module:{slug}"
 
 
+def part_ref(slug: str) -> str:
+    return f"{PART_PREFIX}{slug}"
+
+
 def badges(course: Course) -> list[str]:
-    """Every badge, in the order the shelf shows them."""
-    return [FIRST_LESSON, *(module_ref(m.slug) for m in course.modules), COURSE_DONE]
+    """Every badge, in the order the shelf shows them: each part's modules,
+    then the part itself."""
+    out = [FIRST_LESSON]
+    for part in course.parts:
+        out += [*(module_ref(m.slug) for m in part.modules), part_ref(part.slug)]
+    return [*out, COURSE_DONE]
 
 
 def earned(course: Course, step: Step, completed: set[str], first_try: bool) -> list[Award]:
@@ -48,6 +57,9 @@ def earned(course: Course, step: Step, completed: set[str], first_try: bool) -> 
     module = course.module(step.module)
     if module is not None and all(s.id in completed for s in module.steps):
         out += [Award("xp", module_ref(module.slug), XP_MODULE), Award("badge", module_ref(module.slug))]
+    part = course.part(step.part)
+    if part is not None and all(s.id in completed for m in part.modules for s in m.steps):
+        out.append(Award("badge", part_ref(part.slug)))
     if all(s.id in completed for s in course.steps):
         out.append(Award("badge", COURSE_DONE))
     return out

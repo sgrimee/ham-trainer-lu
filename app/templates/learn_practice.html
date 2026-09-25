@@ -15,6 +15,13 @@
   {% else %}<a class="skip-link" href="{{ step_url(following) }}">{{ t(ui, 'skip') }} &rarr;</a>{% endif %}
 </nav>
 {%- endmacro %}
+{% macro review_links() -%}
+{% if review %}
+<p class="review-links">{{ t(ui, 'review_lessons') }}
+  {% for s, s_title in review %}<a href="{{ step_url(s) }}">{{ s_title }}</a>{% if not loop.last %} · {% endif %}{% endfor %}
+</p>
+{% endif %}
+{%- endmacro %}
 {{ not_you(ui, learner) }}
 {{ crumbs(ui, module, module_title, position, module_total) }}
 {{ missing_lessons(ui, missing) }}
@@ -33,7 +40,9 @@
     {% endfor %}
   </div>
 
-  {% if solved %}
+  {% if q.kind == 'open' %}
+    {% include "_learn_open.html" %}
+  {% elif solved %}
     <fieldset disabled>{{ mcq_options(q, picked, marks) }}</fieldset>
     <p class="practice-verdict verdict-correct" role="status">{{ t(ui, 'well_done') }}</p>
     {% if note %}<div class="answer-note">{{ note|safe }}</div>{% endif %}
@@ -43,11 +52,7 @@
       {{ mcq_options(q, none, marks) }}
       <button type="submit">{{ t(ui, 'check') }}</button>
     </form>
-    {% if review %}
-    <p class="review-links">{{ t(ui, 'review_lessons') }}
-      {% for s, s_title in review %}<a href="{{ step_url(s) }}">{{ s_title }}</a>{% if not loop.last %} · {% endif %}{% endfor %}
-    </p>
-    {% endif %}
+    {{ review_links() }}
   {% endif %}
 
   {{ prev_next() }}

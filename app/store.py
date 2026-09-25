@@ -71,6 +71,11 @@ CREATE TABLE IF NOT EXISTS step_progress (
   PRIMARY KEY (account_id, step_id)
 );
 
+-- An open question's state (specs/LEARN-2-3.md §4.4) lives in two columns
+-- added by `MIGRATIONS`: solved_items, {item_no: {answer, source, hints}} of the
+-- fields graded correct (they lock), and last_try, {item_no: grade} of the
+-- other fields at the last submission (feedback, and "ungraded" awaiting the
+-- learner's own verdict). The MCQ path uses wrong_letters and ignores both.
 CREATE TABLE IF NOT EXISTS practice_result (
   account_id    TEXT NOT NULL REFERENCES account(id),
   question_id   INTEGER NOT NULL,
@@ -90,6 +95,13 @@ CREATE TABLE IF NOT EXISTS award (
   PRIMARY KEY (account_id, kind, ref)
 );
 """
+
+# Columns added after a table first shipped: (table, column, definition).
+# Applied at startup when missing, so an existing database upgrades in place.
+MIGRATIONS = (
+    ("practice_result", "solved_items", "TEXT NOT NULL DEFAULT '{}'"),
+    ("practice_result", "last_try", "TEXT NOT NULL DEFAULT '{}'"),
+)
 
 # Seconds a connection waits on another writer's lock before failing with
 # "database is locked" (specs/LEARN.md §8.1). Stated, not left to the driver.
@@ -125,6 +137,11 @@ def now() -> str:
     return datetime.now(UTC).isoformat()
 
 
+def _items(text: str) -> dict[int, dict]:
+    """An open-question column: JSON object keys are strings, item numbers ints."""
+    return {int(k): v for k, v in json.loads(text or "{}").items()}
+
+
 class Store:
     def __init__(self, path: str | pathlib.Path | None = None):
         path = path or os.environ.get("ATTEMPTS_DB") or ROOT / "var" / "attempts.db"
@@ -133,6 +150,10 @@ class Store:
         self.path = path
         with self._connect() as con:
             con.executescript(SCHEMA)
+            for table, column, definition in MIGRATIONS:
+                columns = {r["name"] for r in con.execute(f"PRAGMA table_info({table})")}
+                if column not in columns:
+                    con.execute(f"ALTER TABLE {table} ADD COLUMN {column} {definition}")
             # Persistent in the file: reads never wait on a write (LEARN.md §8.1).
             con.execute("PRAGMA journal_mode=WAL")
 
@@ -327,13 +348,128 @@ class Store:
             self._complete(con, account_id, step_id, done, not wrong, awards)
             return "correct"
 
+    def answer_open(
+        self,
+        account_id: str,
+        step_id: str,
+        question_id: int,
+        item_nos: Iterable[int],
+        graded: dict[int, dict],
+        awards: Awards | None = None,
+    ) -> str | None:
+        """Record one submission of an open practice step (specs/LEARN-2-3.md
+        §4.4). `graded` maps each submitted field to its grade row plus the
+        `answer` typed; the grading itself happened before, outside the lock,
+        since it can take seconds. Fields graded correct lock; the others are
+        kept as the last try.
+
+        None: no such account. "revisit": already completed, nothing written.
+        "correct": every field is now solved and the step completes, earning
+        first-try XP only if this was the first submission and no field was
+        self-graded. "pending": some field awaits the learner's own verdict
+        (no grader, or the call failed). "wrong": otherwise."""
+        with self._write_tx() as con:
+            if not self._account_exists(con, account_id):
+                return None
+            done = self._completed_in(con, account_id)
+            if step_id in done:
+                return "revisit"
+            solved, _, submissions = self._open_state(con, account_id, question_id)
+            last_try = {}
+            for item_no, grade in graded.items():
+                if item_no in solved:
+                    continue  # a concurrent submission solved it first
+                if grade["verdict"] == "correct":
+                    hints = (grade.get("detail") or {}).get("hints") or []
+                    solved[item_no] = {"answer": grade["answer"], "source": grade["source"], "hints": hints}
+                else:
+                    last_try[item_no] = grade
+            self._put_open_state(con, account_id, question_id, solved, last_try, submissions + 1)
+            if all(n in solved for n in item_nos):
+                first_try = submissions == 0 and all(v["source"] != "self" for v in solved.values())
+                self._complete(con, account_id, step_id, done, first_try, awards)
+                return "correct"
+            return "pending" if any(g["verdict"] == "ungraded" for g in last_try.values()) else "wrong"
+
+    def self_grade_open(
+        self,
+        account_id: str,
+        step_id: str,
+        question_id: int,
+        item_nos: Iterable[int],
+        correct: bool,
+        awards: Awards | None = None,
+    ) -> str | None:
+        """The learner's own verdict on the fields left ungraded by the last
+        submission (specs/LEARN-2-3.md §4.4). "Correct" solves them, and may
+        complete the step, but never earns XP: a self-graded field is never a
+        first try. "Incorrect" makes them wrong, to be typed again.
+
+        None: no such account. "revisit", "correct" or "wrong" as in
+        `answer_open`; "wrong" also when nothing was awaiting a verdict."""
+        with self._write_tx() as con:
+            if not self._account_exists(con, account_id):
+                return None
+            done = self._completed_in(con, account_id)
+            if step_id in done:
+                return "revisit"
+            solved, last_try, submissions = self._open_state(con, account_id, question_id)
+            pending = [n for n, g in last_try.items() if g["verdict"] == "ungraded"]
+            if not pending:
+                return "wrong"
+            for n in pending:
+                if correct:
+                    solved[n] = {"answer": last_try.pop(n)["answer"], "source": "self"}
+                else:
+                    last_try[n] = {**last_try[n], "verdict": "incorrect", "source": "self"}
+            self._put_open_state(con, account_id, question_id, solved, last_try, submissions)
+            if all(n in solved for n in item_nos):
+                self._complete(con, account_id, step_id, done, False, awards)
+                return "correct"
+            return "wrong"
+
+    @staticmethod
+    def _open_state(
+        con: sqlite3.Connection, account_id: str, question_id: int
+    ) -> tuple[dict[int, dict], dict[int, dict], int]:
+        row = con.execute(
+            "SELECT solved_items, last_try, submissions FROM practice_result "
+            "WHERE account_id = ? AND question_id = ?",
+            (account_id, question_id),
+        ).fetchone()
+        if row is None:
+            return {}, {}, 0
+        return _items(row["solved_items"]), _items(row["last_try"]), row["submissions"]
+
+    @staticmethod
+    def _put_open_state(
+        con: sqlite3.Connection,
+        account_id: str,
+        question_id: int,
+        solved: dict[int, dict],
+        last_try: dict[int, dict],
+        submissions: int,
+    ) -> None:
+        con.execute(
+            "INSERT INTO practice_result (account_id, question_id, submissions, updated_at, "
+            "solved_items, last_try) VALUES (?, ?, ?, ?, ?, ?) "
+            "ON CONFLICT(account_id, question_id) DO UPDATE SET "
+            "submissions = excluded.submissions, updated_at = excluded.updated_at, "
+            "solved_items = excluded.solved_items, last_try = excluded.last_try",
+            (account_id, question_id, submissions, now(), json.dumps(solved), json.dumps(last_try)),
+        )
+
     def practice_result(self, account_id: str, question_id: int) -> dict | None:
+        """The practice row, its open-question columns decoded to
+        {item_no: ...} dicts."""
         with self._connect() as con:
             row = con.execute(
                 "SELECT * FROM practice_result WHERE account_id = ? AND question_id = ?",
                 (account_id, question_id),
             ).fetchone()
-        return dict(row) if row else None
+        if row is None:
+            return None
+        return {**dict(row), "solved_items": _items(row["solved_items"]), "last_try": _items(row["last_try"])}
 
     def awards(self, account_id: str) -> list[dict]:
         with self._connect() as con:

@@ -87,6 +87,7 @@ class Step:
     question_id: int | None = None
     introduces: tuple[str, ...] = ()
     requires: tuple[str, ...] = ()
+    part: str = ""  # part slug, the first segment of the step's URL
 
     @property
     def id(self) -> str:
@@ -99,6 +100,7 @@ class Module:
     slug: str
     title: dict[str, str]
     steps: tuple[Step, ...]
+    part: str = ""  # part slug
 
     @property
     def offers_de(self) -> bool:
@@ -136,10 +138,11 @@ class Course:
     def part_of(self, module: Module) -> Part:
         return next(p for p in self.parts if module in p.modules)
 
+    def part(self, slug: str) -> Part | None:
+        return next((p for p in self.parts if p.slug == slug), None)
+
     def only(self, *slugs: str) -> Course:
-        """The course reduced to the named parts, in course order. Lets the
-        application serve part 1 alone until it can render open questions
-        (LEARN-2-3 §8, phase 2); the validator always sees every part."""
+        """The course reduced to the named parts, in course order."""
         return Course(tuple(p for p in self.parts if p.slug in slugs))
 
     def introduced_by(self) -> dict[str, Step]:
@@ -164,6 +167,11 @@ class Course:
     def next_up(self, completed: set[str]) -> Step | None:
         """The first step not completed; None once the whole course is done."""
         return next((s for s in self.steps if s.id not in completed), None)
+
+    def next_up_in(self, part: Part, completed: set[str]) -> Step | None:
+        """The first step of `part` not completed: each part's own "Continue"
+        on the dashboard (LEARN-2-3 §6). None once the part is done."""
+        return next((s for m in part.modules for s in m.steps if s.id not in completed), None)
 
     def following(self, step: Step) -> Step | None:
         """The step after `step` in linear order, crossing into the next module."""
@@ -251,9 +259,9 @@ def _slug_list(value: object, where: str, key: str, problems: list[str]) -> tupl
     return tuple(good)
 
 
-def _parse_step(raw: object, module: str, where: str, problems: list[str]) -> Step | None:
+def _parse_step(raw: object, module: str, part: str, where: str, problems: list[str]) -> Step | None:
     if raw == "learn-more":
-        return Step("learn-more", module, LEARN_MORE)
+        return Step("learn-more", module, LEARN_MORE, part=part)
     if not isinstance(raw, dict):
         problems.append(f"{where}: a step is `lesson: <slug>`, `practice: <id>` or `learn-more`, got {raw!r}")
         return None
@@ -277,7 +285,7 @@ def _parse_step(raw: object, module: str, where: str, problems: list[str]) -> St
         if not introduces:
             problems.append(f"{where}: a lesson must introduce at least one concept")
         requires = _slug_list(raw.get("requires"), where, "requires", problems)
-        return Step("lesson", module, slug, introduces=introduces, requires=requires)
+        return Step("lesson", module, slug, introduces=introduces, requires=requires, part=part)
 
     for key in set(raw) - PRACTICE_STEP_KEYS:
         problems.append(f"{where}: unknown key {key!r} on a practice step")
@@ -289,10 +297,10 @@ def _parse_step(raw: object, module: str, where: str, problems: list[str]) -> St
     requires = _slug_list(raw.get("requires"), where, "requires", problems)
     if not requires:
         problems.append(f"{where}: a practice step must require at least one concept")
-    return Step("practice", module, f"q{qid}", question_id=qid, requires=requires)
+    return Step("practice", module, f"q{qid}", question_id=qid, requires=requires, part=part)
 
 
-def _parse_module(raw: object, where: str, problems: list[str]) -> Module | None:
+def _parse_module(raw: object, part: str, where: str, problems: list[str]) -> Module | None:
     if not isinstance(raw, dict):
         problems.append(f"{where}: a module is a mapping with slug, title and steps")
         return None
@@ -310,8 +318,8 @@ def _parse_module(raw: object, where: str, problems: list[str]) -> Module | None
     if not isinstance(raw_steps, list) or not raw_steps:
         problems.append(f"{where}: `steps` must be a non-empty list")
         raw_steps = []
-    steps = [_parse_step(s, slug, f"{where} step {i + 1}", problems) for i, s in enumerate(raw_steps)]
-    return Module(slug, title, tuple(s for s in steps if s is not None))
+    steps = [_parse_step(s, slug, part, f"{where} step {i + 1}", problems) for i, s in enumerate(raw_steps)]
+    return Module(slug, title, tuple(s for s in steps if s is not None), part)
 
 
 def _parse_title(title: object, where: str, problems: list[str]) -> dict[str, str]:
@@ -348,7 +356,7 @@ def _parse_part(raw: object, where: str, problems: list[str]) -> Part | None:
     if not isinstance(raw_modules, list) or not raw_modules:
         problems.append(f"{where}: `modules` must be a non-empty list")
         raw_modules = []
-    modules = [_parse_module(m, f"{where} module {i + 1}", problems) for i, m in enumerate(raw_modules)]
+    modules = [_parse_module(m, slug, f"{where} module {i + 1}", problems) for i, m in enumerate(raw_modules)]
     return Part(slug, title, tuple(m for m in modules if m is not None))
 
 

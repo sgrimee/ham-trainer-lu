@@ -1,0 +1,69 @@
+{#- An open practice step (specs/LEARN-2-3.md §4.4), included by
+    learn_practice.html. One field per sub-item: a solved one is locked and
+    green; the others keep the last answer with its feedback, and the
+    reference answer once a submission has missed. Fields no grader could
+    grade wait for the learner's own verdict. #}
+{% from "_macros.html" import cell %}
+{% macro reference(f) -%}
+<p class="reference-answer"><em>{{ t(ui, 'expected_answer') }} :</em>
+  {% for c in f.cells %}{{ cell(c) }}{% endfor %}</p>
+{%- endmacro %}
+{% macro feedback(g) -%}
+{% if g.comment %}<p class="comment">{{ g.comment }}</p>{% endif %}
+{% if g.detail %}
+  {% set shown = g.detail.elements|rejectattr('present')|list + g.detail.elements|selectattr('near')|list %}
+  {% if shown %}
+  <ul class="elements">
+    {% for e in shown %}
+    <li class="{{ 'near' if e.near else 'missing' }}">{{ e.element }}{% if e.near and e.official %} — {{ t(ui, 'official_form', form=e.official) }}{% endif %}{% if e.note %} — {{ e.note }}{% endif %}</li>
+    {% endfor %}
+  </ul>
+  {% endif %}
+  {% if g.detail.incorrect %}<p class="incorrect-list">{{ t(ui, 'incorrect_statements') }} : {{ g.detail.incorrect|join('; ') }}</p>{% endif %}
+{% endif %}
+{%- endmacro %}
+
+{% if solved %}
+  <p class="practice-verdict verdict-correct" role="status">{{ t(ui, 'well_done') }}</p>
+{% elif pending %}
+  <p class="practice-verdict" role="status">{{ t(ui, 'self_grade_learner') }}</p>
+{% elif wrong %}
+  <p class="practice-verdict verdict-incorrect" role="status">{{ t(ui, 'open_try_again') }}</p>
+{% endif %}
+
+<form method="post" action="{{ step_url(step) }}/answer" class="open-answer">
+  {% for f in fields %}
+  {% set g = f.last %}
+  <div class="open-item practice-field{% if f.solved or solved %} field-solved{% elif g and g.verdict != 'ungraded' %} field-wrong{% endif %}">
+    {% if f.label %}<label for="item-{{ f.item_no }}"><strong>{{ f.label }}</strong></label>{% endif %}
+    {% if f.solved or solved %}
+      {% if f.solved %}<p class="solved-answer" id="item-{{ f.item_no }}">{{ f.solved.answer }}</p>{% endif %}
+      {% for typed, form in (f.solved.hints if f.solved else none) or [] %}
+        <p class="spelling-hint">{{ t(ui, 'spelling_hint', typed=typed, form=form) }}</p>
+      {% endfor %}
+      {% if solved %}{{ reference(f) }}{% endif %}
+    {% else %}
+      <textarea id="item-{{ f.item_no }}" name="item_{{ f.item_no }}" rows="2"{% if pending %} readonly{% endif %}>{{ g.answer if g else '' }}</textarea>
+      {% if g and g.verdict != 'ungraded' %}{{ feedback(g) }}{% endif %}
+      {% for typed, form in (g.detail.hints if g and g.detail else []) or [] %}
+        <p class="spelling-hint">{{ t(ui, 'spelling_hint', typed=typed, form=form) }}</p>
+      {% endfor %}
+      {% if f.reveal %}{{ reference(f) }}{% endif %}
+    {% endif %}
+  </div>
+  {% endfor %}
+  {% if not solved and not pending %}
+    <button type="submit" data-grading="{{ t(ui, 'spinner_grading') }}">{{ t(ui, 'check') }}</button>
+  {% endif %}
+</form>
+
+{% if pending %}
+  <form method="post" action="{{ step_url(step) }}/self-grade" class="self-grade">
+    <p>{{ t(ui, 'self_grade_learner_prompt') }}</p>
+    <button name="correct" value="1" type="submit">{{ t(ui, 'self_correct') }}</button>
+    <button name="correct" value="0" type="submit">{{ t(ui, 'self_incorrect') }}</button>
+  </form>
+{% endif %}
+
+{% if solved and note %}<div class="answer-note">{{ note|safe }}</div>{% endif %}
+{% if wrong %}{{ review_links() }}{% endif %}

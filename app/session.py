@@ -8,8 +8,9 @@ from __future__ import annotations
 
 import asyncio
 import random
+from typing import Any
 
-from . import official_wordings, scoring
+from . import official_wordings, scoring, spelling
 from .catalogue import BLUEPRINT, Catalogue, localized, part_of
 from .grader import LLMGrader, SelfGrader
 from .store import Store
@@ -178,6 +179,16 @@ async def _grade_open_item(
     failed. Either way the caller leaves the item ungraded, pending a
     self-verdict (specs/TRAINER.md §7.3): "API down, request failed" is named
     there as a state the app must survive, not just "no key"."""
+    if not candidate.strip():
+        # Nothing to grade: wrong, without spending a call on it.
+        return {
+            "verdict": "incorrect",
+            "points": 0.0,
+            "detail": None,
+            "comment": None,
+            "source": "exact",
+            "model": None,
+        }
     if grader is None:
         return None
     try:
@@ -207,18 +218,47 @@ async def _grade_open_item(
     }
 
 
+def _grade_spelling_item(q: dict, candidate: str, item_weight: float) -> dict:
+    """Spelling is graded by rule, in both apps (specs/LEARN-2-3.md §4.3): the
+    target is read from the French stem, the same string in either language.
+    Missing characters show as missing elements; a near form is accepted and
+    reported as a hint with the catalogue's form."""
+    result = spelling.grade(q["text"]["fr"], candidate)
+    return {
+        "verdict": result.verdict,
+        "points": item_weight * (1.0 if result.verdict == "correct" else result.share),
+        "detail": {
+            "elements": [{"element": m.upper(), "present": False} for m in result.missing],
+            "incorrect": result.extra,
+            "hints": [[typed, official] for typed, official in result.near],
+        },
+        "comment": None,
+        "source": "rule",
+        "model": None,
+    }
+
+
 async def grade_open_question(
-    grader: LLMGrader | None, q: dict, lang: str, weight: float, answer
+    grader: LLMGrader | None, q: dict, lang: str, weight: float, answer, item_nos: set[int] | None = None
 ) -> list[tuple[dict, dict | None]]:
-    """One grader call per sub-item, run concurrently (specs/TRAINER.md §7.2)."""
+    """One grader call per sub-item, run concurrently (specs/TRAINER.md §7.2).
+    `item_nos` limits grading to those sub-items (the course regrades only
+    the fields not yet solved, LEARN-2-3 §4.4); the weight is still shared
+    over all of them."""
     items = q["answer"]
     item_weight = weight / len(items)
-    tasks = []
+    graded_items, tasks = [], []
     for item in items:
+        if item_nos is not None and item["item_no"] not in item_nos:
+            continue
+        candidate = (answer or {}).get(str(item["item_no"]), "") if isinstance(answer, dict) else ""
+        graded_items.append(item)
+        if q["id"] in spelling.SPELLING_QUESTIONS:
+            tasks.append(asyncio.sleep(0, _grade_spelling_item(q, candidate, item_weight)))
+            continue
         stem = ref_text(q["text"], lang)
         question_text = f"{stem}\n{item['label']}" if item.get("label") else stem
         reference = ref_text(item["text"], lang)
-        candidate = (answer or {}).get(str(item["item_no"]), "") if isinstance(answer, dict) else ""
         # The guide's wordings where they differ from the catalogue's, and its
         # notes (specs/LEARN-2-3.md §4.5).
         guide_lang = "fr" if lang == "both" else lang
@@ -230,7 +270,7 @@ async def grade_open_question(
             )
         )
     results = await asyncio.gather(*tasks)
-    return list(zip(items, results, strict=True))
+    return list(zip(graded_items, results, strict=True))
 
 
 async def grade_study_answer(
@@ -255,9 +295,13 @@ async def grade_study_answer(
         )
         return
     pairs = await grade_open_question(grader, q, attempt["lang"], 1.0, answer)
+    if all(result is None for _, result in pairs):
+        return  # nothing graded: no rows, the question waits for a self-verdict
     for item, result in pairs:
-        if result is not None:
-            store.put_grade(attempt["id"], qid, item["item_no"], **result)
+        # Some sub-items graded (a blank one is wrong without a call), some
+        # not: the ungraded ones are placeholders for the self-verdict, as in
+        # a submitted exam.
+        store.put_grade(attempt["id"], qid, item["item_no"], **(result or UNGRADED))
 
 
 def self_grade_question(store: Store, attempt_id: str, qid: int, weight: float, correct: bool) -> None:
@@ -276,6 +320,16 @@ def self_grade_question(store: Store, attempt_id: str, qid: int, weight: float, 
         source="self",
         model=None,
     )
+
+
+UNGRADED: dict[str, Any] = {
+    "verdict": "ungraded",
+    "points": 0.0,
+    "detail": None,
+    "comment": None,
+    "source": "self",
+    "model": None,
+}
 
 
 async def submit_exam(store: Store, grader: LLMGrader | None, cat: Catalogue, attempt_id: str) -> None:
@@ -311,20 +365,7 @@ async def submit_exam(store: Store, grader: LLMGrader | None, cat: Catalogue, at
     if open_tasks:
         for qid, pairs in zip(open_qids, await asyncio.gather(*open_tasks), strict=True):
             for item, result in pairs:
-                if result is None:
-                    store.put_grade(
-                        attempt_id,
-                        qid,
-                        item["item_no"],
-                        verdict="ungraded",
-                        points=0.0,
-                        detail=None,
-                        comment=None,
-                        source="self",
-                        model=None,
-                    )
-                else:
-                    store.put_grade(attempt_id, qid, item["item_no"], **result)
+                store.put_grade(attempt_id, qid, item["item_no"], **(result or UNGRADED))
     store.submit_attempt(attempt_id)
 
 

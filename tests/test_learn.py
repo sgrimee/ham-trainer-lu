@@ -20,10 +20,10 @@ sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent))
 
 from app import awards
 from app import course as course_module
-from app.main import COURSE_PREFIX, LEARNER_COOKIE, PREFS_COOKIE, SERVED_PART, cat
+from app.main import COURSE_PREFIX, LEARNER_COOKIE, PREFS_COOKIE, cat
 from app.store import Store
 
-COURSE = course_module.load(questions=cat.questions).only(SERVED_PART)
+COURSE = course_module.load(questions=cat.questions)
 
 
 def module(slug: str) -> course_module.Module:
@@ -44,7 +44,10 @@ QID = 2
 
 
 def url(step: course_module.Step) -> str:
-    return f"{COURSE_PREFIX}/{step.module}/{step.slug}"
+    return f"{COURSE_PREFIX}/{step.part}/{step.module}/{step.slug}"
+
+
+T = f"{COURSE_PREFIX}/technique"  # part 1's modules
 
 
 def options(qid: int) -> tuple[str, list[str]]:
@@ -143,7 +146,7 @@ def test_abandoning_a_session_returns_to_the_trainer_home(client):
 # -- a current learner is required ---------------------------------------------------
 
 
-@pytest.mark.parametrize("path", [f"{COURSE_PREFIX}/electricite", url(FIRST)])
+@pytest.mark.parametrize("path", [f"{T}/electricite", url(FIRST)])
 def test_course_pages_without_a_learner_go_to_the_picker(client, path):
     assert location(get(client, path)) == "/learn"
 
@@ -166,7 +169,7 @@ def test_deleted_learner_writes_nothing(client, store: Store, learner):
 def test_dashboard_continues_at_the_first_step(client, learner):
     resp = client.get("/learn")
     assert f'href="{url(FIRST)}"' in resp.text
-    assert "Questions restantes : 44 sur 44" in resp.text
+    assert "Questions restantes : 77 sur 77" in resp.text
 
 
 def test_next_on_a_lesson_completes_it_and_advances(client, store: Store, learner):
@@ -181,7 +184,7 @@ def test_learn_more_completes_the_module_and_crosses_into_the_next(client, store
     assert location(post(client, url(learn_more) + "/next")) == url(module("ondes").steps[0])
     assert learn_more.id == "electricite/en-savoir-plus" and learn_more.id in store.completed_steps(learner)
     page = client.get("/learn").text
-    assert "Terminé" in page and f'href="{COURSE_PREFIX}/ondes"' in page
+    assert "Terminé" in page and f'href="{T}/ondes"' in page
 
 
 def test_a_step_inserted_before_the_learner_becomes_next_up(store: Store):
@@ -206,9 +209,9 @@ def test_finished_course_shows_the_completed_state(client, store: Store, learner
 
 def test_any_step_and_module_opens_out_of_order(client, learner):
     assert get(client, url(COURSE.steps[5])).status_code == 200
-    assert get(client, f"{COURSE_PREFIX}/ondes").status_code == 200
+    assert get(client, f"{T}/ondes").status_code == 200
     page = client.get("/learn").text
-    assert f'href="{COURSE_PREFIX}/ondes"' in page and "À découvrir" in page
+    assert f'href="{T}/ondes"' in page and "À découvrir" in page
 
 
 def test_a_step_ahead_names_the_lessons_it_builds_on(client, store: Store, learner):
@@ -222,7 +225,7 @@ def test_a_step_ahead_names_the_lessons_it_builds_on(client, store: Store, learn
 
 
 def test_module_page_marks_next_up_as_recommended(client, learner):
-    page = client.get(f"{COURSE_PREFIX}/electricite").text
+    page = client.get(f"{T}/electricite").text
     assert page.count("step-item") == len(module("electricite").steps)
     assert "next-up" in page and "conseillé" in page
 
@@ -230,10 +233,10 @@ def test_module_page_marks_next_up_as_recommended(client, learner):
 @pytest.mark.parametrize(
     "path",
     [
-        f"{COURSE_PREFIX}/ondes/unites",  # not in that module
-        f"{COURSE_PREFIX}/nope/unites",  # no such module
-        f"{COURSE_PREFIX}/nope",
-        f"{COURSE_PREFIX}/electricite/q9999",
+        f"{T}/ondes/unites",  # not in that module
+        f"{T}/nope/unites",  # no such module
+        f"{T}/nope",
+        f"{T}/electricite/q9999",
     ],
 )
 def test_unknown_step_redirects_to_next_up(client, learner, path):
@@ -404,9 +407,7 @@ def test_review_links_use_each_lessons_own_language(client, store: Store, learne
         )
     )
     monkeypatch.setattr(course_module, "COURSE_DIR", course_dir)
-    monkeypatch.setattr(
-        main.app.state, "course", course_module.load(questions=cat.questions).only(SERVED_PART)
-    )
+    monkeypatch.setattr(main.app.state, "course", course_module.load(questions=cat.questions))
     client.cookies.set(PREFS_COOKIE, '{"lang": "de"}')
     q5 = next(s for s in module("ondes").steps if s.slug == "q5")
     unites = next(s for s in module("electricite").steps if s.slug == "unites")
@@ -472,7 +473,7 @@ def test_first_lesson_badge_toast_shows_exactly_once(client, store: Store, learn
 
 def test_a_redirect_does_not_consume_the_toast(client, store: Store, learner):
     post(client, url(FIRST) + "/next")
-    assert location(get(client, f"{COURSE_PREFIX}/nope")) == url(SECOND)  # redirected
+    assert location(get(client, f"{T}/nope")) == url(SECOND)  # redirected
     assert "Nouveau badge" in client.get(url(SECOND)).text
 
 
@@ -514,7 +515,7 @@ def test_finishing_the_course_earns_its_badge(client, store: Store, learner):
     seed(store, learner, steps_before(last))
     assert location(post(client, url(last) + "/next")) == "/learn"
     assert awards.COURSE_DONE in badge_rows(store, learner)
-    assert "Nouveau badge : BASE partie 1 terminée" in client.get("/learn").text
+    assert "Nouveau badge : Cours BASE terminé" in client.get("/learn").text
 
 
 def test_dashboard_shows_xp_and_the_badge_shelf(client, store: Store, learner):
@@ -634,3 +635,255 @@ def test_answer_note_shows_on_the_first_pass(client, store: Store, learner, tmp_
     correct, _ = options(QID)
     target = location(post(client, url(Q2) + "/answer", {"answer": correct}))
     assert "<strong>c'est ainsi</strong>" in client.get(target).text
+
+
+# -- parts 2 and 3 (specs/LEARN-2-3.md §2, §6) --------------------------------------
+
+
+def step_of(qid: int) -> course_module.Step:
+    return next(s for s in COURSE.steps if s.question_id == qid)
+
+
+def test_every_part_is_served_under_its_own_segment(client, learner):
+    for part in COURSE.parts:
+        first = part.modules[0].steps[0]
+        assert url(first).startswith(f"{COURSE_PREFIX}/{part.slug}/")
+        assert get(client, url(first)).status_code == 200
+        assert get(client, f"{COURSE_PREFIX}/{part.slug}/{part.modules[0].slug}").status_code == 200
+
+
+@pytest.mark.parametrize(
+    "path",
+    [
+        f"{COURSE_PREFIX}/procedures/electricite/unites",  # right module, wrong part
+        f"{COURSE_PREFIX}/procedures/electricite",
+        f"{COURSE_PREFIX}/nope/electricite/unites",
+    ],
+)
+def test_a_step_under_the_wrong_part_redirects_to_next_up(client, store: Store, learner, path):
+    assert location(get(client, path)) == url(FIRST)
+    if path.endswith("/unites"):
+        assert location(post(client, path + "/next")) == url(FIRST)
+        assert store.completed_steps(learner) == set()
+
+
+def test_part_1_progress_survives_the_parts_level():
+    """Step ids are what progress is stored under (LEARN.md §8): the parts
+    level moved no module, so part 1's ids are the ones stored before it."""
+    ids = {s.id for s in COURSE.only("technique").steps}
+    assert {"unites", "q2", "electricite/en-savoir-plus", "q5"} <= ids
+    assert all(s.part == "technique" for s in COURSE.only("technique").steps)
+
+
+def test_dashboard_lists_parts_by_number_with_their_own_continue(client, store: Store, learner):
+    page = client.get("/learn").text
+    positions = [page.index(f'id="part-{slug}"') for slug in ("technique", "procedures", "reglementation")]
+    assert positions == sorted(positions)
+    for part in COURSE.parts:
+        assert f'href="{url(part.modules[0].steps[0])}"' in page
+    # Part 2 comes after part 3 in the course: said until part 3 is done.
+    assert "Conseillé après la partie 3" in page
+    seed(store, learner, COURSE.only("reglementation").steps)
+    page = client.get("/learn").text
+    assert "Conseillé après" not in page and "Partie terminée" in page
+
+
+def test_finishing_a_part_earns_its_badge(client, store: Store, learner):
+    technique = COURSE.only("technique").steps
+    seed(store, learner, technique[:-1])
+    post(client, url(technique[-1]) + "/next")
+    assert awards.part_ref("technique") == "base-technique"  # the ref part 1 always had
+    assert {"base-technique"} <= badge_rows(store, learner)
+    assert awards.COURSE_DONE not in badge_rows(store, learner)
+    assert "Nouveau badge : BASE partie 1 terminée" in client.get("/learn").text
+
+
+def test_badge_shelf_order():
+    shelf = awards.badges(COURSE)
+    assert shelf[0] == awards.FIRST_LESSON and shelf[-1] == awards.COURSE_DONE
+    assert (
+        shelf.index("module:perturbations")
+        < shelf.index("base-technique")
+        < shelf.index("module:institutions")
+    )
+
+
+# -- open practice steps (specs/LEARN-2-3.md §4.4) ------------------------------------------
+
+
+class FakeGrader:
+    """Stands in for the LLM: "ok" is right, "near" is right in substance
+    but not in the official form, anything else is wrong. Records each call,
+    so a test can see which fields were graded. Spends no tokens."""
+
+    model = "fake"
+
+    def __init__(self):
+        self.calls: list[str] = []
+
+    async def grade(self, *, reference: str, candidate: str, **_):
+        from app.grader import GradeResult
+
+        self.calls.append(reference)
+        near = candidate == "near"
+        element = {"element": reference, "present": candidate in ("ok", "near"), "note": ""}
+        if near:
+            element |= {"near": True, "official": reference}
+        comment = "" if candidate == "ok" else "Ce n'est pas ça."
+        return GradeResult([element], [], comment, "llm", self.model)
+
+
+@pytest.fixture
+def grader(client) -> FakeGrader:
+    from app.main import app, get_llm_grader
+
+    fake = FakeGrader()
+    app.dependency_overrides[get_llm_grader] = lambda: fake
+    return fake
+
+
+Q448 = step_of(448)  # seven fields, graded by the LLM
+ITEMS_448 = [item["item_no"] for item in cat.get(448)["answer"]]
+REFERENCE_448 = {item["item_no"]: item["text"]["fr"] for item in cat.get(448)["answer"]}
+
+
+def fields(values: dict[int, str]) -> dict[str, str]:
+    return {f"item_{n}": v for n, v in values.items()}
+
+
+def test_open_step_renders_one_field_per_item(client, learner):
+    page = client.get(url(Q448)).text
+    assert page.count('name="item_') == len(ITEMS_448)
+    assert "QRT?" in page
+    assert "Réponse attendue" not in page  # nothing revealed before a first try
+
+
+def test_correct_fields_lock_and_the_rest_reveal_the_answer(client, store: Store, learner, grader):
+    first, *rest = ITEMS_448
+    answer = {first: "ok", **{n: "faux" for n in rest}}
+    assert location(post(client, url(Q448) + "/answer", fields(answer))) == url(Q448)
+    assert len(grader.calls) == len(ITEMS_448)
+    result = practice(store, learner, 448)
+    assert set(result["solved_items"]) == {first} and set(result["last_try"]) == set(rest)
+    assert Q448.id not in store.completed_steps(learner)
+
+    page = html.unescape(client.get(url(Q448)).text)
+    assert page.count('name="item_') == len(rest)  # the solved field is locked
+    assert 'class="solved-answer"' in page and "Ce n'est pas ça." in page
+    assert "Réponse attendue" in page and REFERENCE_448[rest[0]] in page
+    assert "Revoir" in page and 'id="next-link"' not in page
+
+    # Only the unsolved fields are graded again.
+    grader.calls.clear()
+    post(client, url(Q448) + "/answer", fields({n: "ok" for n in ITEMS_448}))
+    assert sorted(grader.calls) == sorted(REFERENCE_448[n] for n in rest)
+    assert Q448.id in store.completed_steps(learner)
+    assert xp_rows(store, learner) == {}  # not the first submission
+    page = client.get(url(Q448)).text
+    assert "Bravo" in page and f'id="next-link" href="{url(following(Q448))}"' in page
+
+
+def test_open_step_right_on_the_first_submission_earns_xp(client, store: Store, learner, grader):
+    post(client, url(Q448) + "/answer", fields({n: "ok" for n in ITEMS_448}))
+    assert Q448.id in store.completed_steps(learner)
+    assert xp_rows(store, learner) == {Q448.id: awards.XP_FIRST_TRY}
+
+
+def test_a_near_answer_is_a_miss_shown_with_the_official_form(client, store: Store, learner, grader):
+    q452 = step_of(452)
+    post(client, url(q452) + "/answer", {"item_0": "near"})
+    assert q452.id not in store.completed_steps(learner)
+    page = html.unescape(client.get(url(q452)).text)
+    assert "l'ILR attend : MAYDAY" in page and "Réponse attendue" in page
+    post(client, url(q452) + "/answer", {"item_0": "ok"})
+    assert q452.id in store.completed_steps(learner) and xp_rows(store, learner) == {}
+
+
+def test_an_empty_submission_is_ignored(client, store: Store, learner, grader):
+    before = snapshot(store)
+    assert location(post(client, url(Q448) + "/answer", fields({n: " " for n in ITEMS_448}))) == url(Q448)
+    assert grader.calls == [] and snapshot(store) == before
+
+
+def test_a_completed_open_step_is_not_graded_again(client, store: Store, learner, grader):
+    post(client, url(Q448) + "/answer", fields({n: "ok" for n in ITEMS_448}))
+    grader.calls.clear()
+    before = snapshot(store)
+    assert location(post(client, url(Q448) + "/answer", fields({n: "faux" for n in ITEMS_448}))) == url(Q448)
+    assert grader.calls == [] and snapshot(store) == before
+    page = html.unescape(client.get(url(Q448)).text)
+    assert 'name="item_' not in page and REFERENCE_448[ITEMS_448[-1]] in page
+
+
+def test_spelling_is_graded_by_rule_and_accepts_near_forms(client, store: Store, learner):
+    """No grader at all (the client fixture's default): spelling never needs one."""
+    q440 = step_of(440)
+    post(client, url(q440) + "/answer", {"item_0": "Lima X-ray Un Romeo Tango Golf Yankee"})
+    assert q440.id in store.completed_steps(learner)
+    assert xp_rows(store, learner) == {q440.id: awards.XP_FIRST_TRY}
+    page = html.unescape(client.get(url(q440)).text)
+    assert "« un » est accepté ; le questionnaire écrit ONE." in page
+
+
+def test_a_wrong_spelling_names_what_is_missing(client, store: Store, learner):
+    q440 = step_of(440)
+    post(client, url(q440) + "/answer", {"item_0": "Lima X-ray One Romeo Tango Golf"})
+    assert q440.id not in store.completed_steps(learner)
+    page = client.get(url(q440)).text
+    assert '<li class="missing">Y</li>' in page and "Réponse attendue" in page
+
+
+def test_without_a_grader_the_learner_grades_themselves_without_xp(client, store: Store, learner):
+    q452 = step_of(452)
+    post(client, url(q452) + "/answer", {"item_0": "Mayday"})
+    page = client.get(url(q452)).text
+    assert 'action="' + url(q452) + '/self-grade"' in page and "Réponse attendue" in page
+    assert "readonly" in page and "Vérifier" not in page
+
+    # "I didn't have it": wrong, to be typed again.
+    post(client, url(q452) + "/self-grade", {"correct": "0"})
+    assert q452.id not in store.completed_steps(learner)
+    assert "self-grade" not in client.get(url(q452)).text
+
+    post(client, url(q452) + "/answer", {"item_0": "Mayday"})
+    post(client, url(q452) + "/self-grade", {"correct": "1"})
+    assert q452.id in store.completed_steps(learner)
+    assert xp_rows(store, learner) == {}
+
+
+def test_self_grading_on_the_first_submission_earns_no_xp(client, store: Store, learner):
+    q452 = step_of(452)
+    post(client, url(q452) + "/answer", {"item_0": "Mayday"})
+    post(client, url(q452) + "/self-grade", {"correct": "1"})
+    assert q452.id in store.completed_steps(learner) and xp_rows(store, learner) == {}
+
+
+def test_a_self_grade_with_nothing_pending_changes_nothing(client, store: Store, learner):
+    q452 = step_of(452)
+    before = snapshot(store)
+    post(client, url(q452) + "/self-grade", {"correct": "1"})
+    assert snapshot(store) == before
+
+
+def test_an_existing_database_gains_the_open_answer_columns(tmp_path):
+    """specs/LEARN-2-3.md §4.4: an idempotent ALTER TABLE; old rows keep their data."""
+    import sqlite3
+
+    path = tmp_path / "old.db"
+    con = sqlite3.connect(path)
+    con.executescript(
+        """
+        CREATE TABLE practice_result (
+          account_id TEXT NOT NULL, question_id INTEGER NOT NULL,
+          wrong_letters TEXT NOT NULL DEFAULT '', submissions INTEGER NOT NULL DEFAULT 0,
+          updated_at TEXT NOT NULL, PRIMARY KEY (account_id, question_id));
+        INSERT INTO practice_result VALUES ('a', 2, 'b', 1, 'x');
+        """
+    )
+    con.commit()
+    con.close()
+    Store(path)
+    store = Store(path)  # twice: the migration is idempotent
+    result = store.practice_result("a", 2)
+    assert result is not None
+    assert (result["wrong_letters"], result["solved_items"], result["last_try"]) == ("b", {}, {})
