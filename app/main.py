@@ -42,7 +42,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     # half-valid course must fail the deploy here rather than render as a
     # broken page in front of a learner.
     try:
-        app.state.course = course_module.load(questions=cat.questions)
+        app.state.course = course_module.load(questions=cat.questions).only(SERVED_PART)
     except course_module.CourseError as e:
         for p in e.problems:
             log.error("course: %s", p)
@@ -596,7 +596,11 @@ def appendix(request: Request, lang: str = "fr"):
 # up, and a post for either writes nothing. Practice grading is an exact
 # match on `is_correct` -- no LLM belongs on this path (§2).
 
-COURSE_PREFIX = f"/learn/{course_module.CERT}/{course_module.PART}"
+# Parts 2 and 3 are in the curriculum and validated, but their practice steps
+# include open questions this page cannot grade yet: until specs/LEARN-2-3.md
+# phase 2 (routes per part, open steps), the course served is part 1 alone.
+SERVED_PART = "technique"
+COURSE_PREFIX = f"/learn/{course_module.CERT}/{SERVED_PART}"
 
 
 def course_ui(request: Request, module: course_module.Module | None = None) -> str:

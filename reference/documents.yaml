@@ -39,6 +39,16 @@ documents:
     sha256: 107c05c353f083bc05e35b3965bd3b022dc96e3fff62287b91486c2b64a4933d
     url: https://legilux.public.lu/filestore/eli/etat/leg/rilr/2024/01/26/a51/jo/fr/pdfa/eli-etat-leg-rilr-2024-01-26-a51-jo-fr-pdfa.pdf
 
+  # The law as first published. Articles 1 (the "ministre" definition), 2, 4, 6
+  # and 9 settle question 489; the ILR's missions came with later amendments,
+  # which only Legilux's consolidated text shows (its site is script-only).
+  - id: loi-2005-05-30-ondes
+    name: Loi du 30 mai 2005 (ondes radioélectriques)
+    description: Loi du 30 mai 2005 portant organisation de la gestion des ondes radioélectriques, texte d'origine (Mémorial A n° 73 du 7 juin 2005, p. 1159).
+    filename: eli-etat-leg-memorial-2005-a73-fr-pdf.pdf
+    sha256: 6b68f5632cfe05fafdd123ffb4dea2ebe8c39424b0290f48c3378208995f677b
+    url: https://legilux.public.lu/filestore/eli/etat/leg/memorial/2005/a73/fr/pdf/eli-etat-leg-memorial-2005-a73-fr-pdf.pdf
+
 links:
   - id: ilr-exam-page
     name: Examen opérateur radioamateur (ILR)

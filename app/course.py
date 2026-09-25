@@ -1,9 +1,10 @@
-"""The from-zero BASE part-1 course: loader and validator (specs/LEARN.md §3).
+"""The from-zero BASE course: loader and validator (specs/LEARN.md §3,
+specs/LEARN-2-3.md §2).
 
 Layout, under `data/course/base/`:
 
-    curriculum.yaml                  modules, steps, concept graph -- the only
-                                     place `introduces` / `requires` live
+    curriculum.yaml                  parts, modules, steps, concept graph --
+                                     the only place `introduces` / `requires` live
     <module>/<lesson>.fr.md          one lesson: frontmatter {title, sources}
     <module>/en-savoir-plus.fr.md    the module's closing links: {title, links}
     <module>/q<id>.fr.md             optional answer note, no frontmatter
@@ -12,10 +13,14 @@ A `.de.md` sibling may exist for each of them, all-or-nothing per module
 (§4.3). Practice steps carry only a question id; the question text is always
 joined from `data/questions.jsonl`, which `mise run extract` owns.
 
-The course order is modules in file order, then steps in file order. The
-validator enforces what the spec calls checks 1-7 (§3.2): schema, uniqueness,
-prerequisite order, exact coverage of the 44 BASE `1.x` questions, question
-shape, module shape, and the Markdown files. It cannot enforce that a question
+One file and one concept graph hold all three parts of the exam, because the
+parts lean on each other (LEARN-2-3 §2.1); modules keep their directory
+whatever part they sit in, since module and lesson slugs are unique across
+the cert. The course order is parts, then modules, then steps, each in file
+order. The validator enforces what the spec calls checks 1-7 (§3.2): schema,
+uniqueness, prerequisite order, exact coverage of the BASE questions part by
+part (the practice steps of part P are the BASE questions of catalogue
+section P), question shape, module shape, and the Markdown files. It cannot enforce that a question
 comes *as soon as* it is answerable, only never before; `--report` helps the
 review of that half.
 
@@ -49,14 +54,17 @@ COURSE_DIR = ROOT / "data" / "course" / "base"
 CURRICULUM = "curriculum.yaml"
 
 CERT = "base"
-PART = "technique"
+# A part's slug is the catalogue's name for its section; its number comes from
+# inverting PART_NAMES and is never written in the YAML (LEARN-2-3 §2.2).
+PART_NUMBERS = {name: number for number, name in catalogue.PART_NAMES.items()}
 LANGS = ("fr", "de")
 LEARN_MORE = "en-savoir-plus"
 
 SLUG = re.compile(r"[a-z0-9-]+")
 PRACTICE_SLUG = re.compile(r"q(\d+)")
 
-COURSE_KEYS = {"cert", "part", "modules"}
+COURSE_KEYS = {"cert", "parts"}
+PART_KEYS = {"slug", "title", "modules"}
 MODULE_KEYS = {"slug", "title", "steps"}
 LESSON_STEP_KEYS = {"lesson", "introduces", "requires"}
 PRACTICE_STEP_KEYS = {"practice", "requires"}
@@ -100,13 +108,39 @@ class Module:
 
 
 @dataclass(frozen=True)
-class Course:
+class Part:
+    slug: str  # catalogue.PART_NAMES value: "technique", "procedures", ...
+    title: dict[str, str]
     modules: tuple[Module, ...]
+
+    @property
+    def number(self) -> str:
+        """The exam's part number, "1" to "3": the catalogue section prefix."""
+        return PART_NUMBERS[self.slug]
+
+
+@dataclass(frozen=True)
+class Course:
+    parts: tuple[Part, ...]
+
+    @property
+    def modules(self) -> tuple[Module, ...]:
+        """Every module in course order, across parts."""
+        return tuple(m for p in self.parts for m in p.modules)
 
     @property
     def steps(self) -> list[Step]:
         """Every step in the course's linear order (§3.1)."""
         return [s for m in self.modules for s in m.steps]
+
+    def part_of(self, module: Module) -> Part:
+        return next(p for p in self.parts if module in p.modules)
+
+    def only(self, *slugs: str) -> Course:
+        """The course reduced to the named parts, in course order. Lets the
+        application serve part 1 alone until it can render open questions
+        (LEARN-2-3 §8, phase 2); the validator always sees every part."""
+        return Course(tuple(p for p in self.parts if p.slug in slugs))
 
     def introduced_by(self) -> dict[str, Step]:
         """Concept slug -> the lesson that introduces it."""
@@ -270,51 +304,76 @@ def _parse_module(raw: object, where: str, problems: list[str]) -> Module | None
         return None
     assert isinstance(slug, str)
     where = f"module {slug}"
-
-    title = raw.get("title")
-    clean_title: dict[str, str] = {}
-    if not isinstance(title, dict):
-        problems.append(f"{where}: `title` must be a mapping of language to text, e.g. {{fr: ...}}")
-    else:
-        for lang, text in title.items():
-            if lang not in LANGS:
-                problems.append(f"{where}: title language {lang!r} is not one of {list(LANGS)}")
-            elif not isinstance(text, str) or not text.strip():
-                problems.append(f"{where}: title.{lang} must be non-empty text")
-            else:
-                clean_title[lang] = text
-        if "fr" not in title:
-            problems.append(f"{where}: title.fr is required")
+    title = _parse_title(raw.get("title"), where, problems)
 
     raw_steps = raw.get("steps")
     if not isinstance(raw_steps, list) or not raw_steps:
         problems.append(f"{where}: `steps` must be a non-empty list")
         raw_steps = []
     steps = [_parse_step(s, slug, f"{where} step {i + 1}", problems) for i, s in enumerate(raw_steps)]
-    return Module(slug, clean_title, tuple(s for s in steps if s is not None))
+    return Module(slug, title, tuple(s for s in steps if s is not None))
+
+
+def _parse_title(title: object, where: str, problems: list[str]) -> dict[str, str]:
+    clean: dict[str, str] = {}
+    if not isinstance(title, dict):
+        problems.append(f"{where}: `title` must be a mapping of language to text, e.g. {{fr: ...}}")
+        return clean
+    for lang, text in title.items():
+        if lang not in LANGS:
+            problems.append(f"{where}: title language {lang!r} is not one of {list(LANGS)}")
+        elif not isinstance(text, str) or not text.strip():
+            problems.append(f"{where}: title.{lang} must be non-empty text")
+        else:
+            clean[lang] = text
+    if "fr" not in title:
+        problems.append(f"{where}: title.fr is required")
+    return clean
+
+
+def _parse_part(raw: object, where: str, problems: list[str]) -> Part | None:
+    if not isinstance(raw, dict):
+        problems.append(f"{where}: a part is a mapping with slug, title and modules")
+        return None
+    for key in set(raw) - PART_KEYS:
+        problems.append(f"{where}: unknown key {key!r} on a part")
+    slug = raw.get("slug")
+    if slug not in PART_NUMBERS:
+        problems.append(f"{where}: part slug {slug!r} is not one of {list(PART_NUMBERS)}")
+        return None
+    assert isinstance(slug, str)
+    where = f"part {slug}"
+    title = _parse_title(raw.get("title"), where, problems)
+    raw_modules = raw.get("modules")
+    if not isinstance(raw_modules, list) or not raw_modules:
+        problems.append(f"{where}: `modules` must be a non-empty list")
+        raw_modules = []
+    modules = [_parse_module(m, f"{where} module {i + 1}", problems) for i, m in enumerate(raw_modules)]
+    return Part(slug, title, tuple(m for m in modules if m is not None))
 
 
 def _parse(raw: object, problems: list[str]) -> Course | None:
     """Check 1 (schema). Returns what could be parsed, so later checks still run."""
     if not isinstance(raw, dict):
-        problems.append(f"{CURRICULUM}: must be a mapping with cert, part and modules")
+        problems.append(f"{CURRICULUM}: must be a mapping with cert and parts")
         return None
     for key in set(raw) - COURSE_KEYS:
         problems.append(f"{CURRICULUM}: unknown top-level key {key!r}")
     if raw.get("cert") != CERT:
         problems.append(f"{CURRICULUM}: cert must be {CERT!r}, got {raw.get('cert')!r}")
-    if raw.get("part") != PART:
-        problems.append(f"{CURRICULUM}: part must be {PART!r}, got {raw.get('part')!r}")
-    raw_modules = raw.get("modules")
-    if not isinstance(raw_modules, list) or not raw_modules:
-        problems.append(f"{CURRICULUM}: `modules` must be a non-empty list")
+    raw_parts = raw.get("parts")
+    if not isinstance(raw_parts, list) or not raw_parts:
+        problems.append(f"{CURRICULUM}: `parts` must be a non-empty list")
         return None
-    modules = [_parse_module(m, f"module {i + 1}", problems) for i, m in enumerate(raw_modules)]
-    return Course(tuple(m for m in modules if m is not None))
+    parts = [_parse_part(p, f"part {i + 1}", problems) for i, p in enumerate(raw_parts)]
+    return Course(tuple(p for p in parts if p is not None))
 
 
 def _check_uniqueness(course: Course, problems: list[str]) -> None:
     """Check 2. Lesson slugs are course-wide: progress is keyed by step id (§8)."""
+    for slug, n in Counter(p.slug for p in course.parts).items():
+        if n > 1:
+            problems.append(f"part slug {slug!r} is used by {n} parts")
     for slug, n in Counter(m.slug for m in course.modules).items():
         if n > 1:
             problems.append(f"module slug {slug!r} is used by {n} modules")
@@ -359,26 +418,41 @@ def _check_order(course: Course, problems: list[str]) -> None:
                 )
 
 
-def _base_section1_ids(questions: list[dict]) -> set[int]:
-    return {q["id"] for q in questions if CERT in q["tags"] and q["section"].startswith("1.")}
+def _part_of_step(course: Course) -> dict[Step, Part]:
+    return {s: p for p in course.parts for m in p.modules for s in m.steps}
+
+
+def _base_ids_by_part(questions: list[dict]) -> dict[str, set[int]]:
+    """Part slug -> the BASE questions of its catalogue section."""
+    out: dict[str, set[int]] = {slug: set() for slug in PART_NUMBERS}
+    for q in questions:
+        if CERT in q["tags"]:
+            out[catalogue.part_of(q["section"])].add(q["id"])
+    return out
 
 
 def _check_coverage(course: Course, questions: list[dict], problems: list[str]) -> None:
-    """Check 4: practice ids == the BASE `1.x` questions, each exactly once.
+    """Check 4: the practice ids of each part == the BASE questions of its
+    catalogue section, each exactly once; every BASE question is placed.
 
-    An id that is not a BASE `1.x` question is reported by check 5, which says why.
+    A question placed in the wrong part is reported by check 5, which says why.
     """
     used = Counter(s.question_id for s in course.steps if s.kind == "practice")
     for qid, n in sorted(used.items(), key=lambda kv: kv[0] or 0):
         if n > 1:
             problems.append(f"question {qid} is practised by {n} steps; each exactly once")
-    for qid in sorted(_base_section1_ids(questions) - set(used)):
-        problems.append(f"question {qid} (BASE, section 1.x) has no practice step")
+    for part, ids in _base_ids_by_part(questions).items():
+        for qid in sorted(ids - set(used)):
+            problems.append(
+                f"question {qid} (BASE, section {PART_NUMBERS[part]}.x) has no practice step in part {part}"
+            )
 
 
 def _check_question_shape(course: Course, questions: list[dict], problems: list[str]) -> None:
-    """Check 5: every practice id is a single-answer BASE `1.x` MCQ in the catalogue."""
+    """Check 5: every practice id is a BASE question of its part's section, and
+    either a single-answer MCQ or an open question with a reference answer."""
     by_id = {q["id"]: q for q in questions}
+    part_of = _part_of_step(course)
     for s in course.steps:
         if s.kind != "practice":
             continue
@@ -389,16 +463,22 @@ def _check_question_shape(course: Course, questions: list[dict], problems: list[
             continue
         if CERT not in q["tags"]:
             problems.append(f"{where}: question is not BASE tagged (tags {q['tags']})")
-        if not q["section"].startswith("1."):
-            problems.append(f"{where}: question is in section {q['section']}, not 1.x")
-        if q["kind"] != "mcq":
-            problems.append(f"{where}: question kind is {q['kind']!r}, not 'mcq'")
-        else:
+        part = part_of[s]
+        if catalogue.part_of(q["section"]) != part.slug:
+            problems.append(
+                f"{where}: question is in section {q['section']}, not {part.number}.x (part {part.slug})"
+            )
+        if q["kind"] == "mcq":
             correct = sum(1 for o in q["options"] if o.get("is_correct"))
             if correct != 1:
                 problems.append(
                     f"{where}: question has {correct} correct options; retry-until-correct needs exactly one"
                 )
+        elif q["kind"] == "open":
+            if not any(item.get("text", {}).get("fr") for item in q.get("answer", [])):
+                problems.append(f"{where}: open question has no French reference answer to grade against")
+        else:
+            problems.append(f"{where}: question kind is {q['kind']!r}, not 'mcq' or 'open'")
 
 
 def _check_module_shape(course: Course, problems: list[str]) -> None:
@@ -577,7 +657,8 @@ def _check(course_dir: pathlib.Path, questions: list[dict]) -> tuple[Course | No
 
 
 def report(course: Course) -> list[str]:
-    """Authoring review aid (§3.2): how late each question comes, and unused concepts.
+    """Authoring review aid (§3.2): how late each question comes, part by part,
+    and unused concepts.
 
     Informational only. "Late" counts the lessons between a practice step and
     the lesson that introduced its last required concept: a question with
@@ -589,12 +670,17 @@ def report(course: Course) -> list[str]:
         "Practice steps: distance from the lesson introducing their last required concept"
         " (⚠ = other lessons in between):"
     ]
+    part_of = _part_of_step(course)
+    current = None
     for i, s in enumerate(steps):
         if s.kind != "practice":
             continue
+        if part_of[s] != current:
+            current = part_of[s]
+            lines.append(f" Part {current.number} ({current.slug})")
         known = [introduced_at[c] for c in s.requires if c in introduced_at]
         if not known:
-            lines.append(f"  ? {s.slug:<5} {s.module:<14} requires nothing introduced")
+            lines.append(f"  ? {s.slug:<5} {s.module:<21} requires nothing introduced")
             continue
         last = max(known)
         between = [t.slug for t in steps[last + 1 : i] if t.kind == "lesson"]
@@ -602,7 +688,7 @@ def report(course: Course) -> list[str]:
         extra = f"; {len(between)} lesson(s) in between: {', '.join(between)}" if between else ""
         distance = i - last
         lines.append(
-            f"  {mark} {s.slug:<5} {s.module:<14} {distance} step{'s' * (distance > 1)}"
+            f"  {mark} {s.slug:<5} {s.module:<21} {distance} step{'s' * (distance > 1)}"
             f" after lesson {steps[last].slug}{extra}"
         )
 
@@ -698,8 +784,9 @@ def main(argv: list[str] | None = None) -> int:
     if course is not None:
         n = {k: sum(1 for s in course.steps if s.kind == k) for k in ("lesson", "practice", "learn-more")}
         print(
-            f"{len(course.modules)} modules | {n['lesson']} lessons | {n['practice']} practice steps"
-            f" | {len(course.introduced_by())} concepts | {len(problems)} problems"
+            f"{len(course.parts)} parts | {len(course.modules)} modules | {n['lesson']} lessons"
+            f" | {n['practice']} practice steps | {len(course.introduced_by())} concepts"
+            f" | {len(problems)} problems"
         )
         if args.report:
             print()

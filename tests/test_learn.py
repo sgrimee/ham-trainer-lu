@@ -20,10 +20,10 @@ sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent))
 
 from app import awards
 from app import course as course_module
-from app.main import COURSE_PREFIX, LEARNER_COOKIE, PREFS_COOKIE, cat
+from app.main import COURSE_PREFIX, LEARNER_COOKIE, PREFS_COOKIE, SERVED_PART, cat
 from app.store import Store
 
-COURSE = course_module.load(questions=cat.questions)
+COURSE = course_module.load(questions=cat.questions).only(SERVED_PART)
 
 
 def module(slug: str) -> course_module.Module:
@@ -404,7 +404,9 @@ def test_review_links_use_each_lessons_own_language(client, store: Store, learne
         )
     )
     monkeypatch.setattr(course_module, "COURSE_DIR", course_dir)
-    monkeypatch.setattr(main.app.state, "course", course_module.load(questions=cat.questions))
+    monkeypatch.setattr(
+        main.app.state, "course", course_module.load(questions=cat.questions).only(SERVED_PART)
+    )
     client.cookies.set(PREFS_COOKIE, '{"lang": "de"}')
     q5 = next(s for s in module("ondes").steps if s.slug == "q5")
     unites = next(s for s in module("electricite").steps if s.slug == "unites")

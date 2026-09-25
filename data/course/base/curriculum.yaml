@@ -1,298 +1,493 @@
-# The BASE part-1 (Techniques) course: structure and concept graph (specs/LEARN.md §3).
+# The BASE course: parts, modules, steps and the one concept graph
+# (specs/LEARN.md §3, specs/LEARN-2-3.md §2-3).
 #
 # The only place `introduces` / `requires` live; lesson files never repeat them.
-# Order is the course order: modules top to bottom, steps top to bottom.
+# Order is the course order: parts, modules and steps top to bottom. Part 3
+# comes before part 2 on purpose (LEARN-2-3 §2.2): part 2 assumes the UIT, the
+# certificates and the callsign. A part's number comes from app/catalogue.py's
+# PART_NAMES, never from this file. Every part's practice steps are exactly the
+# BASE questions of its catalogue section.
 # `uv run python -m app.course` validates it; `--report` helps review it.
 cert: base
-part: technique
-modules:
-  - slug: electricite
-    title: {fr: "Électricité de base"}
-    steps:
-      - lesson: unites
-        introduces: [si-units]
-      - lesson: charge
-        introduces: [charge]
-      - lesson: courant
-        introduces: [current]
-        requires: [charge]
-      - practice: 2
-        requires: [current, si-units]
-      - lesson: tension
-        introduces: [voltage]
-        requires: [charge, current]
-      - practice: 3
-        requires: [voltage, si-units]
-      - lesson: resistance
-        introduces: [resistance]
-        requires: [current, voltage]
-      - practice: 4
-        requires: [resistance, si-units]
-      - lesson: loi-d-ohm
-        introduces: [ohms-law]
-        requires: [voltage, current, resistance]
-      - lesson: puissance
-        introduces: [power]
-        requires: [voltage, current]
-      - practice: 1
-        requires: [power, si-units]
-      - lesson: prefixes
-        introduces: [si-prefixes]
-        requires: [si-units]
-      - lesson: calcul-de-puissance
-        introduces: [power-formula]
-        requires: [power, voltage, current]
-      - practice: 15
-        requires: [power-formula, si-prefixes]
-      - practice: 16
-        requires: [power-formula, si-prefixes]
-      - lesson: energie
-        introduces: [energy, kilowatt-hour]
-        requires: [power, si-prefixes]
-      - practice: 6
-        requires: [energy, kilowatt-hour]
-      - lesson: piles
-        introduces: [battery, series-connection, parallel-connection]
-        requires: [voltage]
-      - practice: 17
-        requires: [battery, series-connection, parallel-connection]
-      - lesson: conducteurs-et-isolants
-        introduces: [conductor, insulator]
-        requires: [current, resistance]
-      - lesson: resistance-d-un-fil
-        introduces: [wire-resistance]
-        requires: [resistance, conductor]
-      - practice: 25
-        requires: [wire-resistance, conductor]
-      - learn-more
+parts:
+  - slug: technique
+    title: {fr: "Techniques"}
+    modules:
+      - slug: electricite
+        title: {fr: "Électricité de base"}
+        steps:
+          - lesson: unites
+            introduces: [si-units]
+          - lesson: charge
+            introduces: [charge]
+          - lesson: courant
+            introduces: [current]
+            requires: [charge]
+          - practice: 2
+            requires: [current, si-units]
+          - lesson: tension
+            introduces: [voltage]
+            requires: [charge, current]
+          - practice: 3
+            requires: [voltage, si-units]
+          - lesson: resistance
+            introduces: [resistance]
+            requires: [current, voltage]
+          - practice: 4
+            requires: [resistance, si-units]
+          - lesson: loi-d-ohm
+            introduces: [ohms-law]
+            requires: [voltage, current, resistance]
+          - lesson: puissance
+            introduces: [power]
+            requires: [voltage, current]
+          - practice: 1
+            requires: [power, si-units]
+          - lesson: prefixes
+            introduces: [si-prefixes]
+            requires: [si-units]
+          - lesson: calcul-de-puissance
+            introduces: [power-formula]
+            requires: [power, voltage, current]
+          - practice: 15
+            requires: [power-formula, si-prefixes]
+          - practice: 16
+            requires: [power-formula, si-prefixes]
+          - lesson: energie
+            introduces: [energy, kilowatt-hour]
+            requires: [power, si-prefixes]
+          - practice: 6
+            requires: [energy, kilowatt-hour]
+          - lesson: piles
+            introduces: [battery, series-connection, parallel-connection]
+            requires: [voltage]
+          - practice: 17
+            requires: [battery, series-connection, parallel-connection]
+          - lesson: conducteurs-et-isolants
+            introduces: [conductor, insulator]
+            requires: [current, resistance]
+          - lesson: resistance-d-un-fil
+            introduces: [wire-resistance]
+            requires: [resistance, conductor]
+          - practice: 25
+            requires: [wire-resistance, conductor]
+          - learn-more
 
-  - slug: ondes
-    title: {fr: "Ondes et fréquences"}
-    steps:
-      - lesson: frequence
-        introduces: [frequency]
-        requires: [si-units]
-      - practice: 5
-        requires: [frequency, si-units]
-      - lesson: courant-alternatif
-        introduces: [alternating-current, direct-current]
-        requires: [current, voltage, frequency]
-      - lesson: ondes
-        introduces: [wave, amplitude]
-        requires: [frequency]
-      - lesson: transversale-ou-longitudinale
-        introduces: [transverse-wave, longitudinal-wave]
-        requires: [wave]
-      - lesson: onde-electromagnetique
-        introduces: [electromagnetic-wave, electric-field, magnetic-field]
-        requires: [wave, transverse-wave, voltage, current]
-      - practice: 38
-        requires: [electromagnetic-wave, transverse-wave, longitudinal-wave]
-      - lesson: vitesse-de-la-lumiere
-        introduces: [speed-of-light]
-        requires: [electromagnetic-wave]
-      - lesson: longueur-d-onde
-        introduces: [wavelength]
-        requires: [wave, frequency, speed-of-light]
-      - lesson: lambda-et-frequence
-        introduces: [wavelength-frequency-relation]
-        requires: [wavelength, frequency, speed-of-light, si-prefixes]
-      - practice: 58
-        requires: [wavelength-frequency-relation, si-prefixes]
-      - lesson: comparer-frequence-et-longueur-d-onde
-        introduces: [frequency-wavelength-comparison]
-        requires: [wavelength-frequency-relation]
-      - practice: 54
-        requires: [frequency-wavelength-comparison]
-      - lesson: qu-est-ce-qu-une-bande
-        introduces: [frequency-band, hf-vhf-uhf]
-        requires: [frequency, wavelength, si-prefixes]
-      - lesson: bandes-radioamateur
-        introduces: [amateur-bands]
-        requires: [frequency-band, hf-vhf-uhf, wavelength-frequency-relation, si-prefixes]
-      - practice: 55
-        requires: [amateur-bands, si-prefixes]
-      - practice: 56
-        requires: [wavelength-frequency-relation, amateur-bands]
-      - learn-more
+      - slug: ondes
+        title: {fr: "Ondes et fréquences"}
+        steps:
+          - lesson: frequence
+            introduces: [frequency]
+            requires: [si-units]
+          - practice: 5
+            requires: [frequency, si-units]
+          - lesson: courant-alternatif
+            introduces: [alternating-current, direct-current]
+            requires: [current, voltage, frequency]
+          - lesson: ondes
+            introduces: [wave, amplitude]
+            requires: [frequency]
+          - lesson: transversale-ou-longitudinale
+            introduces: [transverse-wave, longitudinal-wave]
+            requires: [wave]
+          - lesson: onde-electromagnetique
+            introduces: [electromagnetic-wave, electric-field, magnetic-field]
+            requires: [wave, transverse-wave, voltage, current]
+          - practice: 38
+            requires: [electromagnetic-wave, transverse-wave, longitudinal-wave]
+          - lesson: vitesse-de-la-lumiere
+            introduces: [speed-of-light]
+            requires: [electromagnetic-wave]
+          - lesson: longueur-d-onde
+            introduces: [wavelength]
+            requires: [wave, frequency, speed-of-light]
+          - lesson: lambda-et-frequence
+            introduces: [wavelength-frequency-relation]
+            requires: [wavelength, frequency, speed-of-light, si-prefixes]
+          - practice: 58
+            requires: [wavelength-frequency-relation, si-prefixes]
+          - lesson: comparer-frequence-et-longueur-d-onde
+            introduces: [frequency-wavelength-comparison]
+            requires: [wavelength-frequency-relation]
+          - practice: 54
+            requires: [frequency-wavelength-comparison]
+          - lesson: qu-est-ce-qu-une-bande
+            introduces: [frequency-band, hf-vhf-uhf]
+            requires: [frequency, wavelength, si-prefixes]
+          - lesson: bandes-radioamateur
+            introduces: [amateur-bands]
+            requires: [frequency-band, hf-vhf-uhf, wavelength-frequency-relation, si-prefixes]
+          - practice: 55
+            requires: [amateur-bands, si-prefixes]
+          - practice: 56
+            requires: [wavelength-frequency-relation, amateur-bands]
+          - learn-more
 
-  - slug: modulation
-    title: {fr: "Modulation"}
-    steps:
-      - lesson: porteuse
-        introduces: [carrier, modulation]
-        requires: [electromagnetic-wave, frequency]
-      - lesson: modulation-d-amplitude
-        introduces: [amplitude-modulation]
-        requires: [carrier, modulation, amplitude]
-      - lesson: modulation-de-frequence
-        introduces: [frequency-modulation, frequency-deviation]
-        requires: [carrier, modulation, amplitude, amplitude-modulation]
-      - practice: 83
-        requires: [frequency-modulation, carrier]
-      - practice: 295
-        requires: [frequency-modulation, frequency-deviation]
-      - practice: 88
-        requires: [frequency-modulation, amplitude, power]
-      - lesson: bandes-laterales
-        introduces: [sideband, bandwidth]
-        requires: [amplitude-modulation, frequency]
-      - lesson: bande-laterale-unique
-        introduces: [single-sideband]
-        requires: [sideband, amplitude-modulation, carrier]
-      - practice: 90
-        requires: [single-sideband, sideband]
-      - practice: 89
-        requires: [single-sideband, power]
-      - lesson: puissance-crete
-        introduces: [peak-envelope-power]
-        requires: [single-sideband, power]
-      - practice: 87
-        requires: [peak-envelope-power, single-sideband]
-      - lesson: largeur-de-bande-fm
-        introduces: [fm-bandwidth, fm-sidebands]
-        requires: [frequency-modulation, frequency-deviation, sideband, bandwidth]
-      - practice: 294
-        requires: [fm-bandwidth, frequency-deviation]
-      - practice: 92
-        requires: [fm-sidebands]
-      - learn-more
+      - slug: modulation
+        title: {fr: "Modulation"}
+        steps:
+          - lesson: porteuse
+            introduces: [carrier, modulation]
+            requires: [electromagnetic-wave, frequency]
+          - lesson: modulation-d-amplitude
+            introduces: [amplitude-modulation]
+            requires: [carrier, modulation, amplitude]
+          - lesson: modulation-de-frequence
+            introduces: [frequency-modulation, frequency-deviation]
+            requires: [carrier, modulation, amplitude, amplitude-modulation]
+          - practice: 83
+            requires: [frequency-modulation, carrier]
+          - practice: 295
+            requires: [frequency-modulation, frequency-deviation]
+          - practice: 88
+            requires: [frequency-modulation, amplitude, power]
+          - lesson: bandes-laterales
+            introduces: [sideband, bandwidth]
+            requires: [amplitude-modulation, frequency]
+          - lesson: bande-laterale-unique
+            introduces: [single-sideband]
+            requires: [sideband, amplitude-modulation, carrier]
+          - practice: 90
+            requires: [single-sideband, sideband]
+          - practice: 89
+            requires: [single-sideband, power]
+          - lesson: puissance-crete
+            introduces: [peak-envelope-power]
+            requires: [single-sideband, power]
+          - practice: 87
+            requires: [peak-envelope-power, single-sideband]
+          - lesson: largeur-de-bande-fm
+            introduces: [fm-bandwidth, fm-sidebands]
+            requires: [frequency-modulation, frequency-deviation, sideband, bandwidth]
+          - practice: 294
+            requires: [fm-bandwidth, frequency-deviation]
+          - practice: 92
+            requires: [fm-sidebands]
+          - learn-more
 
-  - slug: antennes
-    title: {fr: "Antennes et câbles"}
-    steps:
-      - lesson: dipole
-        introduces: [antenna, half-wave-dipole]
-        requires: [electromagnetic-wave, wavelength, current, alternating-current]
-      - lesson: polarisation
-        introduces: [polarization]
-        requires: [half-wave-dipole, electric-field, magnetic-field]
-      - practice: 314
-        requires: [polarization, electric-field, magnetic-field]
-      - practice: 315
-        requires: [polarization, electric-field, magnetic-field]
-      - lesson: cable-coaxial
-        introduces: [feedline, coaxial-cable]
-        requires: [conductor, insulator, antenna]
-      - practice: 368
-        requires: [coaxial-cable, conductor, insulator]
-      - lesson: impedance
-        introduces: [impedance, feed-point-impedance]
-        requires: [ohms-law, resistance, half-wave-dipole, alternating-current]
-      - lesson: balun
-        introduces: [balanced-feed, balun]
-        requires: [coaxial-cable, impedance, feed-point-impedance]
-      - practice: 320
-        requires: [balun, balanced-feed, feed-point-impedance]
-      - lesson: circuit-resonant
-        introduces: [resonant-circuit]
-        requires: [feed-point-impedance, frequency]
-      - practice: 321
-        requires: [resonant-circuit, feed-point-impedance, balun]
-      - lesson: decibel
-        introduces: [decibel]
-        requires: [power]
-      - lesson: gain-d-antenne
-        introduces: [directional-antenna, antenna-gain]
-        requires: [decibel, half-wave-dipole]
-      - practice: 341
-        requires: [antenna-gain, directional-antenna, half-wave-dipole]
-      - learn-more
+      - slug: antennes
+        title: {fr: "Antennes et câbles"}
+        steps:
+          - lesson: dipole
+            introduces: [antenna, half-wave-dipole]
+            requires: [electromagnetic-wave, wavelength, current, alternating-current]
+          - lesson: polarisation
+            introduces: [polarization]
+            requires: [half-wave-dipole, electric-field, magnetic-field]
+          - practice: 314
+            requires: [polarization, electric-field, magnetic-field]
+          - practice: 315
+            requires: [polarization, electric-field, magnetic-field]
+          - lesson: cable-coaxial
+            introduces: [feedline, coaxial-cable]
+            requires: [conductor, insulator, antenna]
+          - practice: 368
+            requires: [coaxial-cable, conductor, insulator]
+          - lesson: impedance
+            introduces: [impedance, feed-point-impedance]
+            requires: [ohms-law, resistance, half-wave-dipole, alternating-current]
+          - lesson: balun
+            introduces: [balanced-feed, balun]
+            requires: [coaxial-cable, impedance, feed-point-impedance]
+          - practice: 320
+            requires: [balun, balanced-feed, feed-point-impedance]
+          - lesson: circuit-resonant
+            introduces: [resonant-circuit]
+            requires: [feed-point-impedance, frequency]
+          - practice: 321
+            requires: [resonant-circuit, feed-point-impedance, balun]
+          - lesson: decibel
+            introduces: [decibel]
+            requires: [power]
+          - lesson: gain-d-antenne
+            introduces: [directional-antenna, antenna-gain]
+            requires: [decibel, half-wave-dipole]
+          - practice: 341
+            requires: [antenna-gain, directional-antenna, half-wave-dipole]
+          - learn-more
 
-  - slug: propagation
-    title: {fr: "Propagation des ondes"}
-    steps:
-      - lesson: ionosphere
-        introduces: [ionosphere, skywave]
-        requires: [electromagnetic-wave, hf-vhf-uhf, speed-of-light]
-      - lesson: vue-directe
-        introduces: [line-of-sight-propagation]
-        requires: [hf-vhf-uhf, ionosphere, speed-of-light]
-      - practice: 376
-        requires: [line-of-sight-propagation, amateur-bands]
-      - lesson: cycle-solaire
-        introduces: [solar-cycle]
-        requires: [ionosphere, skywave]
-      - practice: 377
-        requires: [solar-cycle, skywave, hf-vhf-uhf, line-of-sight-propagation]
-      - learn-more
+      - slug: propagation
+        title: {fr: "Propagation des ondes"}
+        steps:
+          - lesson: ionosphere
+            introduces: [ionosphere, skywave]
+            requires: [electromagnetic-wave, hf-vhf-uhf, speed-of-light]
+          - lesson: vue-directe
+            introduces: [line-of-sight-propagation]
+            requires: [hf-vhf-uhf, ionosphere, speed-of-light]
+          - practice: 376
+            requires: [line-of-sight-propagation, amateur-bands]
+          - lesson: cycle-solaire
+            introduces: [solar-cycle]
+            requires: [ionosphere, skywave]
+          - practice: 377
+            requires: [solar-cycle, skywave, hf-vhf-uhf, line-of-sight-propagation]
+          - learn-more
 
-  - slug: mesures
-    title: {fr: "Mesures"}
-    steps:
-      - lesson: multimetre
-        introduces: [multimeter, ammeter, voltmeter, ohmmeter]
-        requires: [current, voltage, resistance]
-      - practice: 395
-        requires: [ohmmeter, resistance]
-      - lesson: mesurer-ac-ou-dc
-        introduces: [ac-dc-setting]
-        requires: [multimeter, alternating-current, direct-current]
-      - practice: 394
-        requires: [ac-dc-setting, ammeter]
-      - lesson: brancher-un-amperemetre
-        introduces: [ammeter-connection]
-        requires: [ammeter, series-connection, ohms-law]
-      - practice: 400
-        requires: [ammeter-connection, series-connection]
-      - lesson: brancher-un-voltmetre
-        introduces: [voltmeter-connection]
-        requires: [voltmeter, parallel-connection, ohms-law]
-      - practice: 404
-        requires: [voltmeter-connection, parallel-connection]
-      - learn-more
+      - slug: mesures
+        title: {fr: "Mesures"}
+        steps:
+          - lesson: multimetre
+            introduces: [multimeter, ammeter, voltmeter, ohmmeter]
+            requires: [current, voltage, resistance]
+          - practice: 395
+            requires: [ohmmeter, resistance]
+          - lesson: mesurer-ac-ou-dc
+            introduces: [ac-dc-setting]
+            requires: [multimeter, alternating-current, direct-current]
+          - practice: 394
+            requires: [ac-dc-setting, ammeter]
+          - lesson: brancher-un-amperemetre
+            introduces: [ammeter-connection]
+            requires: [ammeter, series-connection, ohms-law]
+          - practice: 400
+            requires: [ammeter-connection, series-connection]
+          - lesson: brancher-un-voltmetre
+            introduces: [voltmeter-connection]
+            requires: [voltmeter, parallel-connection, ohms-law]
+          - practice: 404
+            requires: [voltmeter-connection, parallel-connection]
+          - learn-more
 
-  - slug: securite
-    title: {fr: "Sécurité électrique et foudre"}
-    steps:
-      - lesson: tension-secteur
-        introduces: [mains-supply]
-        requires: [alternating-current, voltage, frequency]
-      - practice: 426
-        requires: [mains-supply]
-      - lesson: choc-electrique
-        introduces: [electric-shock, contact-voltage]
-        requires: [current, voltage, resistance, ohms-law, conductor, mains-supply]
-      - practice: 432
-        requires: [contact-voltage]
-      - lesson: terre-de-protection
-        introduces: [earthing, protective-earth]
-        requires: [electric-shock, mains-supply, conductor]
-      - practice: 427
-        requires: [protective-earth, electric-shock]
-      - lesson: foudre
-        introduces: [lightning, lightning-protection-system, earth-electrode]
-        requires: [charge, current, earthing]
-      - practice: 433
-        requires: [lightning-protection-system, earthing]
-      - practice: 435
-        requires: [lightning-protection-system, earth-electrode]
-      - lesson: surtensions
-        introduces: [surge-protection]
-        requires: [lightning, coaxial-cable, earthing]
-      - practice: 434
-        requires: [surge-protection, coaxial-cable]
-      - lesson: locaux-a-risque
-        introduces: [hazardous-locations]
-        requires: [lightning, coaxial-cable, insulator, surge-protection]
-      - practice: 436
-        requires: [hazardous-locations, coaxial-cable, insulator, surge-protection]
-      - learn-more
+      - slug: securite
+        title: {fr: "Sécurité électrique et foudre"}
+        steps:
+          - lesson: tension-secteur
+            introduces: [mains-supply]
+            requires: [alternating-current, voltage, frequency]
+          - practice: 426
+            requires: [mains-supply]
+          - lesson: choc-electrique
+            introduces: [electric-shock, contact-voltage]
+            requires: [current, voltage, resistance, ohms-law, conductor, mains-supply]
+          - practice: 432
+            requires: [contact-voltage]
+          - lesson: terre-de-protection
+            introduces: [earthing, protective-earth]
+            requires: [electric-shock, mains-supply, conductor]
+          - practice: 427
+            requires: [protective-earth, electric-shock]
+          - lesson: foudre
+            introduces: [lightning, lightning-protection-system, earth-electrode]
+            requires: [charge, current, earthing]
+          - practice: 433
+            requires: [lightning-protection-system, earthing]
+          - practice: 435
+            requires: [lightning-protection-system, earth-electrode]
+          - lesson: surtensions
+            introduces: [surge-protection]
+            requires: [lightning, coaxial-cable, earthing]
+          - practice: 434
+            requires: [surge-protection, coaxial-cable]
+          - lesson: locaux-a-risque
+            introduces: [hazardous-locations]
+            requires: [lightning, coaxial-cable, insulator, surge-protection]
+          - practice: 436
+            requires: [hazardous-locations, coaxial-cable, insulator, surge-protection]
+          - learn-more
 
-  - slug: perturbations
-    title: {fr: "Perturbations"}
-    steps:
-      - lesson: brouillage
-        introduces: [interference, receiver-sensitivity]
-        requires: [amateur-bands, power, feedline, mains-supply, coaxial-cable, balun]
-      - practice: 415
-        requires: [interference, receiver-sensitivity, feedline]
-      - lesson: puissance-rayonnee
-        introduces: [effective-radiated-power]
-        requires: [power, antenna-gain, decibel]
-      - lesson: remedes-au-brouillage
-        introduces: [interference-remedies]
-        requires: [interference, effective-radiated-power, coaxial-cable, feedline, frequency-modulation, single-sideband, balun]
-      - practice: 419
-        requires: [interference-remedies, effective-radiated-power]
-      - learn-more
+      - slug: perturbations
+        title: {fr: "Perturbations"}
+        steps:
+          - lesson: brouillage
+            introduces: [interference, receiver-sensitivity]
+            requires: [amateur-bands, power, feedline, mains-supply, coaxial-cable, balun]
+          - practice: 415
+            requires: [interference, receiver-sensitivity, feedline]
+          - lesson: puissance-rayonnee
+            introduces: [effective-radiated-power]
+            requires: [power, antenna-gain, decibel]
+          - lesson: remedes-au-brouillage
+            introduces: [interference-remedies]
+            requires: [interference, effective-radiated-power, coaxial-cable, feedline, frequency-modulation, single-sideband, balun]
+          - practice: 419
+            requires: [interference-remedies, effective-radiated-power]
+          - learn-more
+
+  - slug: reglementation
+    title: {fr: "Réglementation"}
+    modules:
+      - slug: institutions
+        title: {fr: "Qui organise la radio ?"}
+        steps:
+          - lesson: un-bien-partage
+            introduces: [spectrum-management]
+            requires: [frequency-band]
+          - lesson: l-uit
+            introduces: [itu]
+            requires: [spectrum-management]
+          - practice: 477
+            requires: [itu]
+          - practice: 476
+            requires: [itu]
+          - lesson: au-luxembourg
+            introduces: [minister, ilr]
+            requires: [itu]
+          - practice: 489
+            requires: [minister, ilr]
+          - learn-more
+
+      - slug: certificats
+        title: {fr: "Certificat, licence, indicatif"}
+        steps:
+          - lesson: certificat-et-licence
+            introduces: [operator-certificate, licence]
+            requires: [ilr]
+          - lesson: base-novice-harec
+            introduces: [certificate-classes]
+            requires: [operator-certificate]
+          - practice: 490
+            requires: [certificate-classes]
+          - practice: 495
+            requires: [certificate-classes]
+          - lesson: l-indicatif-lx
+            introduces: [callsign]
+            requires: [licence, certificate-classes]
+          - lesson: station-de-club
+            introduces: [group-licence]
+            requires: [callsign, certificate-classes]
+          - practice: 505
+            requires: [group-licence]
+          - lesson: entre-amateurs
+            introduces: [amateur-to-amateur]
+            requires: [licence]
+          - practice: 500
+            requires: [amateur-to-amateur]
+          - lesson: et-a-l-etranger
+            introduces: [base-abroad]
+            requires: [certificate-classes, licence]
+          - practice: 499
+            requires: [base-abroad]
+          - learn-more
+
+  - slug: procedures
+    title: {fr: "Règles et procédures d'exploitation"}
+    modules:
+      - slug: bandes-et-puissance
+        title: {fr: "Bandes et puissance"}
+        steps:
+          - lesson: qui-attribue-les-bandes
+            introduces: [band-allocation]
+            requires: [itu, ilr, hf-vhf-uhf]
+          - practice: 459
+            requires: [band-allocation]
+          - practice: 464
+            requires: [band-allocation]
+          - practice: 460
+            requires: [hf-vhf-uhf, amateur-bands, band-allocation]
+          - practice: 461
+            requires: [hf-vhf-uhf, amateur-bands, band-allocation]
+          - practice: 462
+            requires: [hf-vhf-uhf, amateur-bands, band-allocation]
+          - lesson: ce-que-permet-la-base
+            introduces: [base-privileges]
+            requires: [certificate-classes, amateur-bands, peak-envelope-power]
+          - practice: 466
+            requires: [base-privileges]
+          - practice: 467
+            requires: [base-privileges]
+          - lesson: puissance-par-certificat
+            introduces: [power-limits]
+            requires: [base-privileges]
+          - practice: 468
+            requires: [power-limits]
+          - learn-more
+
+      - slug: indicatif-a-l-antenne
+        title: {fr: "L'indicatif à l'antenne"}
+        steps:
+          - lesson: quand-dire-son-indicatif
+            introduces: [callsign-rules]
+            requires: [callsign]
+          - practice: 456
+            requires: [callsign-rules]
+          - lesson: portable-et-mobile
+            introduces: [callsign-suffixes]
+            requires: [callsign]
+          - learn-more
+
+      - slug: alphabet
+        title: {fr: "L'alphabet international"}
+        steps:
+          - lesson: pourquoi-epeler
+            introduces: [spelling-alphabet]
+            requires: [callsign]
+          - practice: 439
+            requires: [spelling-alphabet]
+          - lesson: alphabet-a-m
+            introduces: [alphabet-a-m]
+            requires: [spelling-alphabet]
+          - lesson: alphabet-n-z
+            introduces: [alphabet-n-z]
+            requires: [spelling-alphabet]
+          - lesson: chiffres-et-barre
+            introduces: [spelling-digits]
+            requires: [alphabet-n-z, callsign-suffixes]
+          - practice: 440
+            requires: [spelling-digits, alphabet-a-m, alphabet-n-z]
+          - practice: 444
+            requires: [spelling-digits, alphabet-a-m, alphabet-n-z]
+          - practice: 441
+            requires: [spelling-digits, alphabet-a-m, alphabet-n-z]
+          - practice: 445
+            requires: [spelling-digits, alphabet-a-m, alphabet-n-z]
+          - lesson: epeler-un-mot
+            introduces: [spelling-words]
+            requires: [alphabet-a-m, alphabet-n-z]
+          - practice: 442
+            requires: [spelling-words]
+          - practice: 443
+            requires: [spelling-words]
+          - practice: 446
+            requires: [spelling-words]
+          - learn-more
+
+      - slug: codes
+        title: {fr: "Codes et abréviations"}
+        steps:
+          - lesson: pourquoi-des-codes
+            introduces: [operating-codes]
+            requires: [spelling-alphabet]
+          - practice: 447
+            requires: [operating-codes]
+          - lesson: le-code-q
+            introduces: [q-code]
+            requires: [operating-codes]
+          - lesson: codes-q-du-contact
+            introduces: [q-codes-contact]
+            requires: [q-code]
+          - lesson: codes-q-du-signal
+            introduces: [q-codes-signal]
+            requires: [q-code]
+          - practice: 448
+            requires: [q-codes-contact, q-codes-signal]
+          - practice: 449
+            requires: [q-codes-contact, q-codes-signal]
+          - lesson: abreviations
+            introduces: [abbreviations]
+            requires: [operating-codes]
+          - practice: 450
+            requires: [abbreviations]
+          - practice: 451
+            requires: [abbreviations]
+          - learn-more
+
+      - slug: bonne-conduite
+        title: {fr: "Bonne conduite et détresse"}
+        steps:
+          - lesson: de-quoi-parler
+            introduces: [allowed-topics]
+            requires: [amateur-to-amateur]
+          - practice: 469
+            requires: [allowed-topics]
+          - lesson: ce-qui-est-interdit
+            introduces: [prohibitions]
+            requires: [allowed-topics]
+          - practice: 471
+            requires: [prohibitions]
+          - lesson: mayday
+            introduces: [distress-signals]
+            requires: [prohibitions]
+          - practice: 452
+            requires: [distress-signals]
+          - learn-more

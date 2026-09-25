@@ -32,38 +32,59 @@ def mcq(qid: int, tags: list[str], section: str, correct: int = 1, kind: str = "
         "tags": tags,
         "text": {"fr": f"Question {qid}"},
         "options": options if kind == "mcq" else [],
+        "answer": [] if kind == "mcq" else [{"item_no": 0, "label": None, "text": {"fr": "Réponse"}}],
     }
 
 
-# The two BASE 1.x questions the fixture course must cover, plus decoys that
-# no practice step may use.
+# The three BASE questions the fixture course must cover -- two of section 1,
+# one open question of section 2 -- plus a decoy no practice step may use.
 QUESTIONS = [
     mcq(1, ["base", "novice", "harec"], "1.1"),
     mcq(2, ["base", "novice", "harec"], "1.6"),
     mcq(57, ["novice", "harec"], "1.1"),  # section 1, not BASE
-    mcq(500, ["base", "novice", "harec"], "2.1"),  # BASE, not section 1
+    mcq(500, ["base", "novice", "harec"], "2.1", kind="open"),
 ]
 
 CURRICULUM = {
     "cert": "base",
-    "part": "technique",
-    "modules": [
+    "parts": [
         {
-            "slug": "alpha",
-            "title": {"fr": "Alpha"},
-            "steps": [
-                {"lesson": "a1", "introduces": ["x"]},
-                {"practice": 1, "requires": ["x"]},
-                "learn-more",
+            "slug": "technique",
+            "title": {"fr": "Techniques"},
+            "modules": [
+                {
+                    "slug": "alpha",
+                    "title": {"fr": "Alpha"},
+                    "steps": [
+                        {"lesson": "a1", "introduces": ["x"]},
+                        {"practice": 1, "requires": ["x"]},
+                        "learn-more",
+                    ],
+                },
+                {
+                    "slug": "beta",
+                    "title": {"fr": "Bêta"},
+                    "steps": [
+                        {"lesson": "b1", "introduces": ["y"], "requires": ["x"]},
+                        {"practice": 2, "requires": ["y"]},
+                        "learn-more",
+                    ],
+                },
             ],
         },
         {
-            "slug": "beta",
-            "title": {"fr": "Bêta"},
-            "steps": [
-                {"lesson": "b1", "introduces": ["y"], "requires": ["x"]},
-                {"practice": 2, "requires": ["y"]},
-                "learn-more",
+            "slug": "procedures",
+            "title": {"fr": "Procédures"},
+            "modules": [
+                {
+                    "slug": "gamma",
+                    "title": {"fr": "Gamma"},
+                    "steps": [
+                        {"lesson": "g1", "introduces": ["z"], "requires": ["x"]},
+                        {"practice": 500, "requires": ["z"]},
+                        "learn-more",
+                    ],
+                },
             ],
         },
     ],
@@ -80,7 +101,7 @@ def build(root: pathlib.Path, curriculum: dict | None = None) -> pathlib.Path:
     """Write the fixture course under `root` and return its directory."""
     root.mkdir(parents=True, exist_ok=True)
     (root / "curriculum.yaml").write_text(yaml.safe_dump(curriculum or CURRICULUM, allow_unicode=True))
-    for module, lesson in (("alpha", "a1"), ("beta", "b1")):
+    for module, lesson in (("alpha", "a1"), ("beta", "b1"), ("gamma", "g1")):
         (root / module).mkdir(exist_ok=True)
         (root / module / f"{lesson}.fr.md").write_text(LESSON)
         (root / module / "en-savoir-plus.fr.md").write_text(LEARN_MORE)
@@ -106,8 +127,13 @@ def curriculum() -> dict:
     return copy.deepcopy(CURRICULUM)
 
 
+def modules(cur: dict) -> list[dict]:
+    """Every module of the fixture curriculum, across parts: 0 alpha, 1 beta, 2 gamma."""
+    return [m for part in cur["parts"] for m in part["modules"]]
+
+
 def steps(cur: dict, module: int) -> list:
-    return cur["modules"][module]["steps"]
+    return modules(cur)[module]["steps"]
 
 
 # --- the fixture and the real course are sound -------------------------------
@@ -123,8 +149,14 @@ def test_fixture_course_is_valid(fixture):
         "b1",
         "q2",
         "beta/en-savoir-plus",
+        "g1",
+        "q500",
+        "gamma/en-savoir-plus",
     ]
+    assert [p.number for p in loaded.parts] == ["1", "2"]
     assert loaded.introduced_by()["y"].slug == "b1"
+    assert loaded.part_of(loaded.modules[2]).slug == "procedures"
+    assert [m.slug for m in loaded.only("procedures").modules] == ["gamma"]
 
 
 def test_load_raises_with_every_problem(tmp_path, curriculum):
@@ -136,13 +168,15 @@ def test_load_raises_with_every_problem(tmp_path, curriculum):
     assert len(err.value.problems) == 2
 
 
-def test_real_course_is_valid_and_covers_the_44_base_technique_questions():
+def test_real_course_is_valid_and_covers_every_base_question_in_its_part():
     cat = load_catalogue()
-    expected = {q["id"] for q in cat.filter("base", "1")}
-    assert len(expected) == 44
     assert course.validate() == []
-    practised = [s.question_id or 0 for s in course.load().steps if s.kind == "practice"]
-    assert sorted(practised) == sorted(expected)
+    loaded = course.load()
+    for part, number, n in (("technique", "1", 44), ("procedures", "2", 25), ("reglementation", "3", 8)):
+        expected = {q["id"] for q in cat.filter("base", number)}
+        assert len(expected) == n
+        practised = [s.question_id or 0 for s in loaded.only(part).steps if s.kind == "practice"]
+        assert sorted(practised) == sorted(expected), part
 
 
 # --- check 1: schema ---------------------------------------------------------
@@ -154,14 +188,32 @@ def test_invalid_yaml(tmp_path):
     assert_problem(root, "not valid YAML")
 
 
-def test_unknown_top_level_key_and_wrong_cert_and_part(tmp_path, curriculum):
+def test_unknown_top_level_key_and_wrong_cert(tmp_path, curriculum):
     curriculum["extra"] = 1
     curriculum["cert"] = "novice"
-    curriculum["part"] = "procedures"
     root = build(tmp_path / "c", curriculum)
     assert_problem(root, "unknown top-level key 'extra'")
     assert_problem(root, "cert must be 'base'")
-    assert_problem(root, "part must be 'technique'")
+
+
+def test_part_slugs_keys_and_titles(tmp_path, curriculum):
+    curriculum["parts"][0]["extra"] = 1
+    curriculum["parts"][0]["title"] = {"de": "Technik"}
+    curriculum["parts"][1]["slug"] = "partie-2"
+    root = build(tmp_path / "c", curriculum)
+    assert_problem(root, "part technique: title.fr is required")
+    assert_problem(root, "unknown key 'extra' on a part")
+    assert_problem(root, "part slug 'partie-2' is not one of ['technique', 'procedures', 'reglementation']")
+
+
+def test_parts_must_be_a_non_empty_list(tmp_path, curriculum):
+    curriculum["parts"] = []
+    assert_problem(build(tmp_path / "c", curriculum), "`parts` must be a non-empty list")
+
+
+def test_duplicate_part_slug(tmp_path, curriculum):
+    curriculum["parts"][1]["slug"] = "technique"
+    assert_problem(build(tmp_path / "c", curriculum), "part slug 'technique' is used by 2 parts")
 
 
 def test_step_with_two_kinds(tmp_path, curriculum):
@@ -175,7 +227,7 @@ def test_learn_more_must_be_bare(tmp_path, curriculum):
 
 
 def test_malformed_slugs_and_ids(tmp_path, curriculum):
-    curriculum["modules"][0]["slug"] = "Alpha"
+    modules(curriculum)[0]["slug"] = "Alpha"
     steps(curriculum, 1)[0]["lesson"] = "b_1"
     steps(curriculum, 1)[1]["practice"] = "two"
     root = build(tmp_path / "c", curriculum)
@@ -202,7 +254,7 @@ def test_unknown_step_keys_and_empty_lists(tmp_path, curriculum):
 
 
 def test_module_title_needs_french(tmp_path, curriculum):
-    curriculum["modules"][0]["title"] = {"de": "Alpha", "en": "Alpha"}
+    modules(curriculum)[0]["title"] = {"de": "Alpha", "en": "Alpha"}
     root = build(tmp_path / "c", curriculum)
     assert_problem(root, "title.fr is required")
     assert_problem(root, "title language 'en'")
@@ -212,7 +264,7 @@ def test_module_title_needs_french(tmp_path, curriculum):
 
 
 def test_duplicate_module_slug(tmp_path, curriculum):
-    curriculum["modules"][1]["slug"] = "alpha"
+    modules(curriculum)[1]["slug"] = "alpha"
     assert_problem(build(tmp_path / "c", curriculum), "module slug 'alpha' is used by 2 modules")
 
 
@@ -256,8 +308,23 @@ def test_requires_a_concept_nobody_introduces(tmp_path, curriculum):
 def test_missing_question(tmp_path, curriculum):
     steps(curriculum, 1)[1]["practice"] = 1
     root = build(tmp_path / "c", curriculum)
-    assert_problem(root, "question 2 (BASE, section 1.x) has no practice step")
+    assert_problem(root, "question 2 (BASE, section 1.x) has no practice step in part technique")
     assert_problem(root, "question 1 is practised by 2 steps")
+
+
+def test_a_missing_part_leaves_its_questions_uncovered(tmp_path, curriculum):
+    del curriculum["parts"][1]
+    assert_problem(
+        build(tmp_path / "c", curriculum),
+        "question 500 (BASE, section 2.x) has no practice step in part procedures",
+    )
+
+
+def test_requires_reaches_back_into_an_earlier_part(tmp_path, curriculum):
+    steps(curriculum, 2)[1]["requires"] = ["z", "y"]
+    assert problems(build(tmp_path / "c", curriculum)) == []
+    curriculum["parts"].reverse()
+    assert_problem(build(tmp_path / "d", curriculum), "requires 'x', which is only introduced later")
 
 
 # --- check 5: question shape -------------------------------------------------
@@ -267,7 +334,7 @@ def test_missing_question(tmp_path, curriculum):
     ("qid", "fragment"),
     [
         (57, "not BASE tagged"),
-        (500, "section 2.1, not 1.x"),
+        (500, "section 2.1, not 1.x (part technique)"),
         (999, "no such question"),
     ],
 )
@@ -276,16 +343,22 @@ def test_ineligible_question(tmp_path, curriculum, qid, fragment):
     assert_problem(build(tmp_path / "c", curriculum), fragment)
 
 
+def test_open_questions_are_practice_steps_too(fixture):
+    assert problems(fixture) == []
+    assert course.validate(fixture, [*QUESTIONS[:3], mcq(500, ["base"], "2.1")]) == []
+
+
 @pytest.mark.parametrize(
     ("question", "fragment"),
     [
-        (mcq(2, ["base"], "1.6", kind="open"), "kind is 'open'"),
+        (mcq(2, ["base"], "1.6", kind="drawing"), "kind is 'drawing', not 'mcq' or 'open'"),
+        ({**mcq(2, ["base"], "1.6", kind="open"), "answer": []}, "no French reference answer"),
         (mcq(2, ["base"], "1.6", correct=2), "2 correct options"),
         (mcq(2, ["base"], "1.6", correct=0), "0 correct options"),
     ],
 )
-def test_question_must_be_single_answer_mcq(fixture, question, fragment):
-    found = course.validate(fixture, [QUESTIONS[0], question])
+def test_question_must_be_single_answer_mcq_or_open_with_a_reference(fixture, question, fragment):
+    found = course.validate(fixture, [QUESTIONS[0], question, QUESTIONS[3]])
     assert any(fragment in p for p in found), found
 
 
@@ -294,7 +367,7 @@ def test_question_must_be_single_answer_mcq(fixture, question, fragment):
 
 def test_module_without_practice(tmp_path, curriculum):
     del steps(curriculum, 1)[1]
-    curriculum["modules"][0]["steps"].insert(2, {"practice": 2, "requires": ["x"]})
+    steps(curriculum, 0).insert(2, {"practice": 2, "requires": ["x"]})
     assert_problem(build(tmp_path / "c", curriculum), "module beta: has no practice step")
 
 
@@ -396,7 +469,7 @@ def test_german_is_all_or_nothing_per_module(tmp_path, curriculum):
         root, "module alpha: partly translated to German; missing en-savoir-plus.de.md, q1.de.md, title.de"
     )
 
-    curriculum["modules"][0]["title"]["de"] = "Alpha"
+    modules(curriculum)[0]["title"]["de"] = "Alpha"
     root = build(tmp_path / "d", curriculum)
     assert_problem(root, "module alpha: partly translated to German; missing a1.de.md")
 
@@ -411,13 +484,14 @@ def test_german_is_all_or_nothing_per_module(tmp_path, curriculum):
 
 
 def test_report_flags_late_questions_and_unused_concepts(tmp_path, curriculum):
-    steps(curriculum, 1).insert(1, {"lesson": "b2", "introduces": ["z"], "requires": ["y"]})
+    steps(curriculum, 1).insert(1, {"lesson": "b2", "introduces": ["w"], "requires": ["y"]})
     root = build(tmp_path / "c", curriculum)
     (root / "beta" / "b2.fr.md").write_text(LESSON)
     text = "\n".join(course.report(course.load(root, QUESTIONS)))
-    assert "⚠ q2    beta           2 steps after lesson b1; 1 lesson(s) in between: b2" in text
-    assert "  q1    alpha          1 step after lesson a1\n" in text
-    assert "z " in text.split("Concepts no later step requires (1):")[1]
+    assert "⚠ q2    beta                  2 steps after lesson b1; 1 lesson(s) in between: b2" in text
+    assert "  q1    alpha                 1 step after lesson a1\n" in text
+    assert text.index(" Part 1 (technique)") < text.index("q1 ") < text.index(" Part 2 (procedures)")
+    assert "w " in text.split("Concepts no later step requires (1):")[1]
 
 
 def test_command_line_exit_codes(tmp_path, monkeypatch, capsys):
