@@ -269,21 +269,14 @@ class Store:
                 (account_id, a.kind, a.ref, a.amount, now()),
             )
 
-    def complete_step(
-        self, account_id: str, step_id: str, allowed: Callable[[set[str]], bool], awards: Awards | None = None
-    ) -> bool | None:
+    def complete_step(self, account_id: str, step_id: str, awards: Awards | None = None) -> bool | None:
         """Record a lesson or learn-more step as completed, with its awards,
-        in one `BEGIN IMMEDIATE` transaction (§8.1). `allowed(completed
-        steps)` is the caller's reachability rule, re-checked under the lock
-        so a stale tab or a second device cannot complete a locked step.
-        None: no such account; False: refused, nothing written; True:
-        completed (or already was)."""
+        in one `BEGIN IMMEDIATE` transaction (§8.1). None: no such account;
+        True: completed (or already was)."""
         with self._write_tx() as con:
             if not self._account_exists(con, account_id):
                 return None
             done = self._completed_in(con, account_id)
-            if not allowed(done):
-                return False
             if step_id not in done:
                 self._complete(con, account_id, step_id, done, False, awards)
             return True
@@ -295,7 +288,6 @@ class Store:
         question_id: int,
         letter: str,
         correct: bool,
-        allowed: Callable[[set[str]], bool],
         awards: Awards | None = None,
     ) -> str | None:
         """Record one answer to a practice step (§5.1): read, decide and write
@@ -304,7 +296,7 @@ class Store:
         and a correct answer can never read `wrong_letters` before a
         concurrent wrong one commits.
 
-        None: no such account. "locked": refused, nothing written. "revisit":
+        None: no such account. "revisit":
         the step was already completed, so nothing is written whatever the
         answer -- completion, attempts and XP are decided by the first pass
         only. "wrong" / "correct": recorded; a correct answer completes the
@@ -313,8 +305,6 @@ class Store:
             if not self._account_exists(con, account_id):
                 return None
             done = self._completed_in(con, account_id)
-            if not allowed(done):
-                return "locked"
             if step_id in done:
                 return "revisit"
             row = con.execute(

@@ -8,8 +8,9 @@
   <h1>{{ title }}</h1>
   <ol class="step-list">
     {% for s in steps %}
-    <li class="step-item step-{{ s.step.kind }}{% if s.done %} done{% elif not s.reachable %} locked{% endif %}">
-      {% if s.reachable %}<a href="{{ step_url(s.step) }}">{{ s.title }}</a>{% else %}<span>{{ s.title }}</span>{% endif %}
+    <li class="step-item step-{{ s.step.kind }}{% if s.done %} done{% elif s.next_up %} next-up{% endif %}">
+      <a href="{{ step_url(s.step) }}">{{ s.title }}</a>
+      {% if s.next_up %}<span class="hint">{{ t(ui, 'recommended_next') }}</span>{% endif %}
     </li>
     {% endfor %}
   </ol>

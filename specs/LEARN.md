@@ -291,7 +291,7 @@ static mount (`app/main.py`), at `/data/course/base/<module-slug>/<file>`.
 In the Markdown an image is written as a bare filename (`![](dipole.svg)`)
 and the renderer rewrites it to that absolute path: left relative, it would
 resolve under the lesson's own URL, `/learn/base/technique/<module>/`, and
-hit the locked-step redirect (§7). The validator rejects any other image
+hit the unknown-step redirect (§7). The validator rejects any other image
 path form (§3.2, check 7).
 
 Diagram policy, in order of preference:
@@ -622,37 +622,46 @@ the table.
 
 ## 7. Study plan and navigation
 
-**Linear, with a derived next-up pointer** (resolved in discussion — not a
-freely-reorderable plan): module and step order is fixed by §3's dependency
-graph, so the study plan is "what's next", not "what would you like to do"
-— consistent with the "builds only on concepts introduced before" requirement,
-which a reorderable plan would undermine. Concretely:
+**A recommended linear path, with a derived next-up pointer, and no locks**
+(resolved in discussion — not a freely-reorderable plan): module and step
+order is fixed by §3's dependency graph, so the study plan is "what's next",
+not "what would you like to do" — consistent with the "builds only on
+concepts introduced before" requirement. That order is a recommendation, not
+a gate: a learner who already knows a topic, or wants to look something up,
+can open any module or step at any time. Concretely:
 
 - **"Next up"** is the first step, in the course's linear order (§3.1), that
   the learner has not completed (§5.1 defines completion for each kind). It
   is computed from `step_progress` (§8), not stored, so it can never drift
   out of sync with what was actually done.
-- A step is **reachable** if it is completed or it is "next up". Every other
-  step is locked: requesting its URL redirects to "next up" instead of
-  showing an error. Locking applies to posts as well as page views: a
-  `…/next` or `…/answer` post for a step that is not reachable (a stale tab,
-  a second device) changes nothing stored and redirects to "next up". A
-  module is **unlocked** once its first step is reachable.
+- **Every step is open.** Any step's URL shows the step, and its `…/next`
+  or `…/answer` post records completion exactly as on the recommended path,
+  with the same awards (§9). Completing steps out of order leaves "next up"
+  on the first step still missing, so the learner is always pointed back to
+  what they skipped.
+- **Out-of-order steps say what they build on.** A step whose `requires`
+  (§3.1) includes a concept introduced by a lesson the learner has not
+  completed shows, above the step, a short note linking those lessons. It is
+  a suggestion; nothing is blocked.
 - **When every step is completed**, there is no "next up": the dashboard
   replaces "Continue" with a course-completed state (the "all of BASE part 1"
-  badge, §9), and every step stays reachable for review.
-- A dashboard shows every module with its state (locked, in progress,
-  completed), the XP total, badges earned, and a prominent "Continue" button
+  badge, §9), and every step stays open for review.
+- A dashboard shows every module, each linked, with its state (not started,
+  in progress — a step done or next up inside it —, completed), the XP total, badges earned, and a prominent "Continue" button
   pointing at "next up".
 - Within a module, navigation is a single "Next" flow through its steps, the
   way a slide deck works — not the exam trainer's jump-anywhere grid, because
-  jumping ahead of an unmet prerequisite is exactly what §3 exists to prevent.
+  the recommended path is the one §3 guarantees builds on what came before.
+  The module page lists every step as a link, with next up marked as
+  recommended.
   "Next" on a lesson or learn-more step is a form post that records
   completion and redirects to the following step. On a practice step it is a
   plain link that appears once the question is answered correctly, and
-  straight away on a revisit of a completed step (§5.1). "Previous" is always
+  straight away on a revisit of a completed step (§5.1); until then a
+  "Skip" link to the following step takes its place, completing nothing and
+  bound to no arrow key. "Previous" is always
   available.
-- **Revisiting any reachable step is always allowed** (§5.1 covers what
+- **Revisiting any step is always allowed** (§5.1 covers what
   re-answering does). A completed module stays browsable from the dashboard,
   and its module page lists all its steps.
 - **The curriculum can change after learners have started** (a lesson split,
@@ -886,7 +895,7 @@ rather than `/learn/technique/base/...`, for two reasons:
 | `GET /admin/learners/<id>/delete` | Confirmation page: name and progress summary. |
 | `POST /admin/learners/<id>/delete` | Deletes the account and its progress, redirects to the list. |
 | `POST /learn/who` | Sets the current-learner cookie; `POST /learn/who/clear` clears it. |
-| `GET /learn/base/technique/<module>` | Module page: its steps and which are done. Redirects to next up if the module is still locked. |
+| `GET /learn/base/technique/<module>` | Module page: its steps, which are done, and which is next up (recommended). |
 | `GET /learn/base/technique/<module>/<lesson-slug>` | A lesson: rendered Markdown, then its sources. |
 | `GET /learn/base/technique/<module>/q<id>` | A practice step (§5.1). |
 | `GET /learn/base/technique/<module>/en-savoir-plus` | The module's learn-more page. |
@@ -895,8 +904,8 @@ rather than `/learn/technique/base/...`, for two reasons:
 
 Every `/learn` route except `/learn` itself and `/learn/who` requires a
 current learner and otherwise redirects to `/learn`. `/admin` routes never
-look at the current learner. A step URL that is not reachable
-(§7), or names a step that isn't in the given module, redirects to next up
+look at the current learner. A step URL that names an unknown module, or a step that isn't in the given
+module (§7), redirects to next up
 rather than returning an error. Page titles and the fixed interface text
 (buttons, headings) go through the app's existing `app/i18n.py`, like the
 exam trainer's.

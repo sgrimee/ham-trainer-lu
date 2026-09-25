@@ -17,11 +17,7 @@
 <ol class="module-list">
   {% for m in modules %}
   <li class="module-item module-{{ m.state }}">
-    {% if m.state == 'locked' %}
-      <span class="module-title">{{ m.title }}</span>
-    {% else %}
-      <a class="module-title" href="{{ course_prefix }}/{{ m.module.slug }}">{{ m.title }}</a>
-    {% endif %}
+    <a class="module-title" href="{{ course_prefix }}/{{ m.module.slug }}">{{ m.title }}</a>
     <span class="module-state">{{ t(ui, 'module_state_' + m.state) }}</span>
     <span class="hint">{{ t(ui, 'steps_progress', done=m.done, total=m.total) }}</span>
   </li>

@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% from "_learner.html" import not_you %}
-{% from "_learn_step.html" import crumbs, previous_link %}
+{% from "_learn_step.html" import crumbs, missing_lessons, previous_link %}
 {% block title %}{{ title }} — {{ t(ui, 'learn_title') }}{% endblock %}
 {% block content %}
 {#- Rendered above and below the step, so Previous / Next stay put whatever the
@@ -15,6 +15,7 @@
 {%- endmacro %}
 {{ not_you(ui, learner) }}
 {{ crumbs(ui, module, module_title, position, module_total) }}
+{{ missing_lessons(ui, missing) }}
 <article class="card lesson lesson-{{ step.kind }}">
   {{ prev_next(top=true) }}
   <h1>{{ page.title }}</h1>

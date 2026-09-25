@@ -10,6 +10,16 @@
 </p>
 {%- endmacro %}
 
+{#- Shown on a step reached ahead of the recommended path (§7): the lessons it
+    builds on that are not done yet. A suggestion, never a gate. #}
+{% macro missing_lessons(ui, missing) -%}
+{% if missing %}
+<p class="missing-lessons">{{ t(ui, 'recommended_first') }}
+  {% for s, s_title in missing %}<a href="{{ step_url(s) }}">{{ s_title }}</a>{% if not loop.last %} · {% endif %}{% endfor %}
+</p>
+{% endif %}
+{%- endmacro %}
+
 {% macro previous_link(ui, previous, top=false) -%}
 <a{% if not top %} id="prev-link"{% endif %} href="{{ step_url(previous) }}">&larr; {{ t(ui, 'previous') }}</a>
 {%- endmacro %}

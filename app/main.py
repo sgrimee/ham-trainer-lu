@@ -591,9 +591,9 @@ def appendix(request: Request, lang: str = "fr"):
 # Acceptable only for a handful of known learners on a private network; PINs
 # (§6.2) must land before the course is opened to anyone else.
 #
-# Every step URL is reachable or redirects to next up (§7): a locked step, a
-# step that isn't in the named module and an unknown module all land there,
-# and a post for any of them writes nothing. Practice grading is an exact
+# Every step is open, in any order (§7); next up is only the recommended path.
+# A step that isn't in the named module and an unknown module redirect to next
+# up, and a post for either writes nothing. Practice grading is an exact
 # match on `is_correct` -- no LLM belongs on this path (§2).
 
 COURSE_PREFIX = f"/learn/{course_module.CERT}/{course_module.PART}"
@@ -668,6 +668,14 @@ def _step_title(step: course_module.Step, lang: str) -> str:
     if step.kind == "practice":
         return t(lang, "question_n", id=step.question_id)
     return course_module.page(step, lang).title
+
+
+def _lesson_links(
+    request: Request, course: course_module.Course, lessons: list[course_module.Step]
+) -> list[tuple[course_module.Step, str]]:
+    """Lessons with their titles. A lesson may sit in an earlier module, which
+    need not offer the same language as this one (§4.3): each title in its own."""
+    return [(s, course_module.page(s, course_ui(request, course.module(s.module))).title) for s in lessons]
 
 
 @app.get("/learn")
@@ -748,16 +756,12 @@ def learn_module(
         return _to_dashboard()
     completed = store.completed_steps(learner["id"])
     module = course.module(module_slug)
-    if module is None or course.module_state(module, completed) == "locked":
+    if module is None:
         return _to_next_up(course, completed)
     ui = course_ui(request, module)
+    next_up = course.next_up(completed)
     steps = [
-        {
-            "step": s,
-            "title": _step_title(s, ui),
-            "done": s.id in completed,
-            "reachable": course.reachable(s, completed),
-        }
+        {"step": s, "title": _step_title(s, ui), "done": s.id in completed, "next_up": s == next_up}
         for s in module.steps
     ]
     return _render_learn(
@@ -788,12 +792,14 @@ def learn_step(
         return _to_dashboard()
     completed = store.completed_steps(learner["id"])
     step = course.step(module_slug, step_slug)
-    if step is None or not course.reachable(step, completed):
+    if step is None:
         return _to_next_up(course, completed)
     module = course.module(module_slug)
     assert module is not None
     ui = course_ui(request, module)
     context = {
+        # Reached ahead of the recommended path: point at what it builds on (§7).
+        "missing": _lesson_links(request, course, course.missing_lessons(step, completed)),
         "ui": ui,
         "learner": learner,
         "step": step,
@@ -843,12 +849,7 @@ def learn_step(
             "note": course_module.answer_note(step, ui) if solved else None,
             # A review lesson may sit in an earlier module, which need not offer
             # the same language as this one (§4.3): each title in its own.
-            "review": [
-                (s, course_module.page(s, course_ui(request, course.module(s.module))).title)
-                for s in course.review_lessons(step)
-            ]
-            if wrong
-            else [],
+            "review": _lesson_links(request, course, course.review_lessons(step)) if wrong else [],
         },
     )
 
@@ -869,13 +870,8 @@ def learn_next(
     step = course.step(module_slug, step_slug)
     if step is None or step.kind == "practice":
         return _to_next_up(course, store.completed_steps(learner["id"]))
-    result = store.complete_step(
-        learner["id"], step.id, lambda done: course.reachable(step, done), _awards(course, step)
-    )
-    if result is None:
+    if store.complete_step(learner["id"], step.id, _awards(course, step)) is None:
         return _to_dashboard()
-    if result is False:
-        return _to_next_up(course, store.completed_steps(learner["id"]))
     return RedirectResponse(step_url(course.following(step)), status_code=303)
 
 
@@ -910,13 +906,10 @@ def learn_answer(
         q["id"],
         answer,
         answer == correct,
-        lambda done: course.reachable(step, done),
         _awards(course, step),
     )
     if result is None:
         return _to_dashboard()
-    if result == "locked":
-        return _to_next_up(course, store.completed_steps(learner["id"]))
     if result == "wrong":
         return RedirectResponse(here, status_code=303)
     return RedirectResponse(f"{here}?{urlencode({'picked': answer})}", status_code=303)

@@ -131,9 +131,6 @@ class Course:
         """The first step not completed; None once the whole course is done."""
         return next((s for s in self.steps if s.id not in completed), None)
 
-    def reachable(self, step: Step, completed: set[str]) -> bool:
-        return step.id in completed or step == self.next_up(completed)
-
     def following(self, step: Step) -> Step | None:
         """The step after `step` in linear order, crossing into the next module."""
         steps = self.steps
@@ -146,17 +143,23 @@ class Course:
         return steps[i - 1] if i > 0 else None
 
     def module_state(self, module: Module, completed: set[str]) -> str:
-        """ "locked", "in-progress" or "completed". A module is unlocked once its
-        first step is reachable."""
+        """ "not-started", "in-progress" or "completed". Every module is open
+        (§7); one is in progress once a step is done or it holds next up."""
         if all(s.id in completed for s in module.steps):
             return "completed"
-        return "in-progress" if self.reachable(module.steps[0], completed) else "locked"
+        started = any(s.id in completed for s in module.steps)
+        return "in-progress" if started or self.next_up(completed) in module.steps else "not-started"
 
     def review_lessons(self, step: Step) -> list[Step]:
         """The lessons that introduced `step`'s required concepts, in course
         order: the "Revoir : …" links after a wrong answer (§5.1)."""
         lessons = {self.introduced_by()[c] for c in step.requires}
         return [s for s in self.steps if s in lessons]
+
+    def missing_lessons(self, step: Step, completed: set[str]) -> list[Step]:
+        """The lessons `step` builds on that the learner has not completed:
+        the "recommended first" hint on a step reached out of order (§7)."""
+        return [s for s in self.review_lessons(step) if s.id not in completed]
 
     def offers_de(self) -> bool:
         """Pages not tied to a module offer German once any module does (§4.3)."""
@@ -632,7 +635,7 @@ class Page:
 def rewrite_images(html: str, module: str) -> str:
     """Bare image filenames (the only form the validator allows, §4.2) point
     at the `/data` static mount. Left relative, they would resolve under the
-    lesson's own URL and hit the locked-step redirect."""
+    lesson's own URL and hit the unknown-step redirect."""
     return IMG_BARE_SRC.sub(lambda m: f"{m[1]}/data/course/{CERT}/{module}/{m[2]}{m[3]}", html)
 
 

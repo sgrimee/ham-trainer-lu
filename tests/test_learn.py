@@ -201,16 +201,30 @@ def test_finished_course_shows_the_completed_state(client, store: Store, learner
     assert location(post(client, url(last) + "/next")) == "/learn"
 
 
-# -- locking (§7) -------------------------------------------------------------------------
+# -- open access (§7) ---------------------------------------------------------------------
 
 
-def test_locked_step_redirects_to_next_up(client, learner):
-    assert location(get(client, url(COURSE.steps[5]))) == url(FIRST)
+def test_any_step_and_module_opens_out_of_order(client, learner):
+    assert get(client, url(COURSE.steps[5])).status_code == 200
+    assert get(client, f"{COURSE_PREFIX}/ondes").status_code == 200
+    page = client.get("/learn").text
+    assert f'href="{COURSE_PREFIX}/ondes"' in page and "À découvrir" in page
 
 
-def test_locked_module_redirects_to_next_up(client, learner):
-    assert location(get(client, f"{COURSE_PREFIX}/ondes")) == url(FIRST)
-    assert get(client, f"{COURSE_PREFIX}/electricite").status_code == 200
+def test_a_step_ahead_names_the_lessons_it_builds_on(client, store: Store, learner):
+    missing = COURSE.missing_lessons(Q2, set())
+    assert missing
+    title = course_module.page(missing[0], "fr").title.replace("'", "&#39;")
+    page = client.get(url(Q2)).text
+    assert "pas encore faites" in page and title in page
+    seed(store, learner, steps_before(Q2))
+    assert "pas encore faites" not in client.get(url(Q2)).text
+
+
+def test_module_page_marks_next_up_as_recommended(client, learner):
+    page = client.get(f"{COURSE_PREFIX}/electricite").text
+    assert page.count("step-item") == len(module("electricite").steps)
+    assert "next-up" in page and "conseillé" in page
 
 
 @pytest.mark.parametrize(
@@ -226,13 +240,23 @@ def test_unknown_step_redirects_to_next_up(client, learner, path):
     assert location(get(client, path)) == url(FIRST)
 
 
-def test_locked_posts_change_nothing(client, store: Store, learner):
-    later = COURSE.steps[4]  # a lesson, not reachable yet
+def test_an_unanswered_question_can_be_skipped(client, store: Store, learner):
+    page = client.get(url(Q2)).text
+    assert f'class="skip-link" href="{url(COURSE.steps[COURSE.steps.index(Q2) + 1])}"' in page
+    assert 'id="next-link"' not in page  # the arrow key does not skip
+    assert Q2.id not in store.completed_steps(learner)
+    seed(store, learner, [Q2])
+    assert "skip-link" not in client.get(url(Q2)).text
+
+
+def test_posts_out_of_order_complete_the_step(client, store: Store, learner):
+    later = COURSE.steps[4]
     assert later.kind == "lesson"
-    assert location(post(client, url(later) + "/next")) == url(FIRST)
+    assert location(post(client, url(later) + "/next")) == url(COURSE.steps[5])
     correct, _ = options(QID)
-    assert location(post(client, url(Q2) + "/answer", {"answer": correct})) == url(FIRST)
-    assert store.completed_steps(learner) == set()
+    post(client, url(Q2) + "/answer", {"answer": correct})
+    assert store.completed_steps(learner) == {later.id, Q2.id}
+    assert COURSE.next_up(store.completed_steps(learner)) == FIRST  # still the recommended path
 
 
 def test_next_on_a_practice_step_and_answer_on_a_lesson_are_refused(client, store: Store, learner):
@@ -242,7 +266,7 @@ def test_next_on_a_practice_step_and_answer_on_a_lesson_are_refused(client, stor
     assert Q2.id not in store.completed_steps(learner)
 
 
-def test_completed_steps_stay_reachable(client, store: Store, learner):
+def test_completed_steps_can_be_revisited(client, store: Store, learner):
     seed(store, learner, steps_before(Q2))
     for s in steps_before(Q2):
         assert get(client, url(s)).status_code == 200
@@ -434,12 +458,6 @@ def test_deleted_learner_answer_writes_nothing(client, store: Store, learner):
     assert snapshot(store) == {"step_progress": [], "practice_result": [], "award": []}
 
 
-def test_locked_answer_writes_nothing(client, store: Store, learner):
-    _, wrong = options(QID)
-    assert location(post(client, url(Q2) + "/answer", {"answer": wrong[0]})) == url(FIRST)
-    assert snapshot(store) == {"step_progress": [], "practice_result": [], "award": []}
-
-
 def test_first_lesson_badge_toast_shows_exactly_once(client, store: Store, learner):
     target = location(post(client, url(FIRST) + "/next"))
     assert badge_rows(store, learner) == {awards.FIRST_LESSON}
@@ -452,7 +470,7 @@ def test_first_lesson_badge_toast_shows_exactly_once(client, store: Store, learn
 
 def test_a_redirect_does_not_consume_the_toast(client, store: Store, learner):
     post(client, url(FIRST) + "/next")
-    assert location(get(client, url(COURSE.steps[4]))) == url(SECOND)  # locked: redirected
+    assert location(get(client, f"{COURSE_PREFIX}/nope")) == url(SECOND)  # redirected
     assert "Nouveau badge" in client.get(url(SECOND)).text
 
 
@@ -479,7 +497,6 @@ def test_module_closed_by_a_practice_step_still_earns_its_bonus(store: Store):
             QID,
             correct,
             True,
-            lambda done: True,
             lambda done, first: awards.earned(COURSE, Q2, done, first),
         )
         == "correct"
@@ -508,7 +525,7 @@ def test_dashboard_shows_xp_and_the_badge_shelf(client, store: Store, learner):
     assert "Première leçon" in page and 'class="badge locked"' in page
 
 
-def test_a_wrong_answer_holding_the_lock_denies_first_try_xp(store: Store):
+def test_a_wrong_answer_holding_the_lock_denies_first_try_xp(store: Store, monkeypatch):
     """§8.1 guard 1, the dangerous interleaving made deterministic: a wrong
     answer holds the write lock while a right one arrives. The right one must
     not read `wrong_letters` until the wrong one has committed, so it earns
@@ -519,26 +536,29 @@ def test_a_wrong_answer_holding_the_lock_denies_first_try_xp(store: Store):
     holding, release = threading.Event(), threading.Event()
     right_read_early: list[bool] = []
 
-    def wrong_allowed(done):
-        holding.set()
-        release.wait(5)
-        return True
+    completed_in = Store._completed_in
 
-    def right_allowed(done):
-        right_read_early.append(not release.is_set())
-        return True
+    def hooked_completed_in(con, account_id):
+        # Runs under the write lock: the wrong answer (first) parks there,
+        # the right one records whether it got in before the release.
+        if not holding.is_set():
+            holding.set()
+            release.wait(5)
+        else:
+            right_read_early.append(not release.is_set())
+        return completed_in(con, account_id)
+
+    monkeypatch.setattr(store, "_completed_in", hooked_completed_in)
 
     def earn(done, first):
         return awards.earned(COURSE, Q2, done, first)
 
     t_wrong = threading.Thread(
-        target=store.answer_practice, args=(account, Q2.id, QID, wrong[0], False, wrong_allowed, earn)
+        target=store.answer_practice, args=(account, Q2.id, QID, wrong[0], False, earn)
     )
     t_wrong.start()
     holding.wait(5)
-    t_right = threading.Thread(
-        target=store.answer_practice, args=(account, Q2.id, QID, correct, True, right_allowed, earn)
-    )
+    t_right = threading.Thread(target=store.answer_practice, args=(account, Q2.id, QID, correct, True, earn))
     t_right.start()
     threading.Event().wait(0.3)  # time for the right answer to overtake, were it not blocked
     release.set()
@@ -574,7 +594,7 @@ def test_bare_image_filenames_point_at_the_data_mount():
 def test_module_states():
     ondes, elec = module("ondes"), module("electricite")
     assert COURSE.module_state(elec, set()) == "in-progress"
-    assert COURSE.module_state(ondes, set()) == "locked"
+    assert COURSE.module_state(ondes, set()) == "not-started"
     done = {s.id for s in elec.steps}
     assert COURSE.module_state(elec, done) == "completed"
     assert COURSE.module_state(ondes, done) == "in-progress"
