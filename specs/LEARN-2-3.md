@@ -626,12 +626,29 @@ Morse (not examined in BASE).
      (`base-technique` keeps its ref) and `base` for the whole course.
    - The trainer grades 440–446 with `app/spelling.py` (`source = 'rule'`),
      showing a near form as a hint with the catalogue's form.
-3. **Content.** First **R2 `certificats`** alone, end to end: it mixes MCQ
+3. **Content** (written 2026-09-25, awaiting the project owner's read).
+   First **R2 `certificats`** alone, end to end: it mixes MCQ
    and open steps, rules and a diagram, and the rest of both parts leans on
    it. Then **P3 `alphabet`**, the first rote-memory module, to settle how
    chunking and self-tests read to a 12-year-old. Then the other six, once
    the `course-module` skill has absorbed §5. Each module reviewed by someone
-   other than its writer.
+   other than its writer. What was settled on the way:
+   - §5 is in the skill as `references/parts-2-3.md`; R2 went first, then
+     P2 (P3 needs its suffixes), P3, R1, P1, P4, P5, each reviewed by a
+     separate agent and fixed before its commit.
+   - Rote material is shown as HTML tables grouped by theme, each lesson
+     ending with a prose self-test; the learn-more pages of P3 and P4 send
+     the learner to the trainer's study mode on sections 2.1 and 2.2.
+   - QTR and the "Dois-je … ?" form come from Rec. ITU-R M.1172 in French
+     (the ITU site refuses `curl`; WebFetch gets the PDF).
+   - Every guide reference of the 33 questions was checked and marked
+     `verified` with the writer agent as `source`, except 490-495's
+     human entry (untouched). 489 now points at the law (art. 1er(2)(b),
+     PDF p. 18).
+   - Videos: two alphabet videos were dropped after review (one AI-made;
+     both say Juliette, Whisky, Zoulou). Only one video remains in parts
+     2-3 (France 3, in `certificats`), checked for availability in LU,
+     length and channel, not watched.
 
 ## 9. Later: NOVICE and HAREC
 
@@ -647,6 +664,18 @@ plan.
 - **449.4-near (§4.5)**: slang for "puissance" is graded wrong, not near
   (same score, no hint). The gate asks `--set all` to pass; whether this
   label-only miss blocks shipping parts 2–3 is open.
+- **NOVICE's bands** (found in phase 3): the guide §2.1 gives NOVICE "toutes
+  les bandes", règlement ILR/F24/1 art. 4 a list (600 m, 160 m, 80 m, 15 m,
+  10 m and everything above 29.7 MHz). No BASE question asks, so the
+  lessons only say BASE has fewer bands; a §1.3 row is needed before any
+  NOVICE content.
+- **The minister's powers today**: `institutions/au-luxembourg` cites them
+  from the 2005 text (art. 4) only; the consolidated law on Legilux could
+  not be read. Someone with a browser should check art. 4 and 9 still give
+  them to the minister.
+- **Data**: in `questions.jsonl`, Q499's option a reads "Oui Ja" (the German
+  leaked into the French); the annotation of 495 (human, verified) gives
+  "§2.1" for a quote that is in §1.2.1.
 
 Decided 2026-09-25: réglementation before procédures (§2.2); the same
 grading method in the course and the exam trainer, the LLM for open

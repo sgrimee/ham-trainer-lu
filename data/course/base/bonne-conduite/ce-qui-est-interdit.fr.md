@@ -7,4 +7,49 @@ sources:
   comment: Guide du radioamateur (ILR, 2023), §4.2, p. 18.
 ---
 
-Plan : Les sept interdictions distinctes de Q471 en trois familles : pas pour quelqu'un d'autre (pour le compte d'un tiers, publicité), rien de caché ni de nuisible (chiffrement, musique ou radiodiffusion, faux appels de détresse, atteinte à la sûreté de l'État, aux bonnes mœurs, aux lois ou à l'ordre public), pas avec n'importe qui (stations non autorisées). Écart §1.3 (Q471, vérifié 2026-09-25) : le catalogue liste huit interdictions (a à h) dont deux fois la publicité (c et e) ; le guide en a une neuvième, relier sa station à un réseau de télécommunications autre qu'Internet, enseignée mais pas attendue.
+Après ce qu'on peut dire, voici ce qu'on ne fait **en aucun cas**. Il y a
+sept interdictions, et chacune a sa raison. Range-les en trois familles.
+
+## Un loisir personnel, pas un service
+
+La radio d'amateur est un loisir personnel, sans argent en jeu. Donc :
+
+1. pas de communications **pour le compte ou au profit d'un tiers** : tu
+   ne transmets pas les messages de ton voisin, ni ceux d'une entreprise ;
+2. pas de **publicité commerciale** ;
+3. pas de **musique**, ni de **programme de radiodiffusion** : tu n'es
+   pas une station de radio.
+
+## Rien de secret, rien de dangereux
+
+Tout le monde doit pouvoir comprendre ce qui passe sur les ondes, et
+personne ne doit en souffrir. Donc :
+
+4. pas de **dispositif d'encryptage** : on ne **chiffre** pas ses
+   messages pour les rendre secrets ;
+5. pas de **signaux de détresse faux ou frauduleux** : un faux appel au
+   secours fait partir des sauveteurs pour rien, pendant qu'une vraie
+   urgence attend ;
+6. rien qui porte atteinte à la **sûreté de l'État**, ni qui soit
+   contraire aux **bonnes mœurs**, aux **lois** et à l'**ordre public** :
+   rien de choquant, rien qui mette le pays en danger ou enfreigne la loi.
+
+## Pas avec n'importe qui
+
+7. pas de liaison avec des **stations non autorisées**, les « pirates ».
+
+## Deux remarques
+
+Le catalogue cite la publicité deux fois : c'est la même règle. Le guide
+en ajoute une **neuvième**, vraie aussi : ne pas **connecter sa station
+à un réseau de télécommunications**, sauf à Internet.
+
+## Teste-toi
+
+Cache la page. Retrouve les trois familles, puis les sept
+interdictions : trois, puis trois, puis une.
+
+> **À retenir :** ni pour un tiers, ni publicité, ni musique ou
+> radiodiffusion ; ni chiffrement, ni fausse détresse, ni atteinte à
+> l'État, aux mœurs, aux lois ou à l'ordre public ; ni stations non
+> autorisées.
