@@ -1,0 +1,265 @@
+"""Spelling battery for questions 440-446 (specs/LEARN-2-3.md §4.2).
+
+The same tuple shape as grading_fixtures.CASES, so tests/eval_grader.py can
+score a model on it (`--set spelling`) and tests/compare_spelling.py can score
+the string-matching prototype on it. Both apps grade the same way, so this
+battery decides which method grades spelling in both.
+
+The reference is the catalogue's answer verbatim, typos included (443's
+"JULLIET"): that is what the exam grader is given. Expected verdicts:
+  correct    every character spelled, every word in a form found in the ILR
+             guide (§4.3-4.4) or in a catalogue answer, nothing extra;
+  near       every character right, but at least one word in a form found in
+             neither (Juliette, Whisky, Charly, Zoulou, "stroke", French or
+             ITU digits, a numeral): right on the air, but the ILR marks
+             strictly, so the candidate is told the form the exam expects;
+  partial    some characters right, some wrong, missing or extra;
+  incorrect  nothing usable (letters not spelled, French letter names).
+
+Official forms: Alfa (guide) and Alpha (catalogue); Juliet (guide) and
+Juliett (catalogue, 445); Whiskey; X-Ray; digits as English words
+(catalogue); "/" as slash (catalogue) or barre (guide: "barre de fraction");
+a suffix as its letters (guide: "la lettre P") or its words (portable,
+mobile, maritime mobile, aeronautical mobile). Case, hyphens and punctuation
+are typing, not form: X-ray, Xray and X ray are the same word.
+"""
+
+Q440 = ("Comment épelle-t-on l'indicatif d'appel \"LX1RTGY\"?", "LIMA X-RAY ONE ROMEO TANGO GOLF YANKEE")
+Q441 = (
+    "Comment épelle-t-on l'indicatif d'appel \"DL/LX1RTGY/p\"?",
+    "DELTA LIMA SLASH LIMA X-RAY ONE ROMEO TANGO GOLF YANKEE SLASH PORTABLE",
+)
+Q442 = ('Comment épelle-t-on le mot "Barcelona"?', "BRAVO ALPHA ROMEO CHARLIE ECHO LIMA OSCAR NOVEMBER ALPHA")
+Q443 = ('Comment épelle-t-on le mot "Reykjavík"?', "ROMEO ECHO YANKEE KILO JULLIET ALPHA VICTOR INDIA KILO")
+Q444 = ("Comment épelle-t-on l'indicatif d'appel \"LX3RZWY\"?", "LIMA X-RAY THREE ROMEO ZULU WHISKEY YANKEE")
+Q445 = (
+    "Comment épelle-t-on l'indicatif d'appel \"LX6JO/MM\"?",
+    "LIMA X-RAY SIX JULIETT OSCAR SLASH MARITIME MOBILE",
+)
+Q446 = ("Comment épelle-t-on le mot «Zylophon»?", "ZULU YANKEE LIMA OSCAR PAPA HOTEL OSCAR NOVEMBER")
+
+
+def _case(cid, q, candidate, expected, must_flag, why):
+    return (cid, "fr", q[0], q[1], candidate, expected, must_flag, why)
+
+
+CASES = [
+    # --- correct, and near: right on the air, not in the ILR's form ----------
+    _case("440-exact", Q440, "LIMA X-RAY ONE ROMEO TANGO GOLF YANKEE", "correct", None, "verbatim"),
+    _case(
+        "440-case", Q440, "lima, xray, one, romeo, tango, golf, yankee", "correct", None, "case, commas, Xray"
+    ),
+    _case(
+        "440-fr-digit",
+        Q440,
+        "Lima X-Ray Un Romeo Tango Golf Yankee",
+        "near",
+        "Un",
+        "digit in French: the catalogue writes ONE",
+    ),
+    _case(
+        "440-itu-digit",
+        Q440,
+        "LIMA X-RAY UNAONE ROMEO TANGO GOLF YANKEE",
+        "near",
+        "UNAONE",
+        "ITU figure word: in neither the guide nor the catalogue",
+    ),
+    _case(
+        "440-hyphens",
+        Q440,
+        "Lima - X ray - 1 - Romeo - Tango - Golf - Yankee",
+        "near",
+        "1",
+        "'X ray' in two words is fine; the numeral 1 is not spelled",
+    ),
+    _case("441-exact", Q441, Q441[1], "correct", None, "verbatim"),
+    _case(
+        "441-stroke-papa",
+        Q441,
+        "Delta Lima stroke Lima X-ray One Romeo Tango Golf Yankee stroke Papa",
+        "near",
+        "stroke",
+        "stroke is in neither the guide nor the catalogue; PAPA for /p is fine",
+    ),
+    _case(
+        "441-barre",
+        Q441,
+        "delta lima barre lima xray one romeo tango golf yankee barre portable",
+        "correct",
+        None,
+        "barre (guide: barre de fraction)",
+    ),
+    _case(
+        "441-slash-papa",
+        Q441,
+        "DELTA LIMA SLASH LIMA X-RAY ONE ROMEO TANGO GOLF YANKEE SLASH PAPA",
+        "correct",
+        None,
+        "/p as the letter P (guide §4.3)",
+    ),
+    _case(
+        "442-alfa",
+        Q442,
+        "BRAVO ALFA ROMEO CHARLIE ECHO LIMA OSCAR NOVEMBER ALFA",
+        "correct",
+        None,
+        "Alfa: the guide's spelling",
+    ),
+    _case(
+        "442-charly",
+        Q442,
+        "Bravo Alpha Romeo Charly Echo Lima Oscar November Alpha",
+        "near",
+        "Charly",
+        "Charly: the right code word, misspelled",
+    ),
+    _case(
+        "443-juliett",
+        Q443,
+        "ROMEO ECHO YANKEE KILO JULIETT ALFA VICTOR INDIA KILO",
+        "correct",
+        None,
+        "ITU Juliett; the reference has the typo JULLIET",
+    ),
+    _case(
+        "443-juliette",
+        Q443,
+        "Romeo Echo Yankee Kilo Juliette Alpha Victor India Kilo",
+        "near",
+        "Juliette",
+        "French spelling Juliette: the guide writes Juliet",
+    ),
+    _case(
+        "444-whisky",
+        Q444,
+        "LIMA XRAY THREE ROMEO ZULU WHISKY YANKEE",
+        "near",
+        "WHISKY",
+        "Whisky: the guide and catalogue write WHISKEY",
+    ),
+    _case(
+        "444-fr",
+        Q444,
+        "Lima X-ray trois Romeo Zoulou Whiskey Yankee",
+        "near",
+        "trois",
+        "French digit and Zoulou",
+    ),
+    _case(
+        "445-letters",
+        Q445,
+        "LIMA X-RAY SIX JULIETT OSCAR SLASH MIKE MIKE",
+        "correct",
+        None,
+        "/MM as its letters (guide §4.3)",
+    ),
+    _case("446-exact", Q446, Q446[1], "correct", None, "verbatim"),
+    _case(
+        "446-lower", Q446, "zulu yankee lima oscar papa hotel oscar november", "correct", None, "lowercase"
+    ),
+    # --- partly right -------------------------------------------------------
+    _case(
+        "440-city-words",
+        Q440,
+        "LONDON X-RAY ONE ROBERT TANGO GOLF YANKEE",
+        "partial",
+        None,
+        "two non-ITU words (old national alphabets)",
+    ),
+    _case("440-missing", Q440, "LIMA X-RAY ONE ROMEO GOLF YANKEE", "partial", None, "T missing"),
+    _case("440-swapped", Q440, "LIMA X-RAY ONE TANGO ROMEO GOLF YANKEE", "partial", None, "R and T swapped"),
+    _case(
+        "440-wrong-digit", Q440, "LIMA X-RAY TWO ROMEO TANGO GOLF YANKEE", "partial", "TWO", "1 spelled as 2"
+    ),
+    _case(
+        "440-TRAP-extra",
+        Q440,
+        "LIMA X-RAY ONE ROMEO TANGO GOLF YANKEE HOTEL",
+        "partial",
+        "HOTEL",
+        "complete, then an extra letter: a different callsign",
+    ),
+    _case(
+        "441-no-suffix",
+        Q441,
+        "DELTA LIMA SLASH LIMA X-RAY ONE ROMEO TANGO GOLF YANKEE",
+        "partial",
+        None,
+        "/p not spelled",
+    ),
+    _case(
+        "441-no-prefix",
+        Q441,
+        "LIMA X-RAY ONE ROMEO TANGO GOLF YANKEE SLASH PORTABLE",
+        "partial",
+        None,
+        "DL/ not spelled",
+    ),
+    _case(
+        "442-last-letter",
+        Q442,
+        "BRAVO ALPHA ROMEO CHARLIE ECHO LIMA OSCAR NOVEMBER",
+        "partial",
+        None,
+        "final A missing",
+    ),
+    _case(
+        "443-accent",
+        Q443,
+        "ROMEO ECHO YANKEE KILO JULIETT ALFA VICTOR ICELAND KILO",
+        "partial",
+        "ICELAND",
+        "í spelled with an invented word",
+    ),
+    _case(
+        "444-zebra",
+        Q444,
+        "LIMA X-RAY THREE ROMEO ZEBRA WHISKEY YANKEE",
+        "partial",
+        "ZEBRA",
+        "Z with a non-ITU word",
+    ),
+    _case(
+        "445-TRAP-mobile",
+        Q445,
+        "LIMA X-RAY SIX JULIETT OSCAR SLASH MOBILE",
+        "partial",
+        "MOBILE",
+        "/M instead of /MM: land mobile, not maritime mobile",
+    ),
+    _case(
+        "446-xylophone",
+        Q446,
+        "X-RAY YANKEE LIMA OSCAR PAPA HOTEL OSCAR NOVEMBER",
+        "partial",
+        "X-RAY",
+        "spelled the usual word Xylophon, not the one asked",
+    ),
+    _case(
+        "446-extra-e",
+        Q446,
+        "ZULU YANKEE LIMA OSCAR PAPA HOTEL OSCAR NOVEMBER ECHO",
+        "partial",
+        "ECHO",
+        "Zylophone with a final E",
+    ),
+    # --- nothing usable -----------------------------------------------------
+    _case("440-letters", Q440, "L X 1 R T G Y", "incorrect", None, "letters repeated, not spelled"),
+    _case(
+        "440-other-call",
+        Q440,
+        "LIMA X-RAY TWO ALFA BRAVO CHARLIE",
+        "partial",
+        None,
+        "a different callsign; only the LX prefix is right",
+    ),
+    _case(
+        "442-phonetic-fr",
+        Q442,
+        "Bé A Erre Cé E Elle O Enne A",
+        "incorrect",
+        None,
+        "French letter names, not the alphabet",
+    ),
+]

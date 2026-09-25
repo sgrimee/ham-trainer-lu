@@ -4,6 +4,7 @@
     mise run eval-grader openai/gpt-5.1                   # one candidate
     mise run eval-grader openai/gpt-5.1 mistralai/mistral-medium-3.1
     mise run eval-grader --runs 2 openai/gpt-5.1          # also report repeatability
+    mise run eval-grader --set spelling                   # the spelling battery (specs/LEARN-2-3.md §4.2)
 
 Reads LLM_BASE_URL / LLM_API_KEY / LLM_MODEL from the environment, which mise
 autoloads from .env. Needs a key and spends a few cents per model, so it is
@@ -28,9 +29,13 @@ HERE = pathlib.Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))  # the fixtures, alongside this file
 sys.path.insert(0, str(HERE.parent))  # the repo root, for the app package
 
-from grading_fixtures import CASES  # noqa: E402
+import grading_fixtures  # noqa: E402
+import spelling_fixtures  # noqa: E402
 
 from app.grading_prompt import request_body  # noqa: E402  (the exact body the app itself sends)
+
+SETS = {"golden": grading_fixtures.CASES, "spelling": spelling_fixtures.CASES}
+CASES = SETS["golden"]  # replaced by main() from --set
 
 OUT_DIR = HERE.parent / "var" / "eval"
 
@@ -104,7 +109,10 @@ def report(model: str, runs: list[dict[str, dict]]) -> dict:
             print(f"  {cid:14} {expected:10} {'ERROR':10} {'':>6}       {r['error']}")
             continue
         got, share = verdict(r)
-        hits += got == expected
+        # A near form (spelling_fixtures) is right on the air but not the ILR's
+        # form: a grader that withholds full marks and flags it has done its job.
+        ok = got == expected or (expected == "near" and got == "partial")
+        hits += ok
         note = ""
         if must_flag:
             traps += 1
@@ -113,7 +121,7 @@ def report(model: str, runs: list[dict[str, dict]]) -> dict:
             note = "false statement flagged" if caught else "MISSED THE FALSE STATEMENT"
         print(
             f"  {cid:14} {expected:10} {got:10} {share * 100:5.0f}%  "
-            f"{'ok ' if got == expected else 'BAD'} {r['secs']:4.1f}s  {note}"
+            f"{'ok ' if ok else 'BAD'} {r['secs']:4.1f}s  {note}"
         )
 
     graded = [r for r in first.values() if "error" not in r]
@@ -155,7 +163,10 @@ def main() -> int:
     parser.add_argument(
         "--runs", type=int, default=1, help="repeat each model N times and report verdict stability"
     )
+    parser.add_argument("--set", choices=[*SETS, "all"], default="golden", help="which cases to score")
     args = parser.parse_args()
+    global CASES
+    CASES = [c for name, cases in SETS.items() if args.set in (name, "all") for c in cases]
 
     for var in ("LLM_BASE_URL", "LLM_API_KEY"):
         if not os.environ.get(var):
@@ -168,7 +179,7 @@ def main() -> int:
     summaries = []
     for model in models:
         runs = [one_run(model) for _ in range(args.runs)]
-        (OUT_DIR / f"{model.replace('/', '_')}.json").write_text(
+        (OUT_DIR / f"{model.replace('/', '_')}-{args.set}.json").write_text(
             json.dumps(runs, indent=1, ensure_ascii=False)
         )
         summaries.append(report(model, runs))

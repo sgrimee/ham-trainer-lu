@@ -39,7 +39,7 @@ so a PDF page answers "why" today. A from-zero course for them (rephrasing the
 regulatory text into something more digestible than a PDF, the way this plan
 does for section 1's missing textbook) is plausible future work and is why §10
 reserves the URL space for it now rather than assuming section 1 is the only
-part that ever gets one. Rewriting the exam trainer itself is also out of
+part that ever gets one. `LEARN-2-3.md` now plans it for BASE. Rewriting the exam trainer itself is also out of
 scope, with three exceptions: the identity §6 designs for both apps to share;
 moving the MCQ options markup out of `question.html` into a shared macro
 so both apps render it (§5); and a new landing page at `/` that introduces
@@ -63,6 +63,8 @@ figures at all".) Two consequences:
   belongs on this path — say so explicitly, so nobody wires the grader in
   later "for consistency" with the exam trainer. It also means practice works
   fully offline and instantly, no spinner, no timeout, no cache.
+  (Parts 2 and 3 have open questions; `LEARN-2-3.md` §4.1 grades those with
+  the exam trainer's grader, so the rule above is about MCQ.)
 - **Feedback is right or wrong**, plus at most a short hand-written note
   once the question is answered (§4.4) — there is no rubric to render, no
   element list, no grader comment. Simpler than the exam trainer's
