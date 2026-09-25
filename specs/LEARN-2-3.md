@@ -35,7 +35,7 @@ translation.
 | 3.1 | Institutions internationales | 476, 477 | 1 | 1 |
 | 3.4 | Législation nationale | 489, 490, 495, 499, 500, 505 | 3 | 3 |
 
-Part 2: 25 questions; part 3: 8. **Only 10 are multiple-choice; 23 are
+Part 2: 25 questions; part 3: 8. **Only 9 are multiple-choice; 24 are
 open.** That is the one real difference from part 1, where all 44 were MCQ
 and `LEARN.md` §2 could build practice on exact match alone. §4 designs
 around it.
@@ -59,7 +59,9 @@ course exists to avoid.
 (module `ondes`): what a band is, HF/VHF/UHF (`hf-vhf-uhf`), the amateur
 bands with the three BASE bands (`amateur-bands`), the ILR by name; and
 (module `modulation`) PEP (`peak-envelope-power`). Questions 460–462 are
-answerable with part 1 alone.
+answerable with part 1 alone, and so is 466: `bandes-radioamateur` already
+puts BASE's three bands in bold and says they are the ones the certificate
+allows.
 
 ### 1.3 Where the catalogue, the guide and the truth disagree
 
@@ -72,10 +74,11 @@ of the 33; these are already known:
 | 489 | Expects "le ministre ayant dans ses attributions la gestion des ondes radioélectriques"; the guide describes the ILR's missions at length, so a reader of the guide answers "l'ILR". | Lesson: the law makes the minister responsible, the ILR does the work on its behalf. Exam answer named plainly. Verify against the coordinated law on Legilux in phase 1. |
 | 476 | Expects `www.itu.org`; the ITU's address — and the guide's own annex 5.5 — is `www.itu.int` (`itu.org` only redirects there, checked 2026-09-25). | Teach `itu.int`, say the catalogue writes `itu.org`; both are graded correct. |
 | 440–446 | The catalogue's answers use "ALPHA", "JULIET"/"JULLIET" (443, a typo), "WHISKEY" and English digits ("ONE"); the ITU table (RR appendix 14) and the guide write "Alfa", "Juliett"/"Juliet". | Teach the forms of the guide and the catalogue; say which common variants the ILR may not accept (§4.2). The grader never requires the typo. |
-| 448, 449 | The catalogue's answers phrase a "?" code as "Dois-je …?" (QRT?, QSY?), the ITU convention; the guide's table phrases it "Devez-vous …?". Q448 also asks QTR, which is not in the guide's table at all. | Teach the ITU convention ("?" = the question I ask about what *I* should do), with QTR from ITU-R M.1172. |
+| 448, 449 | The catalogue's answers phrase a "?" code as "Dois-je …?" (QRT?, QSY?), the ITU convention; the guide's table phrases it "Devez-vous …?". Wording differs elsewhere too: QSB? "mes signaux" (catalogue) vs "vos signaux" (guide); QSY? "passer à la transmission sur une autre fréquence" vs "changer de fréquence de transmission"; QRN "parasites" vs "parasites atmosphériques"; QRL "Je suis occupé" vs "Je suis occupé avec …". Q448 also asks QTR, which is not in the guide's table at all. | Teach the ITU convention ("?" = the question I ask about what *I* should do), with QTR from ITU-R M.1172. Both wordings of each code are official (§4.2); the grading cases say so. |
 | 468 | Expects HAREC = 1000 W PEP; the guide limits HAREC to 100 W PEP during its first year. | Lesson gives both; the exam expects 1000. |
+| 499, 500, 505 | Say "licence de base" and "licence HAREC": the catalogue names the licence where the guide would name the certificate (a BASE licence is the licence granted to a BASE certificate holder). | `certificat-et-licence` separates the two, then warns that the exam says "licence de base" for both; the answer notes of 499, 500 and 505 repeat it. |
 | 505 | Expects "réservés aux titulaires HAREC". Strictly, a group licence is *placed under the responsibility of* a HAREC holder; other members, a BASE holder included, may operate the club station under its callsign. | Lesson says what may and may not be done; the note explains why the expected answer is phrased that way. |
-| 471 | The catalogue lists 8 prohibitions (a–h); the guide has a 9th (connecting the station to a telecom network other than the Internet). | Taught; not expected by the exam. |
+| 471 | The catalogue lists 8 prohibitions (a–h); the guide has a 9th (connecting the station to a telecom network other than the Internet). And c ("émissions ayant un caractère de publicité commerciale") and e ("émettre de la publicité commerciale") are the same rule twice, so there are 7 distinct ones. The question asks for no number, so the grader expects them all. | The 9th is taught, not expected by the exam. The lesson teaches 7 rules and says the catalogue lists advertising twice; the grading cases treat c and e as one element, so an answer naming it once is complete. |
 
 ## 2. Where parts 2 and 3 go in the course
 
@@ -123,7 +126,8 @@ Taught in catalogue order, part 2 would have to introduce the certificate,
 the callsign and the UIT in passing and part 3 would then ask about them
 cold. The order is a recommendation, as everywhere else (`LEARN.md` §7):
 every step stays open, and the dashboard still lists parts 1, 2, 3 by
-number.
+number. The YAML holds the course order; a part's number comes from
+inverting `PART_NAMES` and is never written in the YAML.
 
 ### 2.3 What the validator enforces per part
 
@@ -135,10 +139,16 @@ comes from, and the exam trainer's per-section statistics stay comparable.
 `requires` may reach back into any earlier part (check 3 is unchanged: it
 follows the linear order across parts).
 
-Consequence, accepted: 460–462 become answerable at the end of module
-`ondes` but appear in part 2. `--report` will show them as "late"; that is
-informational (`LEARN.md` §3.2), and the lesson just before them makes the
-link explicit ("tu l'as vu dans la partie 1").
+Because coverage is exact, a new catalogue edition fails validation until
+the course places its new questions. That is intended: the ILR has said it is
+adding réglementation questions (BASE's blueprint has 10, the 2024 pool 8;
+see `app/catalogue.py`), and a question the course silently skips is worse
+than a red check.
+
+Consequence, accepted: 460–462 and 466 become answerable at the end of
+module `ondes` but appear in part 2. `--report` will show them as "late";
+that is informational (`LEARN.md` §3.2), and the lesson just before them
+makes the link explicit ("tu l'as vu dans la partie 1").
 
 ## 3. Modules
 
@@ -167,7 +177,7 @@ CEPT, IARU, RL and LARU are named in one sentence at most, and linked from
 | lesson `certificat-et-licence` | `operator-certificate`, `licence` ← `ilr` | Two authorisations, like a driving licence and a number plate: the certificate proves you know (exam, for life); the licence gives your station a callsign (5 years). |
 | lesson `base-novice-harec` | `certificate-classes` ← `operator-certificate` | Three certificates, each including the one before. |
 | practice 490, 495 | ← `certificate-classes` | |
-| lesson `l-indicatif-lx` | `callsign` ← `licence`, `certificate-classes` | LX + one digit + up to four letters; the digit tells the class (7 = BASE, 6 = NOVICE, 1–3 = HAREC, 9 = club). |
+| lesson `l-indicatif-lx` | `callsign` ← `licence`, `certificate-classes` | LX + one digit + up to four letters; the digit tells the class (7 = BASE, 6 = NOVICE, 1–3 = HAREC, 9 = club). Says it simplifies: 4 and 5 are HAREC too (events, training), 0 is for automatic stations, 8 is reserved (guide §3.6.1); linked, not taught. |
 | lesson `station-de-club` | `group-licence` ← `callsign`, `certificate-classes` | A club station has its own LX9 callsign, placed under the responsibility of a HAREC holder. |
 | practice 505 | ← `group-licence` | §1.3 note. |
 | lesson `entre-amateurs` | `amateur-to-amateur` ← `licence` | Amateur stations talk only to amateur stations — of any country. |
@@ -184,7 +194,7 @@ CEPT, IARU, RL and LARU are named in one sentence at most, and linked from
 | lesson `qui-attribue-les-bandes` | `band-allocation` ← `itu`, `ilr`, `hf-vhf-uhf` | The UIT allocates bands worldwide (and names the HF/VHF/UHF families); the ILR allocates them in Luxembourg. |
 | practice 459, 464 | ← `band-allocation` | |
 | practice 460, 461, 462 | ← `hf-vhf-uhf`, `amateur-bands`, `band-allocation` | |
-| lesson `ce-que-permet-la-base` | `base-privileges` ← `certificate-classes`, `amateur-bands`, `peak-envelope-power` | 10 m, 2 m, 70 cm; 25 W PEP at the transmitter output; CE equipment only, unmodified; no external amplifier; simple antennas. Each limit with its reason. |
+| lesson `ce-que-permet-la-base` | `base-privileges` ← `certificate-classes`, `amateur-bands`, `peak-envelope-power` | Recalls the three bands from part 1 (10 m HF, 2 m VHF, 70 cm UHF: "tu les as vues"), then teaches 25 W PEP at the transmitter output, with its reason. The equipment rules (CE, unmodified, no external amplifier, simple antennas) are not asked: "En savoir plus". |
 | practice 466, 467 | ← `base-privileges` | |
 | lesson `puissance-par-certificat` | `power-limits` ← `base-privileges` | 25 / 100 / 1000 W PEP, and why the steps (§1.3 note on HAREC's first year). |
 | practice 468 | ← `power-limits` | |
@@ -222,8 +232,10 @@ CEPT, IARU, RL and LARU are named in one sentence at most, and linked from
 | lesson `abreviations` | `abbreviations` ← `operating-codes` | CQ, DE, K, AR, VA, R, UR, RX, TX, MSG, PSE, RST (readability, strength, tone). |
 | practice 450, 451 | ← `abbreviations` | |
 
-Only the codes the questions ask are taught as things to know (13 Q codes
-of the guide's 21, plus QTR); the rest of the table is linked.
+Only the codes the questions ask are taught as things to know (12 Q codes
+of the guide's 18, plus QTR); the rest of the table is linked. QRP is shown
+next to QRO as its opposite, a pair being easier to remember than one code,
+but no question asks it.
 
 **P5. Bonne conduite et détresse (`bonne-conduite`)** — 469, 471, 452
 
@@ -231,9 +243,9 @@ of the guide's 21, plus QTR); the rest of the table is linked.
 |---|---|---|
 | lesson `de-quoi-parler` | `allowed-topics` ← `amateur-to-amateur` | The amateur service is for learning and experimenting, so conversation stays on the hobby: radio and electricity, computing, astronomy, weather, books and magazines, rules, club life… |
 | practice 469 | ← `allowed-topics` | |
-| lesson `ce-qui-est-interdit` | `prohibitions` ← `allowed-topics` | The prohibitions in three families: not for someone else (third parties, advertising), not hidden or harmful (encryption, broadcasting, music, false distress), not with anyone (unlicensed stations). |
+| lesson `ce-qui-est-interdit` | `prohibitions` ← `allowed-topics` | The seven distinct prohibitions of 471 in three families: not for someone else (third parties, advertising), not hidden or harmful (encryption, broadcasting or music, false distress, anything against state security, public decency, the law or public order), not with anyone (unlicensed stations). §1.3 note on advertising listed twice. |
 | practice 471 | ← `prohibitions` | |
-| lesson `mayday` | `distress-signals` ← `spelling-alphabet` | MAYDAY in voice, SOS in Morse; a false distress call is forbidden. |
+| lesson `mayday` | `distress-signals` ← `prohibitions` | MAYDAY in voice, SOS in Morse; a false distress call is forbidden. |
 | practice 452 | ← `distress-signals` | |
 
 Totals: R1 3 + R2 5 = 8; P1 8 + P2 1 + P3 8 + P4 5 + P5 3 = 25. 33 questions,
@@ -259,7 +271,7 @@ questions), where the right answer follows mechanically from the alphabet
 table and a string-matching grader could be exact, instant and offline. It
 is adopted only if it does measurably better than the LLM on a shared test
 battery (§4.3); if it is adopted, the exam trainer uses it too. Otherwise the
-LLM grades all 23 open questions, which is the simpler outcome and the
+LLM grades all 24 open questions, which is the simpler outcome and the
 default.
 
 ### 4.2 Official, near, wrong: the ILR marks strictly
@@ -274,7 +286,9 @@ answer, not two (decided 2026-09-25):
   spelled digit). **The candidate is told**, with the official form: "juste
   en radio, mais l'ILR attend JULIETT". In the course a near answer does not
   complete the step: the learner retypes it in the official form, so the
-  exam form is the one practised. It earns no first-try XP.
+  exam form is the one practised. It earns no first-try XP, and it counts
+  as the miss that reveals the answer (§4.4): the official form is shown
+  anyway, so there is nothing left to withhold.
 - **Wrong**: a missing, extra or wrong element.
 
 ### 4.3 Spelling: the comparison
@@ -330,7 +344,7 @@ says.
 **Outcome: the string matcher grades spelling, in both apps**, once someone
 other than its author has extended the battery with misspellings real
 learners make and it still passes. Until then it is the recommended choice,
-not a settled one. The LLM keeps the other 16 open questions, where there is
+not a settled one. The LLM keeps the other 17 open questions, where there is
 no table to match against and paraphrase matters.
 
 The string matcher then becomes a grader in `app/`, chosen per question in the
@@ -363,16 +377,22 @@ a pytest test, since it costs nothing to run.
   falls back to the trainer's self-grading: the reference answer is shown and
   the learner says whether they had it. That completes the step but **earns
   no XP**: a child grading themselves is not a first try.
-- **Waiting.** A grading call takes about 2.5 s. The page posts and
-  redirects as today (no JavaScript); the button says it is grading. Repeated
-  answers come from the grader's cache.
+- **Waiting.** A grading call takes about 3.7 s (median, §4.3). A question
+  with several fields (448 has seven) makes one call per unsolved field, sent
+  concurrently, so a submission waits for the slowest call, not the sum. The
+  page posts and redirects as today (no JavaScript); the button says it is
+  grading. Repeated answers come from the grader's cache, keyed by question,
+  model, reference and answer: the reference keeps one question's fields
+  apart (fixed 2026-09-25; the key used to omit it, so the same text typed
+  under two fields got the first field's verdict).
 
 ### 4.5 Near answers from the LLM, and testing it on these questions
 
-For the 16 questions the LLM grades, §4.2 means a change to the grading
-prompt, and so to the exam trainer, which uses the same one: the model must
+For the 17 questions the LLM grades, §4.2 means a change to the grading
+prompt, and so to the exam trainer, which uses the same one for every open
+question of every certificate, NOVICE and HAREC included: the model must
 report an element that is right in substance but worded unlike the
-reference and the guide ("la friture" for QRN's "parasites atmosphériques",
+reference and the guide ("la friture" for QRN's "parasites" or "parasites atmosphériques",
 "l'Union des télécoms" for UIT) as **near**, alongside present and missing,
 with the official wording. The response schema gains that field; the
 trainer shows it in its feedback, and the proportional scoring counts a near
@@ -380,9 +400,16 @@ element as missing, which is the strict reading the ILR applies. Whether an
 examiner would really withhold the mark for a paraphrase is not knowable
 from the data; telling the candidate costs nothing and is what matters.
 
+The change therefore reaches well beyond BASE: every open question the
+trainer grades can now report near elements, and counting them as missing
+lowers mock-exam scores across all three certificates compared with today.
+The risk is false "near" flags on NOVICE and HAREC questions, whose
+references are longer and more loosely worded; `--set all` covers them, and
+its results are compared with today's before the change ships.
+
 The trainer's golden cases (`tests/grading_fixtures.py`) cover 452, 495,
-445, 448 and 469 among BASE questions. Phase 1 adds, for each of the 16 other
-open questions of parts 2–3, the catalogue's reference answer (which must be
+445, 448 and 469 among BASE questions. Phase 1 adds, for each of the 19 open
+questions of parts 2–3 they do not cover, the catalogue's reference answer (which must be
 graded `correct`), one near paraphrase (which must be flagged near), and the
 classic wrong answers (QRN answered as QRM, "l'ILR" for 489, 100 W for
 BASE's power, SOS for the voice distress signal). `mise run eval-grader
@@ -478,7 +505,7 @@ Morse (not examined in BASE).
 1. **Structure and grading.** `curriculum.yaml` with `parts` and the eight
    new modules; stub lessons (title + `Plan :` line, as `LEARN.md` phase 1)
    and stub learn-more pages; the validator changes; the grading cases of
-   §4.5 for all 23 open questions, with the prompt change for near elements;
+   §4.5 for all 24 open questions, with the prompt change for near elements;
    the spelling battery extended by a second person and the choice confirmed
    (§4.3); the §1.3 list re-checked against the guide and Legilux,
    each case recorded in the outline of the lesson that prepares it.

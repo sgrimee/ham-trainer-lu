@@ -42,3 +42,35 @@ def test_malformed_grader_response_degrades_to_ungraded_instead_of_crashing():
         )
     )
     assert result is None
+
+
+def test_cache_keeps_sub_items_of_one_question_apart():
+    """Two sub-items of one question share a question id; the same text typed
+    under both must be graded against each item's own reference, not served
+    the first item's cached verdict."""
+    import json
+
+    import httpx2 as httpx
+
+    from app.grader import LLMGrader
+
+    calls = []
+
+    def handler(request):
+        calls.append(request)
+        content = json.dumps({"elements": [], "incorrect": [], "comment": str(len(calls))})
+        return httpx.Response(200, json={"choices": [{"message": {"content": content}}]})
+
+    async def run():
+        async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
+            grader = LLMGrader("http://llm", "key", "fake", 5.0, client)
+            args = dict(question_id=448, lang="fr", question="Q ?", candidate="je suis brouillé")
+            first = await grader.grade(reference="Je suis brouillé.", **args)
+            second = await grader.grade(reference="Quelle est votre position ?", **args)
+            again = await grader.grade(reference="Je suis brouillé.", **args)
+            return first, second, again
+
+    first, second, again = asyncio.run(run())
+    assert len(calls) == 2
+    assert first.comment != second.comment
+    assert again is first

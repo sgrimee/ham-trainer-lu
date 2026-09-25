@@ -58,15 +58,17 @@ class LLMGrader:
         self.model = model
         self.timeout = timeout
         self.client = client
-        # (question_id, model, normalised answer) -> result (specs/TRAINER.md §7.2).
-        # The pool is fixed and candidates repeat it, so this is most of the
-        # spend avoided; process-lifetime is enough for a single-user app.
-        self._cache: dict[tuple[int, str, str], GradeResult] = {}
+        # (question_id, model, reference, normalised answer) -> result
+        # (specs/TRAINER.md §7.2). The reference tells the sub-items of one
+        # question apart: the same text typed under QRM and QRN must not share a
+        # verdict. The pool is fixed and candidates repeat it, so this is most
+        # of the spend avoided; process-lifetime is enough for a single-user app.
+        self._cache: dict[tuple[int, str, str, str], GradeResult] = {}
 
     async def grade(
         self, *, question_id: int, lang: str, question: str, reference: str, candidate: str
     ) -> GradeResult:
-        key = (question_id, self.model, _normalise(candidate))
+        key = (question_id, self.model, reference, _normalise(candidate))
         if key in self._cache:
             return self._cache[key]
         # The candidate's text is untrusted input, delimited and never
