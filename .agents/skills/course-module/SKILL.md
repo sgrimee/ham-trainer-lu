@@ -1,12 +1,15 @@
 ---
 name: course-module
-description: Write, revise or review the French prose of a module of the from-zero BASE part-1 course (data/course/base/<module>/ — lessons, answer notes, "En savoir plus" links, inline SVG diagrams) to the quality bar set by module A (electricite). Use for any work on specs/LEARN.md phase 5 content, for reviewing a written module, and for orchestrating several modules with subagents.
+description: Write, revise or review the French prose of a module of the from-zero BASE course, parts 1 to 3 (data/course/base/<module>/ — lessons, answer notes, "En savoir plus" links, inline SVG diagrams) to the quality bar set by module A (electricite). Use for any work on specs/LEARN.md phase 5 or specs/LEARN-2-3.md phase 3 content, for reviewing a written module, and for orchestrating several modules with subagents.
 ---
 
 # Writing a course module
 
-The course (specs/LEARN.md) teaches BASE exam part 1 to a complete beginner
-aged 11–13, in French. The structure — modules, steps, concepts, which
+The course (specs/LEARN.md) teaches the BASE exam to a complete beginner
+aged 11–13, in French: part 1 (Techniques), then parts 3 (Réglementation)
+and 2 (Procédures), planned in specs/LEARN-2-3.md. **For a module of parts
+2 or 3, also read `references/parts-2-3.md`**: those lessons teach rules
+from the ILR guide, not physics, and most of their questions are open. The structure — modules, steps, concepts, which
 question each practice step shows — is fixed in
 `data/course/base/curriculum.yaml`. This skill is about the **prose** that
 fills it: one `.fr.md` per lesson, one `en-savoir-plus.fr.md` per module, and
@@ -34,6 +37,8 @@ copied from there, not reinvented.
      a `Point d'examen` in it is a §4.4 case (below);
    - every practice question of the module, from `data/questions.jsonl`
      (stem, four options, which one `is_correct`);
+   - for parts 2–3, the guide's pages cited in each stub's `sources`
+     (`references/parts-2-3.md`);
    - the **finished** lessons of earlier modules that introduce each concept
      your module `requires` — reuse their words and images, never contradict
      them. `references/writing.md` §2 lists module A's established vocabulary.

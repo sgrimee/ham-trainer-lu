@@ -83,3 +83,22 @@ for m in c.modules:
             if ib[r].module != m.slug: deps.setdefault(ib[r].module, set()).add(r)
     print(m.slug, {k: sorted(v) for k, v in deps.items()})"
 ```
+
+## Parts 2 and 3 (specs/LEARN-2-3.md phase 3)
+
+| Module | Needs concepts from |
+|---|---|
+| `institutions` (R1) | `ondes` |
+| `certificats` (R2) | R1 (`ilr`) |
+| `bandes-et-puissance` (P1) | `ondes`, `modulation`, R1, R2 |
+| `indicatif-a-l-antenne` (P2) | R2 (`callsign`) |
+| `alphabet` (P3) | R2, **P2** (`callsign-suffixes`) |
+| `codes` (P4) | P3 (`spelling-alphabet`) |
+| `bonne-conduite` (P5) | R2 (`amateur-to-amateur`) |
+
+Waves, as the plan orders them: **R2 alone** (it mixes MCQ and open steps,
+and everything leans on it), then **P3 alone** (the first rote-memory
+module: it settles how tables and self-tests read), then the other five.
+R2 needs only R1's `ilr` by name; P3 needs P2's suffixes: work from the
+stub's outline if the module behind a concept is not written yet, and
+re-read it once it is.
