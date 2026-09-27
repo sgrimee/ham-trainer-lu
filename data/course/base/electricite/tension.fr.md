@@ -35,6 +35,10 @@ charges négatives, et de l'autre un endroit qui en manque. Les électrons sont
 poussés de l'un vers l'autre. Cette « différence de pression électrique »
 s'appelle la **tension**.
 
+Une tension est donc toujours une différence **entre deux endroits**, comme
+la différence de hauteur entre deux réservoirs. Parler de la tension d'un
+seul point n'a pas de sens.
+
 - Sans tension, pas de poussée : **pas de courant**.
 - Plus la tension est grande, plus la poussée est forte.
 

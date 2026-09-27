@@ -5,6 +5,20 @@ title: La loi d'Ohm
 La tension, le courant et la résistance ne sont pas trois choses séparées :
 ils sont **liés**. Si tu en connais deux, tu peux calculer la troisième.
 
+## La tension aux bornes
+
+Une résistance a deux bouts : le courant entre par l'un et sort par
+l'autre. On les appelle ses **bornes**.
+
+Tu te souviens : une tension, c'est toujours une différence entre **deux
+endroits**. La **tension aux bornes** d'une résistance, c'est donc la
+différence de « pression électrique » entre ses deux bornes : de combien
+les électrons sont poussés d'une borne vers l'autre pour la traverser. Avec
+l'eau, c'est la différence de hauteur entre l'entrée et la sortie d'un
+tuyau.
+
+C'est de cette tension-là que parle la loi d'Ohm.
+
 ## Deux règles de bon sens
 
 Pense encore à l'eau :
@@ -18,7 +32,7 @@ Georg Ohm a trouvé la règle exacte, qu'on appelle la **loi d'Ohm** :
 
 > **U = R × I**
 >
-> la tension (en volts) = la résistance (en ohms) × le courant (en ampères)
+> la tension aux bornes (en volts) = la résistance (en ohms) × le courant (en ampères)
 
 **Exemple :** un courant de 2 A traverse une résistance de 6 Ω. Quelle est la
 tension à ses bornes ?

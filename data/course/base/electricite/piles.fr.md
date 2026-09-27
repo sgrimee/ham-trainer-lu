@@ -7,7 +7,8 @@ circuit. Une pile ronde ordinaire fait **1,5 V**. Une **batterie** (comme
 celle d'un téléphone ou d'une voiture) fait le même travail, mais on peut la
 recharger.
 
-Une pile a deux bouts, qu'on appelle ses **bornes** : le **+** et le **−**.
+Comme une résistance, une pile a deux **bornes** : le **+** et le **−**. Sa
+tension, c'est la tension entre ces deux bornes.
 
 Et si 1,5 V ne suffit pas ? On peut assembler plusieurs piles, de deux
 façons.
