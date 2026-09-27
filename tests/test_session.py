@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 import pathlib
 import sys
+from typing import Any
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent))
 
@@ -64,7 +65,9 @@ def test_cache_keeps_sub_items_of_one_question_apart():
     async def run():
         async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
             grader = LLMGrader("http://llm", "key", "fake", 5.0, client)
-            args = dict(question_id=448, lang="fr", question="Q ?", candidate="je suis brouillé")
+            args: dict[str, Any] = dict(
+                question_id=448, lang="fr", question="Q ?", candidate="je suis brouillé"
+            )
             first = await grader.grade(reference="Je suis brouillé.", **args)
             second = await grader.grade(reference="Quelle est votre position ?", **args)
             again = await grader.grade(reference="Je suis brouillé.", **args)
@@ -122,7 +125,7 @@ def test_cache_key_includes_the_other_wordings():
     async def run():
         async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
             grader = LLMGrader("http://llm", "key", "fake", 5.0, client)
-            args = dict(
+            args: dict[str, Any] = dict(
                 question_id=476, lang="fr", question="Q ?", reference="www.itu.org", candidate="www.itu.int"
             )
             await grader.grade(**args)

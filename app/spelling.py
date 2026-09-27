@@ -195,7 +195,10 @@ def tokens(text: str) -> list[str]:
 
 
 def target_of(question: str) -> str:
-    return re.search(r"[\"«]\s*([^\"»]+?)\s*[\"»]", question).group(1)
+    m = re.search(r"[\"«]\s*([^\"»]+?)\s*[\"»]", question)
+    if m is None:
+        raise ValueError(f"no quoted word or callsign to spell in {question!r}")
+    return m.group(1)
 
 
 def expected_options(target: str, german: bool = False) -> list[list[str]]:
@@ -247,6 +250,7 @@ def grade(question: str, candidate: str, lang: str = "fr") -> SpellingResult:
         score = (found / len(want), -len(extra))
         if best is None or score > best[0]:
             best = (score, found, len(want), extra, missing)
+    assert best is not None, "expected_options always yields the target itself"
     _, found, total, extra, missing = best
     # Letters or numerals alone are not the alphabet: nothing was spelled.
     spelled = any(t in lookup and not t.isdigit() and len(t) > 1 for t in toks)

@@ -55,7 +55,9 @@ def guide_context(case) -> tuple[tuple[str, ...], tuple[str, ...]]:
     case (specs/LEARN-2-3.md §4.5): the case's question id is its id's leading
     digits, and its sub-item the catalogue item whose reference is the case's."""
     cid, lang, _, reference = case[:4]
-    qid = int(re.match(r"\d+", cid).group())
+    m = re.match(r"\d+", cid)
+    assert m is not None, f"case id {cid!r} must start with its question id"
+    qid = int(m.group())
     q = catalogue.load().by_id.get(qid)
     # A German case's reference is the neutral cell where German has none.
     items = [
