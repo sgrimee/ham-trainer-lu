@@ -41,17 +41,25 @@ German speaker comes later (§7).
   - 452 (`MAYDAY`) and 476 (`www.itu.org`) are neutral. 468
     (`BASE/Grundzertifikat: 25W PEP NOVICE: 100W PEP HAREC: 1000W PEP`) is
     already half German.
-  - 440–446 are the spelling questions. Their answers are French only and
-    two carry French words (441 `… SLASH PORTABLE`, 445 `… SLASH MARITIME
-    MOBILE`). They are graded by rule, not against that text (§2.5).
+  - 440–446 are the spelling questions. Their answers are French-tagged
+    but written in the international alphabet; the suffix words (441 `…
+    SLASH PORTABLE`, 445 `… SLASH MARITIME MOBILE`) are English as much as
+    French. They are graded by rule, not against that text (§2.5). Three
+    German stems carry stray spaces inside the quotes (440 `" LX1RTGY"`,
+    441 `"DL/LX1RTGY/p "`, 445 `"LX6JO/MM "`); the German course shows
+    them.
+  - One option cell is not neutral: 499a is `{fr: 'Oui Ja'}`, both
+    languages in one French-tagged cell. The others without German (15, 16,
+    55, 56, 58, 426, 432: values and units; 460–462: English band names)
+    are neutral.
 - **The sources.** The ILR's *Guide du radioamateur* and the regulation
   ILR/F24/1 exist in French only. Most French pages cite the guide (59
   links to ilr.lu); the rest point at French resources (fr.wikipedia,
   Vikidia, Alloprof…).
 
 Counts to translate: 97 lesson and learn-more pages (82 lessons, 15
-learn-more) across 15 modules, 54 of them with inline SVG figures (about 180
-`<text>` elements in all); the part and module titles in `curriculum.yaml`;
+learn-more) across 15 modules, 54 of them with inline SVG figures (328
+`<text>` elements in all, 4 `<tspan>`); the part and module titles in `curriculum.yaml`;
 the 55 answer notes (`q<number>.fr.md`, §3.2). Two lessons also start with
 `q` (`qui-attribue-les-bandes`, `qu-est-ce-qu-une-bande`): a note is
 `q` followed by digits only.
@@ -68,10 +76,11 @@ the dashboard once some module does. Elsewhere no switch shows.
 - It posts to a new `POST /learn/lang` with `lang` (`fr` | `de`) and `next`,
   the page's own URL including its query string (`?picked=`). The route
   writes the preference and redirects to `next`.
-- `next` is accepted only if it is `/learn` or starts with `/learn/` or
-  `/learn?`, and contains no `//`, no `\`, no `..` segment and no scheme;
-  anything else redirects to `/learn`. (`/learnfoo`, `//evil.example/learn`
-  and `/learn/../exam` are refused.)
+- `next` is parsed with `urllib.parse.urlsplit` and accepted only if it
+  has no scheme and no host, and its path is `/learn` or starts with
+  `/learn/`, with no `\`, no empty segment (`//`) and no `..` segment; the
+  query string is kept. Anything else redirects to `/learn`.
+  (`/learnfoo`, `//evil.example/learn` and `/learn/../exam` are refused.)
 - It changes **only** the `lang` key of the preferences cookie and keeps
   the others as they were; with no cookie yet, it writes the defaults with
   that `lang`. (`POST /attempts` rewrites the whole cookie, which is fine
@@ -110,7 +119,10 @@ learners get:
   learner preferring German reads German modules in German and the others
   in French. A French page shown to a German-preferring learner carries a
   visible "Noch nicht übersetzt" banner, so a gap is never mistaken for
-  the finished course.
+  the finished course. Notes are not in the per-module count (§2.3): a
+  German practice page whose French note has no German one yet shows, in
+  place of the note, a short "Erklärung noch nicht übersetzt" line (only
+  in `preview`; with `on` the case cannot arise, §2.3).
 - **`on`** (production, from release): German is complete or the app does
   not start. The validator, run with `on`, requires every page, every
   module title, every part title and the German notes (§2.3) to exist;
@@ -122,6 +134,12 @@ offers German, and refused before (all settings). `python -m app.course
 --report` lists what German still lacks (pages, titles, notes), so progress
 is visible and `on` can be tried before it is set.
 
+The validator reads `COURSE_DE` like the app (default `off`), and
+`python -m app.course --de on` overrides it. The test suite and CI run it
+with the setting the next deployment uses: `preview` during phase 3, `on`
+from release (phase 4). A missing German file thus fails CI, not the
+production start.
+
 ### 2.3 Answer notes per language
 
 Answer notes are not bound one to one (§3.2):
@@ -131,7 +149,9 @@ Answer notes are not bound one to one (§3.2):
 - Notes leave the per-module all-or-nothing count; only lesson and
   learn-more pages and the module title are in it.
 - A note is shown in the page's effective language only; there is no
-  fallback from one language's note to the other's.
+  fallback from one language's note to the other's. In `preview`, a
+  missing German note is flagged on the page (§2.2); a French note
+  omitted on purpose (below) is not.
 - With `COURSE_DE=on`, every French note needs a German one, unless its
   question is listed in `data/course/base/notes-de-omitted.yaml` with the
   audit's reason (§3.1: a French-wording note with no German counterpart).
@@ -163,6 +183,9 @@ cannot drift.
   is shown on a German course page without the language tag: after the
   audit (§3.1) every such BASE cell is language-neutral or replaced below.
   (The exam trainer keeps its tag; `TRAINER.md` §4.3 does not change.)
+  499a (`Oui Ja`) is not neutral: the German course shows `Ja` in its place
+  (a display override in the course, keyed by question and letter; the
+  catalogue is not edited, and the stored answer is still the letter).
 - **Spelling (440–446)** is graded by rule (`app/spelling.py`), in either
   language, against the call sign or word quoted in the **French** stem
   (`session._grade_spelling_item`); that stays so, since the German stems
@@ -170,18 +193,26 @@ cannot drift.
   match). The expected answer the course shows after a miss is built from
   the same rule (`spelling.expected_options`, the target spelled in the
   international alphabet, `/` as `SLASH`), in both languages, rather than
-  the catalogue's French cell. What German also needs is the forms a
-  German-speaking learner types:
-  - `/`: `schrägstrich` and `bruchstrich` beside `slash`, `barre` and
-    `stroke`;
-  - German digits as near forms (`eins`, `zwei`, `drei`, … `null`), as the
-    French ones are, with the catalogue's form as the hint;
-  - German suffix words where they exist (`portabel` for `/p`; `/mm` and
-    `/am` are said in English in both languages);
-  - German letter names (`A`, `Be`, `Ce`…) and the German alphabet (Anton,
-    Berta…) wrong, as French letter names and old alphabets are.
+  the catalogue's French cell. Of `expected_options`' forms, the one shown
+  is the first, the suffix spelled letter by letter (441 `… SLASH PAPA`,
+  445 `… SLASH MIKE MIKE`), in both languages; the spoken suffix words are
+  accepted but not shown. What German also needs is the forms a
+  German-speaking learner types; the candidates, each settled by the audit:
+  - `/`: `schrägstrich`, `bruchstrich` and `strich` beside `slash`,
+    `barre` and `stroke`;
+  - German digits as near forms (`eins`, `zwei`, `zwo`, `drei`, … `null`),
+    as the French ones are, with the catalogue's form as the hint; `zwo` is
+    the usual form on the air;
+  - German suffix words: `portabel` for `/p`, `mobil` for `/m`, `maritim
+    mobil` for `/mm`, `aeronautisch mobil` for `/am`, beside the English
+    words already accepted;
+  - wrong, as French letter names and old alphabets are: German letter
+    names (`A`, `Be`, `Ce`…) and both German spelling alphabets, DIN 5009
+    before 2022 (Anton, Berta, Cäsar…) and since (Aachen, Berlin,
+    Chemnitz…).
 
-  The audit (§3.1) settles the list; the German cases go to
+  The mechanism (a German form table beside the French one) comes in
+  phase 1; the audit (§3.1, phase 2) fills it, and its cases go to
   `tests/spelling_fixtures.py`.
 - **LLM-graded open questions.** The grader gets the German catalogue
   stem and reference; only 452, 468 and 476 have none, and `ref_text`
@@ -191,8 +222,13 @@ cannot drift.
 - `data/official_wordings.yaml` gains an optional `lang` on an entry
   (default `fr`), so a `decision` about a wrong German reference answer
   (§3) can be recorded; `for_item` and `notes_for_item` return the entries
-  of the requested language only. `tests/test_official_wordings.py` checks
-  a `de` entry against `text.de`.
+  of the requested language only. A `de` entry's `source` is a
+  `decision YYYY-MM-DD` (there is no German guide to cite). The file's
+  header ("French only") and `app/official_wordings.py`'s docstring
+  (German graded against the German reference alone) are updated to
+  match. `check` compares a `de` entry against `text.de` (or, where there
+  is none, the neutral cell), and `tests/test_official_wordings.py` tests
+  it.
 - `tests/grading_fixtures.py`: German cases for each LLM-graded open
   question, run as the French ones are (`LEARN-2-3.md` §4.5).
 
@@ -214,10 +250,15 @@ cannot drift.
   split in two `<tspan>`s and a rotated label pass; a missing `<text>`
   fails.
 - Notes: a German-only note is valid and shown in German only; with `on`,
-  a French note with no German one fails unless listed as omitted.
+  a French note with no German one fails unless listed as omitted; in
+  `preview`, a missing German note shows the "noch nicht übersetzt" line.
+- The validator: `--de on` fails on one missing German page, `--de
+  preview` does not.
 - Spelling: the German forms above, each accepted or refused as decided;
-  the shown expected answer for 441 and 445 has no French word.
-- A German practice page shows no language tag on a neutral cell.
+  the shown expected answer for 441 is `… SLASH PAPA` and for 445 `… SLASH
+  MIKE MIKE`, in both languages.
+- A German practice page shows no language tag on a neutral cell, and
+  shows `Ja` for 499a.
 
 ## 3. The German catalogue's own errors
 
@@ -238,7 +279,9 @@ finding:
 - a German open reference answer that is wrong, incomplete or worded in a
   way the ILR would not expect;
 - every cell with no German (§1): confirmed neutral, or given a German
-  display (§2.5);
+  display (§2.5), as 499a is;
+- German stems whose display is flawed (the stray spaces in 440, 441,
+  445): shown as they are, since they are the exam's text, and recorded;
 - for 440–446, the forms a German speaker uses for `/`, digits and
   suffixes (§2.5).
 
@@ -269,10 +312,14 @@ notes to `notes-de-omitted.yaml` (§2.3).
 
 - **Terms from the catalogue.** A glossary FR → DE is built after the
   audit from the paired `text.fr` / `text.de` of `questions.jsonl`; a
-  lesson uses the term the exam will use. The catalogue calls BASE
-  "Grundzertifikat" (467, 468) where German sources say "BASE-Zertifikat"
-  or "BASE-Lizenz": a lesson uses the catalogue's term and names the other
-  once. Terms the audit finds wrong are marked: the lesson uses the right
+  lesson uses the term the exam will use. Where the catalogue itself
+  varies, the glossary picks one term and lists the others. BASE is the
+  case known already: the catalogue says "Grundzertifikat" (466, 467,
+  468, 490, 495), "Basislizenz" (499) and "Basis" (500, 505), and German
+  sources say "BASE-Zertifikat" or "BASE-Lizenz". The lessons use
+  "Grundzertifikat", the catalogue's most frequent term, and say once, in
+  `certificats`, that the exam also writes "Basislizenz" and that other
+  sources say "BASE-Lizenz". Terms the audit finds wrong are marked: the lesson uses the right
   word and names the exam's, as §3.2 does for quirks.
 - **Same reader** (11–13 years old), same one idea per lesson, `du`.
 - **Slugs stay French**: they are the URLs both languages share.
@@ -320,11 +367,13 @@ translating a learner's own answers or the grader's past comments.
 
 1. **Application** (§2). `COURSE_DE` and its three settings, the switch,
    part titles, notes per language, the SVG parity check, the German
-   display of catalogue cells and spelling answers, German grading entries
-   and spelling forms, the tests. Ships with `off`.
+   display of catalogue cells and spelling answers, the `lang` key in
+   `official_wordings.yaml` and a German spelling form table (mechanisms,
+   empty or with test data only), the validator's `--de`, the tests.
+   Ships with `off`.
 2. **Audit** (§3.1). The table of German findings and their decisions,
-   notes and neutral cells included; the German grading and spelling
-   cases.
+   notes and neutral cells included; filling the German grading entries,
+   the German spelling forms and their cases.
 3. **Translation**, tried in `preview`. Glossary first, then the 15
    modules, one commit per module. Per module: pages, title (and the part
    title with the first module of a part), notes from the audit (§3.2),
