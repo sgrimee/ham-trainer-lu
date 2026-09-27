@@ -74,7 +74,7 @@ parts:
           - learn-more
 
       - slug: ondes
-        title: {fr: "Ondes et fréquences"}
+        title: {fr: "Ondes et fréquences", de: "Wellen und Frequenzen"}
         steps:
           - lesson: frequence
             introduces: [frequency]
