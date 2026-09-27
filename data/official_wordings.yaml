@@ -89,6 +89,8 @@
   0:
     - text: "www.itu.int"
       source: ilr-guide-2023 p.36 §5.5
+    - note: "Le « www. » est facultatif : itu.org, www.itu.org, itu.int et www.itu.int sont toutes correctes, l'élément est présent et pas near."
+      source: decision 2026-09-27
 
 495:
   0:

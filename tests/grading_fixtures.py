@@ -457,6 +457,8 @@ PART_2_3 = [
     # 476: the catalogue's itu.org only redirects to itu.int
     _reference(476),
     C("476-int", 476, 0, "www.itu.int", "correct", None, "GUIDE: annex 5.5 writes itu.int (LEARN-2-3 §1.3)"),
+    C("476-bare-int", 476, 0, "itu.int", "correct", None, "www. optional (decision 2026-09-27)"),
+    C("476-bare-org", 476, 0, "itu.org", "correct", None, "www. optional (decision 2026-09-27)"),
     C("476-ilr", 476, 0, "www.ilr.lu", "incorrect", None, "the ILR's site"),
     # 489: the minister, not the ILR
     _reference(489),
