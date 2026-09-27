@@ -407,7 +407,7 @@ parts:
           - learn-more
 
       - slug: alphabet
-        title: {fr: "L'alphabet international"}
+        title: {fr: "L'alphabet international", de: "Das internationale Buchstabieralphabet"}
         steps:
           - lesson: pourquoi-epeler
             introduces: [spelling-alphabet]
