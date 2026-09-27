@@ -124,7 +124,7 @@ parts:
           - learn-more
 
       - slug: modulation
-        title: {fr: "Modulation"}
+        title: {fr: "Modulation", de: "Modulation"}
         steps:
           - lesson: porteuse
             introduces: [carrier, modulation]
