@@ -18,7 +18,9 @@ links:
   comment: 'Wikipédia : ARISS, la station radioamateur de la Station spatiale internationale, et les contacts entre astronautes et écoles.'
 ---
 
-Tu as fini ce module ! Si tu veux passer l'examen, commence par la page de
-l'ILR : elle donne les dates des prochaines sessions. Les deux associations
-luxembourgeoises, RL et LARU, organisent des cours pour s'y préparer. Et
-si les voyages dans l'espace te font rêver, lis l'article sur ARISS.
+Tu as fini ce module ! Il reste encore une partie du cours, les règles et
+procédures d'exploitation, avant de penser à l'examen. Pour plus tard, la
+page de l'ILR donne les dates des prochaines sessions, et les deux
+associations luxembourgeoises, RL et LARU, organisent des cours pour s'y
+préparer. Et si les voyages dans l'espace te font rêver, lis l'article sur
+ARISS.

@@ -19,7 +19,7 @@ Il existe **trois** niveaux, du plus simple au plus complet. C'est l'ILR
 — que le catalogue de l'examen appelle souvent « **l'Institut** » — qui
 les délivre :
 
-1. le certificat de **BASE**, pour débuter. C'est celui que ce cours te
+1. le certificat de **BASE**, pour débuter. C'est celui auquel ce cours te
    prépare ;
 2. le certificat **NOVICE**, l'étape suivante ;
 3. le certificat **HAREC**, le plus complet. Son nom est une abréviation
