@@ -336,6 +336,7 @@ each still has something to say to a German reader, so
 | 395 | Option a is "Grid-Dip-Meter"; the French mistranslates it ("mesureur de trempage de la grille"), a problem German does not have. | The German note drops the French oddity. | rw. |
 | 295, 294 | The deviation is "Frequenz**auslenkung**" in 295 and "Frequenz**hub**" in 294 (the French 295 even carries "(Hub)"). | Lesson (`modulation`) uses *Frequenzhub* and names *Frequenzauslenkung* once. | rw. (295) |
 | 400 | The right option says "an**zuschließen**", the three wrong ones "ein**zuschlaufen**" (Swiss German), and all four write "Ampèremeter" with a French accent (395 and 394: "Amperemeter"). | Shown as is; the lesson says "in Reihe" and "niederohmig", the exam's words, and does not lean on the verb. | tr. |
+| 433, 435 | Found in translation (module `securite`). The German 435c, the right answer, says "zu einem **separaten** Stab- oder Banderder"; the French says only « piquet de terre ou ruban de terre ». 433c, a wrong answer, says "an einer separaten Erdelektrode". A learner taught that 433's separate earth is wrong would reject 435c. | The lesson (`foudre`) says that without a lightning protection system the mast gets its own earth, which the exam calls "separat", still bonded to the building's; q435 says why "separat" is right there and wrong in 433. | rw. (435) |
 | 499a | `{fr: 'Oui Ja'}`: both languages in one French cell. | The German course shows "Ja" (`DE_OPTION_DISPLAY`, §2.5). | tr. |
 | 499, 500, 505 | "Basislizenz" / "Basis-Lizenz" for the certificate holder, as the French "licence de base". 505's stem drops the French "(LX9)". | As in French: the lesson separates certificate and licence and says the exam writes "Basislizenz". | tr. |
 | 440–446 | Stray spaces inside the quotes in **440, 441, 444** (" LX3RZWY ") **and 445**; 442 quotes with „…", 446 with French « ». The references are the French-tagged English words, 443 with its typo. | Shown as is, graded by rule against the French stem; the expected answer is built by rule (§2.5). German forms (`app/spelling.py`, `NEAR_DE`, `SUFFIX_WORDS_DE`), all near, hinted with the catalogue's form: Schrägstrich, Bruchstrich, Strich; German digits, zwo included; portabel, mobil, maritim mobil, aeronautisch mobil; **Viktor**, the German spelling of Victor. Wrong: German letter names and the other words of both DIN 5009 alphabets. Cases: `tests/spelling_fixtures.py` `GERMAN`. | tr. (441, 443, 445, 446) |
@@ -359,7 +360,7 @@ anzuschliessen, Massnahmen) are the catalogue's.
 17, 25, 38, 55, 56, 83, 87–92 (92's §4.4 case holds in German: "Keine
 Seitenbänder"), 294, 314, 315, 320, 321, 341, 368, 377, 394, 404, 415
 (the German stem asks for the *cause*, which reads more clearly), 419,
-426, 427 (German adds "alte" Steckdose), 432–436, 439, 447, 450, 452, 456,
+426, 427 (German adds "alte" Steckdose), 432, 434, 436, 439, 447, 450, 452, 456,
 460–462, 489 (the minister, as in French). Their notes are translated.
 
 **Grading.** `tests/grading_fixtures.py` `GERMAN` holds 41 cases over the
@@ -443,12 +444,15 @@ translating a learner's own answers or the grader's past comments.
    modules, one commit per module. Per module: pages, title (and the part
    title with the first module of a part), notes from the audit (§3.2),
    German sources (§4.2), screenshots of every figure, a walk through the
-   module switching languages on the way. **In progress.** Glossary and
+   module switching languages on the way. Glossary and
    the skill's translation section: `.agents/skills/course-module/references/`
    `glossary-de.md` and `translation.md` (2026-09-27); German notation:
    `·` and `:` in formulas, digits grouped by a space. Modules done:
    `electricite` (2026-09-27; its links: PhET in German, Klexikon,
-   Lehrerschmidt, Checker Tobi).
+   Lehrerschmidt, Checker Tobi). The other fourteen modules followed on
+   2026-09-27, each reviewed by a second agent and its figures rendered
+   and looked at; the glossary grew with them. **Done** but for the walk
+   through the app switching languages, which moves to phase 4.
 4. **Release**. `--report` empty; glossary consistency across modules; the
    back-translation pass (§7); a walk through the whole course in German
    with `on`; then production switches to `on`.

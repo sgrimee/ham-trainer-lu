@@ -1033,11 +1033,13 @@ def test_on_never_shows_a_french_page_for_german(client, store: Store, learner, 
             assert '<html lang="de">' in text and "Noch nicht" not in text, path
 
 
-def test_on_with_a_page_missing_refuses_to_start(monkeypatch, tmp_path):
+def test_on_with_a_page_missing_refuses_to_start(monkeypatch, german):
     from starlette.testclient import TestClient
 
     from app.main import app
 
+    d = german("all", "on")
+    (d / FIRST.module / f"{FIRST.slug}.de.md").unlink()
     monkeypatch.setenv("COURSE_DE", "on")
     with pytest.raises(course_module.CourseError, match="German is missing"), TestClient(app):
         pass
