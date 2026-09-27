@@ -250,7 +250,7 @@ parts:
           - learn-more
 
       - slug: securite
-        title: {fr: "Sécurité électrique et foudre"}
+        title: {fr: "Sécurité électrique et foudre", de: "Elektrische Sicherheit und Blitzschutz"}
         steps:
           - lesson: tension-secteur
             introduces: [mains-supply]
