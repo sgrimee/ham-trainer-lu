@@ -1,4 +1,6 @@
-# Reference material published by the ILR (Institut Luxembourgeois de Régulation).
+# Reference material: the ILR's (Institut Luxembourgeois de Régulation) official
+# documents, and a few secondary web pages (in German, for the German course,
+# specs/LEARN-DE.md §4.2) that are never the authority.
 #
 # Two sections:
 #   documents — downloadable files, fetched into reference/ by `mise run download-refs`.
@@ -54,3 +56,20 @@ links:
     name: Examen opérateur radioamateur (ILR)
     description: Page source de laquelle proviennent les documents ci-dessus.
     url: https://www.ilr.lu/secteurs-activites/frequences-radioelectriques/certificats/examen-operateur-radioamateur/
+
+  # German secondary sources for the German course (specs/LEARN-DE.md §4.2).
+  # The ILR guide and ILR/F24/1 exist in French only; these restate them.
+  - id: darc-base-luxemburg-2024
+    name: Neue Einsteiger-Lizenzklasse BASE in Luxemburg (DARC)
+    description: DARC news item of 19 February 2024 summarising ILR/F24/1 for BASE in German — bands, 25 W PEP am Senderausgang, antenna and equipment rules, LX7, ECC Report 89.
+    url: https://www.darc.de/nachrichten/meldungen/archiv-details/news/neue-einsteiger-lizenzklasse-base-in-luxemburg/
+
+  - id: laru-lizenzen-kurse
+    name: Licenses & courses / Lizenzen & Kurse (LARU)
+    description: LARU overview, in German and English, of the BASE, NOVICE and HAREC classes — bands per class and call sign blocks (LX7, LX6, LX1–3).
+    url: https://laru.lu/amateur-radio-info2/
+
+  - id: dewiki-amateurfunk-luxemburg
+    name: Amateurfunk in Luxemburg (Wikipedia)
+    description: German Wikipedia article — licence classes and powers, call sign blocks (LX0, LX1–3, LX6, LX7, LX9), LX/ and LX6/ for foreign licensees; community-edited, a learn-more link only.
+    url: https://de.wikipedia.org/wiki/Amateurfunk_in_Luxemburg
