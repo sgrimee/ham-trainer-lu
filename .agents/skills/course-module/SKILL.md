@@ -1,6 +1,6 @@
 ---
 name: course-module
-description: Write, revise or review the French prose of a module of the from-zero BASE course, parts 1 to 3 (data/course/base/<module>/ — lessons, answer notes, "En savoir plus" links, inline SVG diagrams) to the quality bar set by module A (electricite). Use for any work on specs/LEARN.md phase 5 or specs/LEARN-2-3.md phase 3 content, for reviewing a written module, and for orchestrating several modules with subagents.
+description: Write, revise, review or translate into German the prose of a module of the from-zero BASE course, parts 1 to 3 (data/course/base/<module>/ — lessons, answer notes, "En savoir plus" links, inline SVG diagrams) to the quality bar set by module A (electricite). Use for any work on specs/LEARN.md phase 5, specs/LEARN-2-3.md phase 3 or specs/LEARN-DE.md phase 3 content, for reviewing a written module, and for orchestrating several modules with subagents.
 ---
 
 # Writing a course module
@@ -75,6 +75,18 @@ copied from there, not reinvented.
    something false (module A's review caught "le poids en kilogrammes").
 6. **One idea per lesson, ~220–300 words**, one diagram when a picture
    genuinely helps (module A: 9 diagrams for 12 lessons).
+
+## Translating a module into German
+
+The German course (specs/LEARN-DE.md) gives every `.fr.md` a `.de.md`
+sibling, written for a German reader rather than translated word for word.
+**Read `references/translation.md` and keep `references/glossary-de.md`
+open.** In short: the exam's German terms; the "at the exam" passages
+rewritten from the German audit (LEARN-DE §3.3); German school notation
+(`·`, `:`, „…“); each figure's labels, `aria-label` and caption translated
+and nothing else (the validator checks the drawing is the French one);
+German sources and links. Answer notes are `q` followed by digits only: two
+lessons start with `q` too. Slugs stay French.
 
 ## Several modules at once
 

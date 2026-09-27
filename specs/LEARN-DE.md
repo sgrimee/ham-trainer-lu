@@ -443,7 +443,12 @@ translating a learner's own answers or the grader's past comments.
    modules, one commit per module. Per module: pages, title (and the part
    title with the first module of a part), notes from the audit (§3.2),
    German sources (§4.2), screenshots of every figure, a walk through the
-   module switching languages on the way.
+   module switching languages on the way. **In progress.** Glossary and
+   the skill's translation section: `.agents/skills/course-module/references/`
+   `glossary-de.md` and `translation.md` (2026-09-27); German notation:
+   `·` and `:` in formulas, digits grouped by a space. Modules done:
+   `electricite` (2026-09-27; its links: PhET in German, Klexikon,
+   Lehrerschmidt, Checker Tobi).
 4. **Release**. `--report` empty; glossary consistency across modules; the
    back-translation pass (§7); a walk through the whole course in German
    with `on`; then production switches to `on`.
