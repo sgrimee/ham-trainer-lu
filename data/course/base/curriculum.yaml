@@ -207,7 +207,7 @@ parts:
           - learn-more
 
       - slug: propagation
-        title: {fr: "Propagation des ondes"}
+        title: {fr: "Propagation des ondes", de: "Wellenausbreitung"}
         steps:
           - lesson: ionosphere
             introduces: [ionosphere, skywave]
