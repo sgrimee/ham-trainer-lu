@@ -166,7 +166,7 @@ parts:
           - learn-more
 
       - slug: antennes
-        title: {fr: "Antennes et câbles"}
+        title: {fr: "Antennes et câbles", de: "Antennen und Kabel"}
         steps:
           - lesson: dipole
             introduces: [antenna, half-wave-dipole]
