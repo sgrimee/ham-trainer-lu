@@ -225,7 +225,7 @@ parts:
           - learn-more
 
       - slug: mesures
-        title: {fr: "Mesures"}
+        title: {fr: "Mesures", de: "Messtechnik"}
         steps:
           - lesson: multimetre
             introduces: [multimeter, ammeter, voltmeter, ohmmeter]
