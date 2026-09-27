@@ -364,7 +364,7 @@ parts:
     title: {fr: "Règles et procédures d'exploitation", de: "Betriebliche Regeln und Verfahren"}
     modules:
       - slug: bandes-et-puissance
-        title: {fr: "Bandes et puissance"}
+        title: {fr: "Bandes et puissance", de: "Bänder und Leistung"}
         steps:
           - lesson: qui-attribue-les-bandes
             introduces: [band-allocation]
