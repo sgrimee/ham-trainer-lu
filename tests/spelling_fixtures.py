@@ -19,6 +19,16 @@ reads the word or callsign quoted in the question instead. Expected verdicts:
              one (Iceland, Zebra) is wrong;
   incorrect  nothing usable (letters not spelled, French letter names).
 
+German cases (`GERMAN`, specs/LEARN-DE.md §3.3, decided 2026-09-27) are
+graded with lang "de": a German-speaking learner's forms -- Schrägstrich,
+Bruchstrich or Strich for "/", German digits (zwo included), Viktor, and the
+suffix words portabel, mobil, maritim mobil, aeronautisch mobil -- are near
+forms, hinted with the catalogue's form. German letter names and both German
+spelling alphabets (DIN 5009 before and since 2022) are wrong, as the French
+letter names and the old national alphabets are. The German stems quote the
+target inconsistently (stray spaces in 440, 441, 444, 445; „…“ in 442; « »
+in 446), so the grader always reads the French stem's target.
+
 Official forms: Alfa (guide) and Alpha (catalogue); Juliet (guide) and
 Juliett (catalogue, 445); Whiskey; X-Ray; digits as English words
 (catalogue); "/" as slash (catalogue) or barre (guide: "barre de fraction");
@@ -266,3 +276,128 @@ CASES = [
         "French letter names, not the alphabet",
     ),
 ]
+
+
+# --- German answers (specs/LEARN-DE.md §2.5, §3.3) --------------------------
+
+
+def _de(cid, q, candidate, expected, must_flag, why):
+    return (cid, "de", q[0], q[1], candidate, expected, must_flag, why)
+
+
+GERMAN = [
+    _de(
+        "440-de-exact",
+        Q440,
+        "LIMA X-RAY ONE ROMEO TANGO GOLF YANKEE",
+        "correct",
+        None,
+        "the catalogue's form",
+    ),
+    _de(
+        "440-de-eins",
+        Q440,
+        "Lima X-Ray Eins Romeo Tango Golf Yankee",
+        "correct",
+        "Eins",
+        "German digit: near",
+    ),
+    _de(
+        "444-de-drei",
+        Q444,
+        "Lima X-Ray Drei Romeo Zulu Whiskey Yankee",
+        "correct",
+        "Drei",
+        "German digit: near",
+    ),
+    _de(
+        "441-de-strich",
+        Q441,
+        "Delta Lima Strich Lima X-Ray One Romeo Tango Golf Yankee Strich Papa",
+        "correct",
+        "Strich",
+        "'Strich', the German on-air word for '/': near",
+    ),
+    _de(
+        "441-de-schraeg",
+        Q441,
+        "Delta Lima Schrägstrich Lima X-Ray One Romeo Tango Golf Yankee Schrägstrich Portabel",
+        "correct",
+        "Schrägstrich",
+        "Schrägstrich and the German suffix word: near",
+    ),
+    _de(
+        "441-de-bruch",
+        Q441,
+        "Delta Lima Bruchstrich Lima X-Ray One Romeo Tango Golf Yankee Slash Portable",
+        "correct",
+        "Bruchstrich",
+        "Bruchstrich, the guide's 'barre de fraction' in German: near",
+    ),
+    _de(
+        "445-de-maritim",
+        Q445,
+        "Lima X-Ray Sechs Juliett Oscar Slash Maritim Mobil",
+        "correct",
+        "Maritim",
+        "German digit and suffix words: near",
+    ),
+    _de(
+        "445-de-TRAP-mobil",
+        Q445,
+        "Lima X-Ray Six Juliett Oscar Slash Mobil",
+        "partial",
+        "Mobil",
+        "/M instead of /MM, in German: land mobile, not maritime mobile",
+    ),
+    _de(
+        "443-de-viktor",
+        Q443,
+        "Romeo Echo Yankee Kilo Juliett Alfa Viktor India Kilo",
+        "correct",
+        "Viktor",
+        "Viktor, the German spelling of Victor: near",
+    ),
+    _de(
+        "440-de-zwo-wrong-call",
+        Q440,
+        "Lima X-Ray Zwo Romeo Tango Golf Yankee",
+        "partial",
+        "Zwo",
+        "a German digit, but the wrong one: 2 is not 1",
+    ),
+    _de(
+        "442-de-din-old",
+        Q442,
+        "Berta Anton Richard Cäsar Emil Ludwig Otto Nordpol Anton",
+        "incorrect",
+        None,
+        "the German spelling alphabet (DIN 5009 before 2022), not the international one",
+    ),
+    _de(
+        "442-de-din-2022",
+        Q442,
+        "Berlin Aachen Rostock Chemnitz Essen Leipzig Offenbach Nürnberg Aachen",
+        "incorrect",
+        None,
+        "the German spelling alphabet since 2022, not the international one",
+    ),
+    _de(
+        "440-de-din-mixed",
+        Q440,
+        "Ludwig X-Ray One Richard Theodor Gustav Ypsilon",
+        "partial",
+        "Ludwig",
+        "German alphabet words mixed in: wrong where they stand",
+    ),
+    _de("442-de-letters", Q442, "Be A Er Ce E El O En A", "incorrect", None, "German letter names"),
+    _de(
+        "446-de-xylophon",
+        Q446,
+        "X-Ray Yankee Lima Oscar Papa Hotel Oscar November",
+        "partial",
+        "X-Ray",
+        "spelled the German word Xylophon, not the one asked",
+    ),
+]
+CASES += GERMAN

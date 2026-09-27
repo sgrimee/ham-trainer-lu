@@ -473,3 +473,193 @@ PART_2_3 = [
 del C
 
 CASES += PART_2_3
+
+
+def _german_case(cid, qid, item_no, candidate, expected, must_flag, why):
+    """A German answer (specs/LEARN-DE.md §2.5): the German stem, and the
+    German reference or, where the catalogue has none (452, 468, 476), the
+    language-neutral cell, as `session.ref_text` sends them. `candidate`
+    None means the reference answer itself."""
+    q = _QUESTIONS[qid]
+    item = next(i for i in q["answer"] if i["item_no"] == item_no)
+    stem = q["text"]["de"]
+    question = f"{stem}\n{item['label']}" if item.get("label") else stem
+    reference = item["text"].get("de") or item["text"]["fr"]
+    return (cid, "de", question, reference, candidate or reference, expected, must_flag, why)
+
+
+# The German cases, one or more per open BASE question the LLM grades, built
+# from the German audit (specs/LEARN-DE.md §3.3). "DECISION" cases rest on a
+# `lang: de` entry of data/official_wordings.yaml.
+G = _german_case
+GERMAN = [
+    G("452-de-ref", 452, 0, None, "correct", None, "neutral reference: MAYDAY"),
+    G("452-de-sos", 452, 0, "SOS", "incorrect", None, "SOS is telegraphy, not voice"),
+    G("476-de-ref", 476, 0, None, "correct", None, "neutral reference"),
+    G("476-de-int", 476, 0, "www.itu.int", "correct", None, "DECISION: itu.int is the ITU's own address"),
+    G("489-de-ref", 489, 0, None, "correct", None, "reference verbatim"),
+    G("489-de-ilr", 489, 0, "Das ILR", "incorrect", None, "CLASSIC: the regulator, not the minister"),
+    G("490-de-ref", 490, 0, None, "correct", None, "reference verbatim"),
+    G(
+        "490-de-base",
+        490,
+        0,
+        "BASE, NOVICE und HAREC",
+        "correct",
+        None,
+        "DECISION: BASE is the Grundzertifikat, not near",
+    ),
+    G("495-de-partial", 495, 0, "Das NOVICE- und das HAREC-Zertifikat.", "partial", None, "BASE missing"),
+    G("459-de-ref", 459, 0, None, "correct", None, "reference verbatim: the English name"),
+    G(
+        "459-de-german-name",
+        459,
+        0,
+        "Die Internationale Fernmeldeunion (ITU)",
+        "correct",
+        None,
+        "DECISION: the German name is as right as the English one",
+    ),
+    G("459-de-ilr", 459, 0, "Das ILR", "incorrect", None, "national, not international"),
+    G("464-de-ref", 464, 0, None, "correct", None, "reference verbatim"),
+    G(
+        "464-de-official",
+        464,
+        0,
+        "Das ILR, Institut Luxembourgeois de Régulation",
+        "correct",
+        None,
+        "DECISION: the ILR's own (French) name",
+    ),
+    G("466-de-ref", 466, 0, None, "correct", None, "reference verbatim"),
+    G(
+        "466-de-freq",
+        466,
+        0,
+        "28-29,7 MHz, 144-146 MHz und 430-440 MHz",
+        "correct",
+        None,
+        "DECISION: the bands as frequency ranges",
+    ),
+    G("466-de-80m", 466, 0, "10 m, 2 m und 80 m", "partial", "80", "70 cm replaced by 80 m"),
+    G("467-de-ref", 467, 0, None, "correct", None, "reference verbatim, without PEP"),
+    G(
+        "467-de-pep",
+        467,
+        0,
+        "25 W PEP am Senderausgang",
+        "correct",
+        None,
+        "DECISION: 25 W PEP, as the guide says",
+    ),
+    G("467-de-100", 467, 0, "100 W", "incorrect", None, "CLASSIC: NOVICE's power"),
+    G("468-de-ref", 468, 0, None, "correct", None, "neutral, half-German reference"),
+    G(
+        "468-de-first-year",
+        468,
+        0,
+        "Grundzertifikat 25 W PEP, NOVICE 100 W PEP, HAREC im ersten Jahr 100 W PEP, danach 1000 W PEP",
+        "correct",
+        None,
+        "DECISION: HAREC's first year at 100 W, from the guide",
+    ),
+    G("456-de-ref", 456, 0, None, "correct", None, "reference verbatim"),
+    G(
+        "456-de-10min",
+        456,
+        0,
+        "Am Anfang und am Ende jeder Sendung, und währenddessen mindestens alle zehn Minuten.",
+        "partial",
+        "zehn",
+        "ten minutes, not five",
+    ),
+    G("448.1-de-ref", 448, 1, None, "correct", None, "reference verbatim"),
+    G(
+        "448.1-de-guide",
+        448,
+        1,
+        "Sollen Sie die Übermittlung einstellen?",
+        "correct",
+        None,
+        "DECISION: the guide's 'Devez-vous', in German",
+    ),
+    G(
+        "448.6-de-qrn",
+        448,
+        6,
+        "Ich werde durch atmosphärische Störungen beeinträchtigt.",
+        "incorrect",
+        None,
+        "QRN for QRM",
+    ),
+    G(
+        "448.7-de-standort",
+        448,
+        7,
+        "Wo ist Ihr Standort?",
+        "correct",
+        None,
+        "paraphrase: Standort for Position",
+    ),
+    G("449.3-de-ref", 449, 3, None, "correct", None, "reference verbatim, 'Parasiten' included"),
+    G(
+        "449.3-de-stoerungen",
+        449,
+        3,
+        "Ich werde durch atmosphärische Störungen beeinträchtigt.",
+        "correct",
+        None,
+        "DECISION: the right German for the catalogue's mistranslated 'Parasiten'",
+    ),
+    G("449.3-de-qrm", 449, 3, "Ich werde gestört.", "incorrect", None, "CLASSIC: QRM given for QRN"),
+    G("449.4-de-qrp", 449, 4, "Verringern Sie die Sendeleistung.", "incorrect", None, "QRP, the opposite"),
+    G("450.2-de-partial", 450, 2, "Lesbarkeit, Signalstärke", "partial", None, "tone missing"),
+    G("450.1-de-ref", 450, 1, None, "correct", None, "reference verbatim"),
+    G("451.3-de-roger", 451, 3, "Roger", "incorrect", None, "DECISION: the on-air word, refused"),
+    G("451.3-de-received", 451, 3, "Received", "correct", None, "DECISION: accepted, in English"),
+    G("451.2-de-tx", 451, 2, "Sender", "incorrect", None, "that is TX"),
+    G(
+        "469-de-six",
+        469,
+        0,
+        "Elektrizität, Informatik, Astronomie, Wetter, Amateurfunkvorschriften, Vereinsleben",
+        "correct",
+        None,
+        "DECISION: six valid topics, in plain German",
+    ),
+    G(
+        "469-de-TRAP",
+        469,
+        0,
+        "Elektrizität, Informatik, Astronomie, Wetter, Politik, Vereinsleben",
+        "partial",
+        "Politik",
+        "LENIENCY TRAP: politics is not an allowed topic",
+    ),
+    G(
+        "471-de-nine",
+        471,
+        0,
+        "Keine Verbindung mit nicht zugelassenen Stationen; nichts für Dritte; keine Werbung; keine Musik"
+        " und kein Rundfunk; keine Verschlüsselung; nichts gegen die Sicherheit des Staates, die Moral, die"
+        " Gesetze oder die öffentliche Ordnung; keine falschen Notrufe; die Station an kein"
+        " Telekommunikationsnetz außer dem Internet anschließen",
+        "correct",
+        None,
+        "the German reference's eight distinct rules, the ninth (i) included",
+    ),
+    G(
+        "471-de-without-i",
+        471,
+        0,
+        "Keine Verbindung mit nicht zugelassenen Stationen; nichts für Dritte; keine Werbung; keine Musik"
+        " und kein Rundfunk; keine Verschlüsselung; nichts gegen die Sicherheit des Staates, die Moral, die"
+        " Gesetze oder die öffentliche Ordnung; keine falschen Notrufe",
+        "partial",
+        None,
+        "the German reference also expects (i), which the French one lacks",
+    ),
+]
+del G
+
+CASES += GERMAN

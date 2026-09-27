@@ -6,6 +6,7 @@
     mise run eval-grader --runs 2 openai/gpt-5.1          # also report repeatability
     mise run eval-grader --set spelling                   # the spelling battery (specs/LEARN-2-3.md §4.3)
     mise run eval-grader --set parts-2-3                  # BASE parts 2-3 only (LEARN-2-3 §4.5)
+    mise run eval-grader --set german                     # German answers (LEARN-DE §2.5)
     mise run eval-grader --set all                        # golden (parts 2-3 included) and spelling
 
 Reads LLM_BASE_URL / LLM_API_KEY / LLM_MODEL from the environment, which mise
@@ -39,8 +40,9 @@ from app import catalogue, official_wordings  # noqa: E402
 from app.grading_prompt import request_body  # noqa: E402  (the exact body the app itself sends)
 
 SETS = {
-    "golden": grading_fixtures.CASES,  # parts-2-3 included
+    "golden": grading_fixtures.CASES,  # parts-2-3 and German included
     "parts-2-3": grading_fixtures.PART_2_3,
+    "german": grading_fixtures.GERMAN,  # specs/LEARN-DE.md §2.5
     "spelling": spelling_fixtures.CASES,
 }
 CASES = SETS["golden"]  # replaced by main() from --set
@@ -55,7 +57,10 @@ def guide_context(case) -> tuple[tuple[str, ...], tuple[str, ...]]:
     cid, lang, _, reference = case[:4]
     qid = int(re.match(r"\d+", cid).group())
     q = catalogue.load().by_id.get(qid)
-    items = [i for i in (q or {}).get("answer", []) if i["text"].get(lang) == reference]
+    # A German case's reference is the neutral cell where German has none.
+    items = [
+        i for i in (q or {}).get("answer", []) if (i["text"].get(lang) or i["text"].get("fr")) == reference
+    ]
     if not items:
         return (), ()
     item_no = items[0]["item_no"]

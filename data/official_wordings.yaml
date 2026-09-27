@@ -27,20 +27,35 @@
   1:  # QRT?
     - text: "Devez-vous cesser la transmission ?"
       source: ilr-guide-2023 p.19 §4.5
+    - lang: de
+      text: "Sollen Sie die Übermittlung einstellen?"
+      source: decision 2026-09-27
   4:  # QSB?
     - text: "La force de vos signaux varie-t-elle ?"
       source: ilr-guide-2023 p.20 §4.5
+    - lang: de
+      text: "Schwankt die Stärke Ihrer Zeichen?"
+      source: decision 2026-09-27
   5:  # QRL
     - text: "Je suis occupé avec …. Prière de ne pas perturber"
       source: ilr-guide-2023 p.19 §4.5
+    - lang: de
+      text: "Ich bin beschäftigt mit …. Bitte nicht stören."
+      source: decision 2026-09-27
   7:  # QTH?
     - text: "Quelle est votre position en latitude et en longitude ? (ou d'après toute autre indication)."
       source: ilr-guide-2023 p.20 §4.5
+    - lang: de
+      text: "Wie ist Ihr Standort nach Breite und Länge (oder nach einer anderen Angabe)?"
+      source: decision 2026-09-27
 
 449:
   1:  # QSY?
     - text: "Devez-vous changer de fréquence de transmission ?"
       source: ilr-guide-2023 p.20 §4.5
+    - lang: de
+      text: "Sollen Sie die Sendefrequenz wechseln?"
+      source: decision 2026-09-27
   2:  # QSA
     - text: "La force de vos signaux est S (1-9)."
       source: ilr-guide-2023 p.19 §4.5
@@ -49,6 +64,12 @@
       source: ilr-guide-2023 p.19 §4.5
     - note: "« Je suis brouillé » est le sens de QRM dans le même tableau du guide, pas celui de QRN : donner le sens de QRM pour QRN est une réponse fausse, ni présente ni near."
       source: ilr-guide-2023 p.19 §4.5
+    - lang: de
+      text: "Ich werde durch atmosphärische Störungen beeinträchtigt."
+      source: decision 2026-09-27
+    - lang: de
+      note: "„Parasiten“ im deutschen Katalog ist eine wörtliche Übersetzung des französischen « parasites », das Störungen (Rauschen, Gewitter) bedeutet, keine Lebewesen. Störungen oder atmosphärische Störungen sind das Element, vorhanden und nicht near. „Ich werde gestört“ ist die Bedeutung von QRM, nicht von QRN: eine falsche Antwort, weder vorhanden noch near."
+      source: decision 2026-09-27
   4:  # QRO
     - text: "Augmentez la puissance d'émission."
       source: ilr-guide-2023 p.19 §4.5
@@ -59,31 +80,61 @@
       source: decision 2026-09-25
     - note: "Seuls « Reçu » et « Received » sont acceptés. « Roger », le mot employé à l'antenne, est une réponse fausse, ni présente ni near."
       source: decision 2026-09-25
+    - lang: de
+      text: "Received"
+      source: decision 2026-09-27
+    - lang: de
+      note: "Nur „Empfangen“ und „Received“ sind die erwarteten Formen. „Roger“, das Wort aus dem Funkverkehr, ist eine falsche Antwort, weder vorhanden noch near."
+      source: decision 2026-09-27
 
 459:
   0:
     - note: "Le nom de l'UIT exige le mot « internationale » : « l'Union des télécoms » ou « l'Union des télécommunications » n'est pas son nom, c'est une réponse fausse, ni présente ni near. Le sigle UIT seul est juste."
       source: decision 2026-09-25
+    - lang: de
+      text: "ITU (Internationale Fernmeldeunion)"
+      source: decision 2026-09-27
+    - lang: de
+      note: "Der deutsche Katalog gibt den englischen Namen; der deutsche, „Internationale Fernmeldeunion“, ist ebenso richtig, und die Abkürzung ITU allein auch. Der Name verlangt „international“: „die Fernmeldeunion“ allein ist nicht ihr Name, eine falsche Antwort, weder vorhanden noch near."
+      source: decision 2026-09-27
+
+464:
+  0:
+    - lang: de
+      text: "ILR: Institut Luxembourgeois de Régulation"
+      source: decision 2026-09-27
 
 466:
   0:
     - text: "144-146 MHz (2m), 430-440 MHz (70cm) et 28000-29700 kHz (10m)"
       source: ilr-guide-2023 p.9 §2.1
+    - lang: de
+      text: "144-146 MHz (2m), 430-440 MHz (70cm) und 28000-29700 kHz (10m)"
+      source: decision 2026-09-27
 
 467:
   0:
     - text: "Le certificat de BASE limite le niveau de la puissance radioélectrique à 25W PEP à la sortie de l'émetteur."
       source: ilr-guide-2023 p.9 §2.1
+    - lang: de
+      text: "Das Grundzertifikat begrenzt die Leistung auf 25 W PEP am Ausgang des Senders."
+      source: decision 2026-09-27
 
 468:
   0:
     - text: "Le certificat de BASE limite le niveau de la puissance radioélectrique à 25W PEP à la sortie de l'émetteur. Le certificat NOVICE limite le niveau de la puissance à 100 W PEP à la sortie de l'émetteur. HAREC : la puissance à la sortie de l'émetteur est limitée à 100 W PEP dans l'année qui suit l'obtention du certificat HAREC. Par après, la puissance est limitée à 1000 W PEP."
       source: ilr-guide-2023 p.9 §2.1
+    - lang: de
+      text: "Grundzertifikat: 25 W PEP am Ausgang des Senders. NOVICE: 100 W PEP. HAREC: 100 W PEP im Jahr nach dem Erhalt des HAREC-Zertifikats, danach 1000 W PEP."
+      source: decision 2026-09-27
 
 469:
   0:
     - note: "La question demande 6 sujets et la référence en liste 10 : six sujets valides de la liste forment une réponse complète. Construis 6 éléments ; les autres sujets de la référence ne manquent pas."
       source: decision 2026-09-25
+    - lang: de
+      note: "Die Frage verlangt 6 Themen und die Referenz nennt 10: sechs gültige Themen der Liste sind eine vollständige Antwort. Bilde 6 Elemente; die anderen Themen der Referenz fehlen nicht. Die Referenz ist holprig übersetzt: „Vereinsleben“ oder „Clubleben“ ist „Amateur-assoziatives Leben“, „Amateurfunkvorschriften“ ist „Amateur-Regulierung“, und eine Einweisung per Funk ist „Funkführung“; alle sind vorhanden und nicht near."
+      source: decision 2026-09-27
 
 471:
   0:
@@ -96,8 +147,23 @@
       source: ilr-guide-2023 p.36 §5.5
     - note: "Le « www. » est facultatif : itu.org, www.itu.org, itu.int et www.itu.int sont toutes correctes, l'élément est présent et pas near."
       source: decision 2026-09-27
+    - lang: de
+      text: "www.itu.int"
+      source: decision 2026-09-27
+    - lang: de
+      note: "Das „www.“ ist freiwillig: itu.org, www.itu.org, itu.int und www.itu.int sind alle richtig, das Element ist vorhanden und nicht near."
+      source: decision 2026-09-27
+
+490:
+  0:
+    - lang: de
+      note: "BASE, BASE-Zertifikat, Basiszertifikat und BASIC bezeichnen das Grundzertifikat: das Element ist vorhanden und nicht near."
+      source: decision 2026-09-27
 
 495:
   0:
     - note: "« BASIC » est accepté pour le certificat de BASE : l'élément est présent, et pas near. Le nom attendu reste BASE."
       source: decision 2026-09-25
+    - lang: de
+      note: "BASE, BASE-Zertifikat, Basiszertifikat und BASIC bezeichnen das Grundzertifikat: das Element ist vorhanden und nicht near."
+      source: decision 2026-09-27

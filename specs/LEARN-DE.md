@@ -306,6 +306,67 @@ notes to `notes-de-omitted.yaml` (§2.3).
   German audit: they quote the German catalogue verbatim, quirks included,
   and name the German problems, whether or not French has them.
 
+### 3.3 Audit results (2026-09-27)
+
+All 77 BASE questions read in German against the French, the physics and
+the guide. Decisions are the project owner's standing rules applied to
+German (a form the grader must accept is recorded as a `lang: de` entry,
+`decision 2026-09-27`); "Note" is what `q<id>.de.md` does (§3.2):
+**tr.** translated, **rw.** rewritten from this audit, **new** a
+German-only note, **—** none on either side. No French note is omitted:
+each still has something to say to a German reader, so
+`notes-de-omitted.yaml` is not needed yet.
+
+**Findings that change what a German learner is taught or graded on:**
+
+| Q | German finding | Decision | Note |
+|---|---|---|---|
+| 449 QRN | The reference reads "Ich werde beeinträchtigt durch **Parasiten**": a literal translation of the French *parasites* (interference, static). German *Parasiten* are organisms. | Lesson (`codes`) teaches "atmosphärische Störungen" and names the catalogue's word. Grader: `lang: de` wording "Ich werde durch atmosphärische Störungen beeinträchtigt." and a note that "gestört" (QRM) is wrong. | rw. |
+| 471 | The German reference lists **nine** prohibitions: the guide's ninth (i, no connection to a telecom network other than the Internet) is in it; the French has eight. Advertising is still listed twice (c, e). | The German lesson (`bonne-conduite`) teaches the same rules and says the German exam expects (i) too. The grader expects it (German cases `471-de-*`). | rw. |
+| 459, 477 | The German side uses the **English** name, "International Telecommunication Union" (459's reference, all four options of 477 in English); 476's stem uses the German one, "internationale Fernmeldeunion". | Lessons teach ITU with both names, English as the exam's answer. 459: "ITU (Internationale Fernmeldeunion)" accepted, and a note (`international` is part of the name, as in French). | rw. (459, 477) |
+| 464 | The reference translates the ILR's name as "die Luxemburgische Regulierungsbehörde"; its official name is French. | "ILR: Institut Luxembourgeois de Régulation" accepted. | new |
+| 490, 495 | The references say **Grundzertifikat**; German sources and learners say BASE. | "BASE", "BASE-Zertifikat", "Basiszertifikat" and "BASIC" accepted (a note, as for 495 in French). Terms: §4.1. | — |
+| 448, 449 | The German references follow the ITU convention ("Soll ich …?"), as the French catalogue does. There is no German guide, so the guide's other wordings (QRT?/QSY? "Devez-vous …?", QSB? "vos signaux", QRL "occupé avec …", QTH? "latitude et longitude") have no German original. | Their German renderings are accepted as the French ones are (`lang: de` entries), so a German answer is not graded more strictly than a French one. | rw. (448) |
+| 466, 467, 468 | Same as French: 467 has no PEP; 468's reference is the French-tagged, half-German neutral cell; HAREC's first year at 100 W PEP is in neither. The known de.wikipedia claim ("100 W im ersten Jahr nach der Prüfung, danach 1000 W") agrees with the guide (p.9 §2.1, "dans l'année qui suit l'obtention du certificat HAREC"); the exam still expects 1000 W. 466's stem says "benutzen **soll**" (should) for *utilisables* (may). | The French decisions in German: 25 W PEP, the bands as frequency ranges, and HAREC's first year are accepted. | tr. (467, 468) |
+| 476 | Same as French: `www.itu.org` (neutral), where the ITU's address is `itu.int`. | `www.itu.int` and the optional `www.` accepted in German too. | tr. |
+| 451 R | "Empfangen", as in French "Reçu". | As in French: "Empfangen" or "Received"; "Roger" is wrong. | tr. |
+| 469 | The reference is a clumsy translation: "Amateur-assoziatives Leben" (club life), "Amateur-Regulierung", "Funkführung … Relais" (talk-in, via repeaters). | Note: six topics are complete, and the plain German words (Vereinsleben, Amateurfunkvorschriften, Einweisung per Funk) are present, not near. | tr. |
+| 376 | Option a reads "**quasioptisch**", a technical word, where the French says "semblable à la lumière". | Lesson (`propagation`) teaches the word *quasioptisch*. | rw. |
+| 58, 54 | "145.500MHz", "24.930MHz": in German a dot groups thousands (145.500 = 145 500). The catalogue uses the dot as a decimal point, as in its options ("2.06m"). | Lesson (`ondes`) says so, before the questions. | rw. (58) |
+| 395 | Option a is "Grid-Dip-Meter"; the French mistranslates it ("mesureur de trempage de la grille"), a problem German does not have. | The German note drops the French oddity. | rw. |
+| 295, 294 | The deviation is "Frequenz**auslenkung**" in 295 and "Frequenz**hub**" in 294 (the French 295 even carries "(Hub)"). | Lesson (`modulation`) uses *Frequenzhub* and names *Frequenzauslenkung* once. | rw. (295) |
+| 400 | The right option says "an**zuschließen**", the three wrong ones "ein**zuschlaufen**" (Swiss German), and all four write "Ampèremeter" with a French accent (395 and 394: "Amperemeter"). | Shown as is; the lesson says "in Reihe" and "niederohmig", the exam's words, and does not lean on the verb. | tr. |
+| 499a | `{fr: 'Oui Ja'}`: both languages in one French cell. | The German course shows "Ja" (`DE_OPTION_DISPLAY`, §2.5). | tr. |
+| 499, 500, 505 | "Basislizenz" / "Basis-Lizenz" for the certificate holder, as the French "licence de base". 505's stem drops the French "(LX9)". | As in French: the lesson separates certificate and licence and says the exam writes "Basislizenz". | tr. |
+| 440–446 | Stray spaces inside the quotes in **440, 441, 444** (" LX3RZWY ") **and 445**; 442 quotes with „…", 446 with French « ». The references are the French-tagged English words, 443 with its typo. | Shown as is, graded by rule against the French stem; the expected answer is built by rule (§2.5). German forms (`app/spelling.py`, `NEAR_DE`, `SUFFIX_WORDS_DE`), all near, hinted with the catalogue's form: Schrägstrich, Bruchstrich, Strich; German digits, zwo included; portabel, mobil, maritim mobil, aeronautisch mobil; **Viktor**, the German spelling of Victor. Wrong: German letter names and the other words of both DIN 5009 alphabets. Cases: `tests/spelling_fixtures.py` `GERMAN`. | tr. (441, 443, 445, 446) |
+
+**Cells with no German, confirmed language-neutral:** 15, 16, 55, 56, 58,
+426, 432 (values and units), 460–462 (English band names, as the ITU
+writes them), 452 (MAYDAY), 468 (the reference, half German already), 476
+(an address) and 440–446 (spelling, replaced by rule). 499a is the only
+cell that is not (above).
+
+**Display flaws, shown as they are and not taught around:** 83b
+"Niederfrequenz- Nutzsignal", 83d "Trägersignalwird"; 320a no final stop;
+376c "abgängig" (abhängig); 394 "Gröβenordnung" with a Greek β; 419b
+"Erhöhnung"; 426 "Luxembourg"; 447's stem begins with a stray "Q ?"
+(apparently the end of the French stem, "des codes Q ?", run into the
+German); 495 "Funkerzertifikate" (for -zertifikaten); 505 "zugeteillt";
+451's stem "richtigen betriebliche". Swiss spellings (Grösse,
+anzuschliessen, Massnahmen) are the catalogue's.
+
+**Otherwise equivalent** (German = French, same answer, same traps): 1–6,
+17, 25, 38, 55, 56, 83, 87–92 (92's §4.4 case holds in German: "Keine
+Seitenbänder"), 294, 314, 315, 320, 321, 341, 368, 377, 394, 404, 415
+(the German stem asks for the *cause*, which reads more clearly), 419,
+426, 427 (German adds "alte" Steckdose), 432–436, 439, 447, 450, 452, 456,
+460–462, 489 (the minister, as in French). Their notes are translated.
+
+**Grading.** `tests/grading_fixtures.py` `GERMAN` holds 41 cases over the
+17 questions the LLM grades (`mise run eval-grader --set german`). First
+run, 2026-09-27, `openai/gpt-5.1`, two runs: 41/41 verdicts, 3/3 traps,
+100 % stable.
+
 ## 4. Writing the German pages
 
 ### 4.1 Rules
@@ -377,7 +438,7 @@ translating a learner's own answers or the grader's past comments.
    `.fr.md` only (German gets the digit groups) and takes `--lang de`.
 2. **Audit** (§3.1). The table of German findings and their decisions,
    notes and neutral cells included; filling the German grading entries,
-   the German spelling forms and their cases.
+   the German spelling forms and their cases. **Done 2026-09-27** (§3.3).
 3. **Translation**, tried in `preview`. Glossary first, then the 15
    modules, one commit per module. Per module: pages, title (and the part
    title with the first module of a part), notes from the audit (§3.2),

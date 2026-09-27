@@ -106,12 +106,37 @@ SUFFIX_WORDS = {
     "am": ["aeronautical", "mobile"],
 }
 # The forms a German-speaking learner types (specs/LEARN-DE.md §2.5), each
-# settled by the audit (§3.1). Near forms, like NEAR: accepted, with the
-# catalogue's form as the hint. Normalised as above.
-NEAR_DE: dict[str, set[str]] = {}
+# settled by the audit (§3.3, decided 2026-09-27). Near forms, like NEAR:
+# accepted, with the catalogue's form as the hint, since the catalogue's
+# answers are English words and the guide is French. "/" is Schrägstrich,
+# Bruchstrich (the guide's "barre de fraction") or, on the air, Strich; the
+# digits are the German ones, "zwo" being the usual form on the air; Viktor
+# is the German spelling of Victor. German letter names (Be, Ce…) and the
+# other words of both German spelling alphabets, DIN 5009 before 2022
+# (Anton, Berta, Cäsar…) and since (Aachen, Berlin, Chemnitz…), stay wrong.
+# Normalised as above.
+NEAR_DE = {
+    "/": {"schragstrich", "bruchstrich", "strich"},
+    "0": {"null"},
+    "1": {"eins"},
+    "2": {"zwei", "zwo"},
+    "3": {"drei"},
+    "4": {"vier"},
+    "5": {"funf", "fuenf"},
+    "6": {"sechs"},
+    "7": {"sieben"},
+    "8": {"acht"},
+    "9": {"neun"},
+    "v": {"viktor"},
+}
 # German words for a suffix, word for word beside SUFFIX_WORDS' English ones,
 # which give the hint.
-SUFFIX_WORDS_DE: dict[str, list[str]] = {}
+SUFFIX_WORDS_DE = {
+    "p": ["portabel"],
+    "m": ["mobil"],
+    "mm": ["maritim", "mobil"],
+    "am": ["aeronautisch", "mobil"],
+}
 LOOKUP = {w: ch for table in (OFFICIAL, NEAR) for ch, ws in table.items() for w in ws}
 NEAR_WORDS = {w for ws in NEAR.values() for w in ws}
 # The spoken word shown for a character in an expected answer, where it is

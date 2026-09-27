@@ -15,18 +15,20 @@ def test_every_entry_matches_the_catalogue():
     assert official_wordings.check(load_catalogue().questions) == []
 
 
-def test_lookup_is_by_sub_item_and_french_only():
+def test_lookup_is_by_sub_item_and_language():
     assert official_wordings.for_item(476, 0, "fr") == ("www.itu.int",)
     assert official_wordings.for_item(448, 4, "fr") == ("La force de vos signaux varie-t-elle ?",)
+    assert official_wordings.for_item(448, 4, "de") == ("Schwankt die Stärke Ihrer Zeichen?",)
     assert official_wordings.for_item(448, 6, "fr") == ()
-    assert official_wordings.for_item(476, 0, "de") == ()
+    assert official_wordings.for_item(471, 0, "de") == ()  # the guide's French list stays French
 
 
 def test_notes_are_kept_apart_from_wordings():
     notes = official_wordings.notes_for_item(449, 3, "fr")
     assert len(notes) == 1 and "QRM" in notes[0]
     assert official_wordings.for_item(449, 3, "fr") == ("Je suis troublé par des parasites atmosphériques.",)
-    assert official_wordings.notes_for_item(449, 3, "de") == ()
+    german = official_wordings.notes_for_item(449, 3, "de")
+    assert len(german) == 1 and "Parasiten" in german[0] and german != notes
 
 
 def test_check_reports_bad_entries(tmp_path):

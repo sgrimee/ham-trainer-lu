@@ -77,7 +77,8 @@ def test_cache_keeps_sub_items_of_one_question_apart():
 
 
 def test_open_items_are_graded_with_the_guides_other_wordings():
-    """specs/LEARN-2-3.md §4.5: each sub-item goes out with its own guide wordings, French only."""
+    """specs/LEARN-2-3.md §4.5: each sub-item goes out with its own guide
+    wordings; a German answer with the German entries only (LEARN-DE §2.5)."""
     from app.catalogue import load
     from app.session import grade_open_question
 
@@ -98,7 +99,10 @@ def test_open_items_are_graded_with_the_guides_other_wordings():
     assert by_reference["Je suis brouillé."] == ()
     sent.clear()
     asyncio.run(grade_open_question(_Recorder(), q, "de", 7.0, answer))  # type: ignore
-    assert all(others == () for _, others in sent)
+    by_reference = dict(sent)
+    assert by_reference["Schwankt die Stärke meiner Zeichen?"] == ("Schwankt die Stärke Ihrer Zeichen?",)
+    assert by_reference["Ich werde gestört."] == ()
+    assert not any("vos signaux" in w for _, others in sent for w in others)
 
 
 def test_cache_key_includes_the_other_wordings():
