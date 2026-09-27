@@ -305,10 +305,10 @@ parts:
           - learn-more
 
   - slug: reglementation
-    title: {fr: "Réglementation"}
+    title: {fr: "Réglementation", de: "Vorschriften"}
     modules:
       - slug: institutions
-        title: {fr: "Qui organise la radio ?"}
+        title: {fr: "Qui organise la radio ?", de: "Wer organisiert den Funk?"}
         steps:
           - lesson: un-bien-partage
             introduces: [spectrum-management]
