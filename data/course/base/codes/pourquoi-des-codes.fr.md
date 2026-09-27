@@ -25,7 +25,7 @@ de trente caractères, on envoie **QTH?** : quatre caractères. Le même
 Ces codes ont un autre avantage : ils ont le **même sens dans toutes les
 langues**. Un Japonais qui ne parle pas un mot de français comprend
 **QTH?** aussi bien que toi. La liste est fixée par l'UIT : le guide de
-l'ILR permet de communiquer en langage clair **ou dans un code reconnu
+l'ILR demande de communiquer en langage clair **ou dans un code reconnu
 par l'UIT**.
 
 Les échanges deviennent aussi plus **simples** : chaque étape d'un

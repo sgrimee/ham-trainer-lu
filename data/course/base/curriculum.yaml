@@ -443,7 +443,7 @@ parts:
           - learn-more
 
       - slug: codes
-        title: {fr: "Codes et abréviations"}
+        title: {fr: "Codes et abréviations", de: "Codes und Abkürzungen"}
         steps:
           - lesson: pourquoi-des-codes
             introduces: [operating-codes]
