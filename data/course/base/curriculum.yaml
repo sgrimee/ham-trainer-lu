@@ -473,7 +473,7 @@ parts:
           - learn-more
 
       - slug: bonne-conduite
-        title: {fr: "Bonne conduite et détresse"}
+        title: {fr: "Bonne conduite et détresse", de: "Verhaltensregeln und Notsignale"}
         steps:
           - lesson: de-quoi-parler
             introduces: [allowed-topics]
