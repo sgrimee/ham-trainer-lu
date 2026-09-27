@@ -465,19 +465,211 @@ def test_german_is_all_or_nothing_per_module(tmp_path, curriculum):
     root = build(tmp_path / "c", curriculum)
     (root / "alpha" / "q1.fr.md").write_text("Parce que.\n")
     (root / "alpha" / "a1.de.md").write_text(LESSON)
-    assert_problem(
-        root, "module alpha: partly translated to German; missing en-savoir-plus.de.md, q1.de.md, title.de"
-    )
+    assert_problem(root, "module alpha: partly translated to German; missing en-savoir-plus.de.md, title.de")
 
     modules(curriculum)[0]["title"]["de"] = "Alpha"
+    curriculum["parts"][0]["title"]["de"] = "Technik"
     root = build(tmp_path / "d", curriculum)
     assert_problem(root, "module alpha: partly translated to German; missing a1.de.md")
 
-    for name, text in (("a1", LESSON), ("en-savoir-plus", LEARN_MORE)):
-        (root / "alpha" / f"{name}.de.md").write_text(text)
+    # Notes are not in the count (LEARN-DE §2.3): q1 has no German note, and
+    # a German note may exist without a French one.
+    translate(root, "alpha")
     assert problems(root) == []
+    assert course.load(root, QUESTIONS).modules[0].offers_de
     (root / "beta" / "q2.de.md").write_text("Weil.\n")
-    assert_problem(root, "beta/q2.de.md: answer note has no French original")
+    assert problems(root) == []
+
+
+def translate(root: pathlib.Path, module: str, lessons=("a1",)) -> None:
+    """Give a fixture module's pages their German files (a copy of the French)."""
+    for name in (*lessons, "en-savoir-plus"):
+        (root / module / f"{name}.de.md").write_text((root / module / f"{name}.fr.md").read_text())
+
+
+def german_curriculum(cur: dict, parts=(0,), mods=(0,)) -> dict:
+    for i in parts:
+        cur["parts"][i]["title"]["de"] = "Teil"
+    for i in mods:
+        modules(cur)[i]["title"]["de"] = "Modul"
+    return cur
+
+
+def test_part_title_in_german_exactly_when_a_module_offers_it(tmp_path, curriculum):
+    """LEARN-DE §2.2, whatever COURSE_DE says."""
+    curriculum["parts"][1]["title"]["de"] = "Verfahren"
+    assert_problem(
+        build(tmp_path / "c", curriculum),
+        "part procedures: has title.de but none of its modules offers German yet",
+    )
+    del curriculum["parts"][1]["title"]["de"]
+    modules(curriculum)[0]["title"]["de"] = "Alpha"
+    root = build(tmp_path / "d", curriculum)
+    translate(root, "alpha")
+    assert_problem(root, "part technique: module alpha offers German, so title.de is required")
+    for mode in course.DE_MODES:
+        assert any("title.de is required" in p for p in course.validate(root, QUESTIONS, mode)), mode
+
+
+def test_on_requires_all_german(tmp_path, curriculum):
+    root = build(tmp_path / "c", german_curriculum(curriculum, parts=(0, 1), mods=(0, 1, 2)))
+    for module, lesson in (("alpha", "a1"), ("beta", "b1"), ("gamma", "g1")):
+        translate(root, module, (lesson,))
+    assert course.validate(root, QUESTIONS, "on") == []
+
+    (root / "gamma" / "g1.de.md").unlink()
+    found = course.validate(root, QUESTIONS, "on")
+    assert any("German is missing: gamma/g1.de.md" in p for p in found), found
+    assert course.validate(root, QUESTIONS, "off") != []  # gamma is now half translated
+    translate(root, "gamma", ("g1",))
+
+    # A French note needs a German one with `on`, unless omitted on purpose.
+    (root / "alpha" / "q1.fr.md").write_text("Parce que.\n")
+    assert course.validate(root, QUESTIONS, "preview") == []
+    found = course.validate(root, QUESTIONS, "on")
+    assert any("alpha/q1.de.md (note; or list q1 in notes-de-omitted.yaml)" in p for p in found), found
+    (root / course.NOTES_DE_OMITTED).write_text("1: The French note is about a French wording.\n")
+    assert course.validate(root, QUESTIONS, "on") == []
+    assert course.load(root, QUESTIONS, "on").notes_de_omitted == {1}
+
+
+def test_on_requires_every_part_and_module_title(tmp_path, curriculum):
+    root = build(tmp_path / "c", curriculum)
+    found = course.validate(root, QUESTIONS, "on")
+    for gap in ("part technique: title.de", "module gamma: title.de", "alpha/a1.de.md"):
+        assert any(f"German is missing: {gap}" in p for p in found), gap
+    assert course.validate(root, QUESTIONS, "preview") == []
+
+
+@pytest.mark.parametrize(
+    ("text", "fragment"),
+    [
+        ("[1, 2]\n", "must map a question id to the reason"),
+        ("99: x\n", "99: not a practice step's question id"),
+        ("1: ''\n", "1: needs the reason"),
+        ("2: French wording.\n", "2: has no French note to omit"),
+    ],
+)
+def test_omitted_notes_file(fixture, text, fragment):
+    (fixture / course.NOTES_DE_OMITTED).write_text(text)
+    assert_problem(fixture, fragment)
+
+
+def test_an_omitted_note_cannot_have_a_german_one(fixture):
+    (fixture / "alpha" / "q1.fr.md").write_text("Parce que.\n")
+    (fixture / "alpha" / "q1.de.md").write_text("Weil.\n")
+    (fixture / course.NOTES_DE_OMITTED).write_text("1: French wording.\n")
+    assert_problem(fixture, "1: listed as omitted, but alpha/q1.de.md exists")
+
+
+def test_an_unknown_setting_is_refused(fixture):
+    assert course.validate(fixture, QUESTIONS, "yes") == [
+        "COURSE_DE must be one of off, preview, on, got 'yes'"
+    ]
+
+
+def test_the_setting_comes_from_the_environment(fixture, monkeypatch):
+    monkeypatch.setenv("COURSE_DE", "on")
+    assert course.load(german_ok(fixture), QUESTIONS).de == "on"
+    monkeypatch.delenv("COURSE_DE")
+    assert course.load(fixture, QUESTIONS).de == "off"
+
+
+def german_ok(root: pathlib.Path) -> pathlib.Path:
+    """The fixture made fully German, so it passes with `on`."""
+    cur = german_curriculum(copy.deepcopy(CURRICULUM), parts=(0, 1), mods=(0, 1, 2))
+    (root / "curriculum.yaml").write_text(yaml.safe_dump(cur, allow_unicode=True))
+    for module, lesson in (("alpha", "a1"), ("beta", "b1"), ("gamma", "g1")):
+        translate(root, module, (lesson,))
+    return root
+
+
+def test_effective_language_per_setting(fixture):
+    german_ok(fixture)
+    for mode, de_page in (("off", "fr"), ("preview", "de"), ("on", "de")):
+        loaded = course.load(fixture, QUESTIONS, mode)
+        assert loaded.effective_lang("de", loaded.modules[0]) == de_page, mode
+        assert loaded.effective_lang("fr", loaded.modules[0]) == "fr"
+        assert loaded.effective_lang("both", loaded.modules[0]) == "fr"
+        assert loaded.offers_switch() == (de_page == "de")
+
+
+def test_preview_is_german_module_by_module(tmp_path, curriculum):
+    root = build(tmp_path / "c", german_curriculum(curriculum))
+    translate(root, "alpha")
+    loaded = course.load(root, QUESTIONS, "preview")
+    alpha, beta = loaded.modules[0], loaded.modules[1]
+    assert loaded.effective_lang("de", alpha) == "de" and loaded.effective_lang("de", beta) == "fr"
+    assert loaded.effective_lang("de") == "de"  # off-module: some module offers it
+    assert loaded.offers_switch(alpha) and not loaded.offers_switch(beta)
+    assert course.load(root, QUESTIONS, "off").effective_lang("de", alpha) == "fr"
+
+
+# --- figures: German SVG parity (LEARN-DE §2.4) ---------------------------------
+
+FIGURE = """
+<figure>
+<svg viewBox="0 0 320 110" width="320" role="img" aria-label="Deux piles en série.">
+<rect x="10" y="10" width="40" height="20" fill="#f3d9b1"/>
+<g stroke="#1c1f26"><path d="M 10 50 L 60 50"/><circle cx="5" cy="5" r="2"/></g>
+<text x="20" y="80" font-size="12">tension</text>
+<text x="120" y="80" font-size="12">courant</text>
+</svg>
+<figcaption>Une légende.</figcaption>
+</figure>
+"""
+
+
+def figure_problems(root: pathlib.Path, de_figure: str) -> list[str]:
+    (root / "alpha" / "a1.fr.md").write_text(LESSON + FIGURE)
+    (root / "alpha" / "a1.de.md").write_text(LESSON + de_figure)
+    return [p for p in problems(root) if "a1.de.md" in p]
+
+
+@pytest.mark.parametrize(
+    "de_figure",
+    [
+        FIGURE.replace(">tension<", ">Spannung<").replace(">courant<", ">Strom<"),
+        FIGURE.replace('aria-label="Deux piles en série."', 'aria-label="Zwei Batterien in Reihe."').replace(
+            "Une légende.", "Eine Bildunterschrift."
+        ),
+        FIGURE.replace(
+            '<text x="20" y="80" font-size="12">tension</text>',
+            '<text x="18" y="74" font-size="11"><tspan x="18">elektrische</tspan>'
+            '<tspan x="18" dy="13">Spannung</tspan></text>',
+        ),
+        FIGURE.replace('x="120" y="80"', 'x="120" y="80" transform="rotate(-90 120 80)"'),
+        FIGURE.replace('<rect x="10"', '<title>Batterie</title>\n<rect x="10"'),
+    ],
+    ids=["labels", "aria-label and caption", "split in tspans", "rotated", "title"],
+)
+def test_a_translated_figure_passes(tmp_path, de_figure):
+    root = build(tmp_path / "c")
+    assert figure_problems(root, de_figure) == []
+
+
+@pytest.mark.parametrize(
+    ("de_figure", "fragment"),
+    [
+        (
+            FIGURE.replace('<rect x="10"', '<rect x="12"'),
+            "figure 1 differs from the French drawing at svg > rect[1]",
+        ),
+        (FIGURE.replace("M 10 50 L 60 50", "M 10 50 L 70 50"), "svg > g[2] > path[1]: attributes differ"),
+        (
+            FIGURE.replace('<text x="120" y="80" font-size="12">courant</text>\n', ""),
+            "3 child elements, the French has 4",
+        ),
+        (FIGURE.replace('width="320" role', 'width="300" role'), "at svg: attributes differ"),
+        (FIGURE + FIGURE, "2 figures, the French page has 1"),
+        (FIGURE.replace("</g>", ""), "not well-formed XML"),
+    ],
+    ids=["moved shape", "changed path", "missing text", "resized", "extra figure", "broken XML"],
+)
+def test_a_redrawn_figure_fails(tmp_path, de_figure, fragment):
+    root = build(tmp_path / "c")
+    found = figure_problems(root, de_figure)
+    assert any(fragment in p for p in found), found
 
 
 # --- report, command line, startup -------------------------------------------
@@ -496,9 +688,22 @@ def test_report_flags_late_questions_and_unused_concepts(tmp_path, curriculum):
 
 def test_command_line_exit_codes(tmp_path, monkeypatch, capsys):
     assert course.main(["--report"]) == 0
-    assert "Practice steps" in capsys.readouterr().out
+    out = capsys.readouterr().out
+    assert "Practice steps" in out and "German still missing" in out
     monkeypatch.setattr(course, "COURSE_DIR", tmp_path / "nowhere")
     assert course.main([]) == 1
+
+
+def test_command_line_de_overrides_the_environment(tmp_path, monkeypatch, capsys):
+    """LEARN-DE §2.2: `--de on` fails on a missing German page, `--de preview` does not."""
+    root = build(tmp_path / "c", german_curriculum(copy.deepcopy(CURRICULUM)))
+    translate(root, "alpha")
+    monkeypatch.setattr(course, "COURSE_DIR", root)
+    monkeypatch.setattr(course.catalogue, "load", lambda: type("C", (), {"questions": QUESTIONS})())
+    monkeypatch.setenv("COURSE_DE", "preview")
+    assert course.main([]) == 0
+    assert course.main(["--de", "on"]) == 1
+    assert "German is missing: beta/b1.de.md" in capsys.readouterr().out
 
 
 def test_app_refuses_to_start_on_a_broken_course(tmp_path, monkeypatch):

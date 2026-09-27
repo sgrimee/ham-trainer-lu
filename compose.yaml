@@ -12,6 +12,7 @@ services:
       - LLM_BASE_URL
       - LLM_API_KEY
       - LLM_MODEL
+      - COURSE_DE
     # The repo's var/ is the data directory, so the container shares
     # var/attempts.db with `mise run serve`. Don't run both at once.
     volumes:

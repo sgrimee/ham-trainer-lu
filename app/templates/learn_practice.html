@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 {% from "_macros.html" import cell, mcq_options %}
 {% from "_learner.html" import not_you %}
+{% from "_lang_switch.html" import lang_bar %}
 {% from "_learn_step.html" import course_progress, crumbs, missing_lessons, previous_link %}
 {% block title %}{{ title }} — {{ t(ui, 'learn_title') }}{% endblock %}
 {% block content %}
@@ -23,6 +24,7 @@
 {% endif %}
 {%- endmacro %}
 {{ not_you(ui, learner) }}
+{{ lang_bar(ui, lang_switch, here, untranslated) }}
 {{ crumbs(ui, module, module_title, position, module_total) }}
 {{ missing_lessons(ui, missing) }}
 {# A practice question looks exactly like an exam question (specs/LEARN.md §5):
@@ -48,6 +50,7 @@
     <fieldset disabled>{{ mcq_options(q, picked, marks) }}</fieldset>
     <p class="practice-verdict verdict-correct" role="status">{{ t(ui, 'well_done') }}</p>
     {% if note %}<div class="answer-note">{{ note|safe }}</div>{% endif %}
+    {% if note_untranslated %}<p class="note-untranslated" lang="de">{{ t('de', 'note_untranslated') }}</p>{% endif %}
   {% else %}
     {% if wrong %}<p class="practice-verdict verdict-incorrect" role="status">{{ t(ui, 'try_again') }}</p>{% endif %}
     <form method="post" action="{{ step_url(step) }}/answer">

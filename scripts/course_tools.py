@@ -1,20 +1,21 @@
 """Authoring tools for the course prose (specs/LEARN.md §11 phase 5).
 
     uv run python -m scripts.course_tools typography <module>...
-        Apply French typography to a module's Markdown in place: a no-break
-        space before « : ; ? ! » and inside « », and between digit groups
-        (1 000 000). Frontmatter and inline <svg> markup are left alone -- a
+        Apply the typography of each file's language to a module's Markdown in
+        place. French (.fr.md): a no-break space before « : ; ? ! » and inside
+        « », and between digit groups (1 000 000). German (.de.md): only the
+        digit groups. Frontmatter and inline <svg> markup are left alone -- a
         no-break space inside an SVG attribute breaks the drawing. Idempotent.
 
-    uv run python -m scripts.course_tools check <module>...
+    uv run python -m scripts.course_tools check [--lang de] <module>...
         Render every page of a module the way the app does and report, per
         lesson, the word count (figures excluded) and any HTML that did not
         come out as raw HTML (an escaped <svg>, a figure wrapped in <p>...).
         Exits non-zero on a render problem.
 
-    uv run python -m scripts.course_tools preview <module> [--out DIR]
-        Write <DIR>/<module>.html (default var/preview/) with the app's CSS:
-        every figure of the module side by side, then every page in full.
+    uv run python -m scripts.course_tools preview [--lang de] <module> [--out DIR]
+        Write <DIR>/<module>[.de].html (default var/preview/) with the app's
+        CSS: every figure of the module side by side, then every page in full.
         Serve DIR over http (browser tools refuse file://) to screenshot it.
 
 `mise run verify` stays the gate; these only help write and review prose.
@@ -57,14 +58,19 @@ RENDER_PROBLEMS = (
 # --- typography --------------------------------------------------------------
 
 
-def _typeset_text(text: str) -> str:
-    text = re.sub(r"[ \u00a0]([:;?!»])", NBSP + r"\1", text)
-    text = re.sub(r"«[ \u00a0]", "«" + NBSP, text)
+def _typeset_text(text: str, lang: str = "fr") -> str:
+    if lang == "fr":
+        text = re.sub(r"[ \u00a0]([:;?!»])", NBSP + r"\1", text)
+        text = re.sub(r"«[ \u00a0]", "«" + NBSP, text)
     return re.sub(r"(?<=\d) (?=\d{3}(?!\d))", NBSP, text)
 
 
-def typeset(markdown: str) -> str:
-    """French typography for a Markdown file's body; see the module docstring."""
+def lang_of(path: pathlib.Path) -> str:
+    return "de" if path.name.endswith(".de.md") else "fr"
+
+
+def typeset(markdown: str, lang: str = "fr") -> str:
+    """The typography of `lang` for a Markdown file's body; see the module docstring."""
     front = ""
     if markdown.startswith("---\n"):
         end = markdown.find("\n---\n", 4)
@@ -88,7 +94,7 @@ def typeset(markdown: str) -> str:
                 in_fence = not in_fence
                 lines.append(line)
             else:
-                lines.append(line if in_fence else _typeset_text(line))
+                lines.append(line if in_fence else _typeset_text(line, lang))
         out.append("\n".join(lines))
     return front + "".join(out)
 
@@ -104,7 +110,7 @@ def cmd_typography(modules: list[str]) -> int:
     for module in modules:
         for path in module_files(module):
             text = path.read_text()
-            new = typeset(text)
+            new = typeset(text, lang_of(path))
             if new != text:
                 path.write_text(new)
                 print(f"typeset {path.relative_to(ROOT)}")
@@ -114,19 +120,19 @@ def cmd_typography(modules: list[str]) -> int:
 # --- render check and preview ------------------------------------------------
 
 
-def _pages(module: str):
-    """(step, title, html) for every page of the module, in course order."""
+def _pages(module: str, lang: str = "fr"):
+    """(step, title, html) for every page of the module in `lang`, in course order."""
     loaded = course.load()
     mod = loaded.module(module)
     if mod is None:
         sys.exit(f"no such module in curriculum.yaml: {module}")
     for step in mod.steps:
         if step.kind == "practice":
-            note = course.answer_note(step, "fr")
+            note = course.answer_note(step, lang)
             if note is not None:
                 yield step, f"Note — {step.id}", note
-        else:
-            page = course.page(step, "fr")
+        elif (course.COURSE_DIR / module / f"{step.slug}.{lang}.md").is_file():
+            page = course.page(step, lang)
             yield step, page.title, page.html
 
 
@@ -139,10 +145,10 @@ def word_count(html: str) -> int:
     return len(htmllib.unescape(prose).split())
 
 
-def cmd_check(modules: list[str]) -> int:
+def cmd_check(modules: list[str], lang: str = "fr") -> int:
     failed = False
     for module in modules:
-        for step, title, html in _pages(module):
+        for step, title, html in _pages(module, lang):
             problems = render_problems(html)
             failed |= bool(problems)
             figures = len(FIGURE.findall(html))
@@ -151,8 +157,8 @@ def cmd_check(modules: list[str]) -> int:
     return 1 if failed else 0
 
 
-def cmd_preview(module: str, out_dir: pathlib.Path) -> int:
-    pages = list(_pages(module))
+def cmd_preview(module: str, out_dir: pathlib.Path, lang: str = "fr") -> int:
+    pages = list(_pages(module, lang))
     figures = [f for _, _, html in pages for f in FIGURE.findall(html)]
     body = ['<h1>Figures</h1><div class="preview-grid">', *figures, "</div>"]
     for step, title, html in pages:
@@ -167,9 +173,9 @@ def cmd_preview(module: str, out_dir: pathlib.Path) -> int:
         "main{max-width:1300px}"
     )
     out_dir.mkdir(parents=True, exist_ok=True)
-    target = out_dir / f"{module}.html"
+    target = out_dir / (f"{module}.html" if lang == "fr" else f"{module}.{lang}.html")
     target.write_text(
-        f'<!doctype html><meta charset="utf-8"><title>{module}</title>'
+        f'<!doctype html><html lang="{lang}"><meta charset="utf-8"><title>{module}</title>'
         f'<style>{style}</style><main><div class="lesson-body">{"".join(body)}</div></main>'
     )
     print(f"wrote {target} ({len(figures)} figures, {len(pages)} pages)")
@@ -181,18 +187,21 @@ def main(argv: list[str] | None = None) -> int:
         prog="python -m scripts.course_tools", description=__doc__.split("\n")[0]
     )
     sub = parser.add_subparsers(dest="cmd", required=True)
-    for name in ("typography", "check"):
-        p = sub.add_parser(name)
-        p.add_argument("modules", nargs="+")
+    p = sub.add_parser("typography")
+    p.add_argument("modules", nargs="+")
+    p = sub.add_parser("check")
+    p.add_argument("--lang", choices=course.LANGS, default="fr")
+    p.add_argument("modules", nargs="+")
     p = sub.add_parser("preview")
+    p.add_argument("--lang", choices=course.LANGS, default="fr")
     p.add_argument("module")
     p.add_argument("--out", type=pathlib.Path, default=ROOT / "var" / "preview")
     args = parser.parse_args(argv)
     if args.cmd == "typography":
         return cmd_typography(args.modules)
     if args.cmd == "check":
-        return cmd_check(args.modules)
-    return cmd_preview(args.module, args.out)
+        return cmd_check(args.modules, args.lang)
+    return cmd_preview(args.module, args.out, args.lang)
 
 
 if __name__ == "__main__":

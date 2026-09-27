@@ -15,6 +15,7 @@ import threading
 from urllib.parse import parse_qsl, urlsplit
 
 import pytest
+import yaml
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent))
 
@@ -85,6 +86,50 @@ def snapshot(store: Store) -> dict[str, list[tuple]]:
 
 def steps_before(step: course_module.Step) -> list[course_module.Step]:
     return COURSE.steps[: COURSE.steps.index(step)]
+
+
+@pytest.fixture
+def german(tmp_path, monkeypatch):
+    """Serve a copy of the real course in which exactly the named modules
+    offer German (or "all"), with COURSE_DE set to `mode`
+    (specs/LEARN-DE.md §2.2). A German page is its French page copied, its
+    title prefixed "DE", so tests do not depend on the real translation's
+    progress. Returns the course directory."""
+    from app import main
+
+    source = course_module.COURSE_DIR
+
+    def make(slugs, mode: str, notes: bool = True) -> pathlib.Path:
+        d = tmp_path / "base"
+        if d.exists():
+            shutil.rmtree(d)
+        shutil.copytree(source, d)
+        (d / course_module.NOTES_DE_OMITTED).unlink(missing_ok=True)
+        cur = yaml.safe_load((d / "curriculum.yaml").read_text())
+        for part in cur["parts"]:
+            part["title"].pop("de", None)
+            for m in part["modules"]:
+                m["title"].pop("de", None)
+                for f in (d / m["slug"]).glob("*.de.md"):
+                    f.unlink()
+                if slugs != "all" and m["slug"] not in slugs:
+                    continue
+                m["title"]["de"] = "DE " + m["title"]["fr"]
+                part["title"]["de"] = "DE " + part["title"]["fr"]
+                for f in (d / m["slug"]).glob("*.fr.md"):
+                    if re.fullmatch(r"q\d+\.fr\.md", f.name) and not notes:
+                        continue
+                    meta, body = course_module.split_frontmatter(f.read_text())
+                    if isinstance(meta, dict):
+                        meta["title"] = "DE " + meta["title"]
+                        body = f"---\n{yaml.safe_dump(meta, allow_unicode=True)}---\n{body}"
+                    f.with_name(f.name.replace(".fr.md", ".de.md")).write_text(body)
+        (d / "curriculum.yaml").write_text(yaml.safe_dump(cur, allow_unicode=True, sort_keys=False))
+        monkeypatch.setattr(course_module, "COURSE_DIR", d)
+        monkeypatch.setattr(main.app.state, "course", course_module.load(d, cat.questions, mode))
+        return d
+
+    return make
 
 
 @pytest.fixture
@@ -399,22 +444,9 @@ def test_practice_shows_the_question_figure(client, store: Store, learner, monke
     assert '<img src="/data/assets/fig.png"' in client.get(url(Q2)).text
 
 
-def test_review_links_use_each_lessons_own_language(client, store: Store, learner, tmp_path, monkeypatch):
+def test_review_links_use_each_lessons_own_language(client, store: Store, learner, german):
     """A German module's wrong answer links back to a French-only module (§4.3)."""
-    from app import main
-
-    course_dir = tmp_path / "base"
-    shutil.copytree(course_module.COURSE_DIR, course_dir)
-    for f in (course_dir / "ondes").glob("*.fr.md"):
-        f.with_name(f.name.replace(".fr.md", ".de.md")).write_text(f.read_text())
-    curriculum = course_dir / "curriculum.yaml"
-    curriculum.write_text(
-        curriculum.read_text().replace(
-            'title: {fr: "Ondes et fréquences"}', 'title: {fr: "Ondes et fréquences", de: "Wellen"}'
-        )
-    )
-    monkeypatch.setattr(course_module, "COURSE_DIR", course_dir)
-    monkeypatch.setattr(main.app.state, "course", course_module.load(questions=cat.questions))
+    german(["ondes"], "preview")
     client.cookies.set(PREFS_COOKIE, '{"lang": "de"}')
     q5 = next(s for s in module("ondes").steps if s.slug == "q5")
     unites = next(s for s in module("electricite").steps if s.slug == "unites")
@@ -622,15 +654,6 @@ def test_review_lessons_are_the_introducers_in_course_order():
     intro = COURSE.introduced_by()
     assert {s.slug for s in lessons} == {intro[c].slug for c in Q2.requires}
     assert lessons == sorted(lessons, key=COURSE.steps.index)
-
-
-def test_effective_language_is_french_until_a_module_offers_german():
-    assert not COURSE.offers_de()
-    assert COURSE.effective_lang("de") == "fr"
-    assert COURSE.effective_lang("de", COURSE.modules[0]) == "fr"
-    de_module = course_module.Module("x", {"fr": "X", "de": "X"}, ())
-    assert COURSE.effective_lang("de", de_module) == "de"
-    assert COURSE.effective_lang("both", de_module) == "fr"
 
 
 def test_answer_note_shows_on_the_first_pass(client, store: Store, learner, tmp_path, monkeypatch):
@@ -902,3 +925,200 @@ def test_an_existing_database_gains_the_open_answer_columns(tmp_path):
     result = store.practice_result("a", 2)
     assert result is not None
     assert (result["wrong_letters"], result["solved_items"], result["last_try"]) == ("b", {}, {})
+
+
+# -- the German course (specs/LEARN-DE.md §2) ------------------------------------------
+
+
+def switch(client, lang: str, next_url: str):
+    return post(client, "/learn/lang", {"lang": lang, "next": next_url})
+
+
+def prefs_cookie(resp) -> dict:
+    import json
+
+    cookie = next(h for h in resp.headers.get_list("set-cookie") if h.startswith(PREFS_COOKIE + "="))
+    value = cookie.split(";", 1)[0].split("=", 1)[1]
+    return json.loads(value.strip('"').encode().decode("unicode_escape"))
+
+
+def test_the_switch_changes_only_the_language_and_writes_nothing(client, store: Store, learner):
+    seed(store, learner, steps_before(Q2))
+    _, wrong = options(QID)
+    post(client, url(Q2) + "/answer", {"answer": wrong[0]})
+    trainer = {"tag": "novice", "mode": "exam", "lang": "both", "section": "1.2", "count": "20", "extra": 1}
+    import json
+
+    client.cookies.set(PREFS_COOKIE, json.dumps(trainer))
+    before = snapshot(store)
+    resp = switch(client, "de", f"{url(Q2)}?picked={wrong[0]}")
+    assert location(resp) == f"{url(Q2)}?picked={wrong[0]}"
+    assert prefs_cookie(resp) == {**trainer, "lang": "de"}
+    assert snapshot(store) == before
+
+
+def test_the_switch_without_a_cookie_writes_the_defaults(client):
+    from app.main import DEFAULT_PREFS
+
+    assert prefs_cookie(switch(client, "de", "/learn")) == {**DEFAULT_PREFS, "lang": "de"}
+
+
+def test_the_switch_ignores_an_unknown_language(client):
+    resp = switch(client, "en", "/learn")
+    assert location(resp) == "/learn" and PREFS_COOKIE not in resp.headers.get("set-cookie", "")
+
+
+@pytest.mark.parametrize(
+    "target",
+    [
+        "/learnfoo",
+        "//evil.example/learn",
+        "/learn/../exam",
+        "/learn/%2e%2e/exam",
+        "https://evil.example/learn",
+        "/learn\\evil",
+        "/learn//base",
+        "/learn/",
+        "exam",
+        "",
+    ],
+)
+def test_the_switch_only_goes_back_to_a_course_page(client, target):
+    assert location(switch(client, "de", target)) == "/learn"
+
+
+def test_the_switch_shows_only_where_german_is_offered(client, learner, german):
+    other = module("ondes").steps[0]
+    for mode, on_electricite, on_ondes, on_dashboard in (
+        ("off", False, False, False),
+        ("preview", True, False, True),
+        ("on", True, True, True),
+    ):
+        german(["electricite"] if mode != "on" else "all", mode)
+        pages = {url(FIRST): on_electricite, f"{T}/electricite": on_electricite, url(other): on_ondes}
+        pages["/learn"] = on_dashboard
+        for path, shown in pages.items():
+            text = client.get(path).text
+            assert ('action="/learn/lang"' in text) == shown, (mode, path)
+            if shown:
+                assert f'name="next" value="{path}"' in text
+
+
+def test_off_shows_no_german_even_to_a_german_preference(client, learner, german):
+    german(["electricite"], "off")
+    client.cookies.set(PREFS_COOKIE, '{"lang": "de"}')
+    text = client.get(url(FIRST)).text
+    assert '<html lang="fr">' in text and "Noch nicht übersetzt" not in text
+
+
+def test_preview_shows_german_modules_in_german_and_flags_the_others(client, learner, german):
+    german(["electricite"], "preview")
+    client.cookies.set(PREFS_COOKIE, '{"lang": "de"}')
+    text = client.get(url(FIRST)).text
+    assert '<html lang="de">' in text and "<h1>DE " in text and "Noch nicht übersetzt" not in text
+    text = client.get(url(module("ondes").steps[0])).text
+    assert '<html lang="fr">' in text and "Noch nicht übersetzt" in text
+    client.cookies.set(PREFS_COOKIE, '{"lang": "fr"}')
+    assert "Noch nicht übersetzt" not in client.get(url(module("ondes").steps[0])).text
+
+
+def test_on_never_shows_a_french_page_for_german(client, store: Store, learner, german):
+    german("all", "on")
+    client.cookies.set(PREFS_COOKIE, '{"lang": "de"}')
+    seed(store, learner, COURSE.steps)
+    for part in COURSE.parts:
+        m = part.modules[-1]
+        for path in (f"{COURSE_PREFIX}/{part.slug}/{m.slug}", *(url(s) for s in m.steps)):
+            text = client.get(path).text
+            assert '<html lang="de">' in text and "Noch nicht" not in text, path
+
+
+def test_on_with_a_page_missing_refuses_to_start(monkeypatch, tmp_path):
+    from starlette.testclient import TestClient
+
+    from app.main import app
+
+    monkeypatch.setenv("COURSE_DE", "on")
+    with pytest.raises(course_module.CourseError, match="German is missing"), TestClient(app):
+        pass
+
+
+def test_progress_is_the_same_in_both_languages(client, store: Store, learner, german):
+    german(["electricite"], "preview")
+    assert location(post(client, url(FIRST) + "/next")) == url(SECOND)
+    _, wrong = options(QID)
+    seed(store, learner, steps_before(Q2)[1:])
+    post(client, url(Q2) + "/answer", {"answer": wrong[0]})
+    client.get("/learn")  # takes the first lesson's toast
+    french = client.get(url(Q2)).text
+    switch(client, "de", url(Q2))
+    text = client.get(url(Q2)).text
+    assert '<html lang="de">' in text and "Versuch es noch einmal" in text
+    assert text.count("disabled") == french.count("disabled") == 1
+    assert 'class="step-item step-lesson done"' in client.get(f"{T}/electricite").text
+    switch(client, "fr", url(Q2))
+    assert client.get(url(Q2)).text == french
+
+
+def test_solved_open_fields_survive_a_switch(client, store: Store, learner, grader, german):
+    german([Q448.module], "preview")
+    first, *rest = ITEMS_448
+    post(client, url(Q448) + "/answer", fields({first: "ok", **{n: "faux" for n in rest}}))
+    switch(client, "de", url(Q448))
+    text = client.get(url(Q448)).text
+    assert '<html lang="de">' in text and text.count('class="solved-answer"') == 1
+    assert text.count('name="item_') == len(rest)
+
+
+def test_a_german_only_note_shows_in_german_only(client, store: Store, learner, german):
+    d = german(["electricite"], "preview", notes=False)
+    (d / "electricite" / "q2.de.md").write_text("Nur **auf Deutsch**.\n")
+    seed(store, learner, steps_before(Q2) + [Q2])
+    correct, _ = options(QID)
+    assert "<strong>auf Deutsch</strong>" not in client.get(f"{url(Q2)}?picked={correct}").text
+    client.cookies.set(PREFS_COOKIE, '{"lang": "de"}')
+    assert "<strong>auf Deutsch</strong>" in client.get(f"{url(Q2)}?picked={correct}").text
+
+
+def test_preview_flags_a_missing_german_note_unless_omitted(client, store: Store, learner, german):
+    d = german(["electricite"], "preview", notes=False)
+    q6 = next(s for s in module("electricite").steps if s.slug == "q6")
+    seed(store, learner, steps_before(q6) + [q6])
+    client.cookies.set(PREFS_COOKIE, '{"lang": "de"}')
+    correct, _ = options(6)
+    text = client.get(f"{url(q6)}?picked={correct}").text
+    assert "Erklärung noch nicht übersetzt" in text and 'class="answer-note"' not in text
+    (d / course_module.NOTES_DE_OMITTED).write_text("6: About a French wording.\n")
+    from app import main
+
+    main.app.state.course = course_module.load(d, cat.questions, "preview")
+    assert "Erklärung noch nicht übersetzt" not in client.get(f"{url(q6)}?picked={correct}").text
+
+
+def test_a_german_practice_page_shows_neutral_cells_without_a_tag(client, store: Store, learner, german):
+    q15 = next(s for s in module("electricite").steps if s.slug == "q15")
+    assert not all(o["text"].get("de") for o in cat.get(15)["options"])  # a neutral cell
+    german(["electricite"], "preview")
+    client.cookies.set(PREFS_COOKIE, '{"lang": "de"}')
+    assert "fallback-tag" not in client.get(url(q15)).text
+
+
+def test_499a_shows_ja_in_german(client, learner, german):
+    q499 = step_of(499)
+    german([q499.module], "preview")
+    assert "Oui Ja" in client.get(url(q499)).text
+    client.cookies.set(PREFS_COOKIE, '{"lang": "de"}')
+    text = client.get(url(q499)).text
+    assert "Oui Ja" not in text and re.search(r"<strong>a\)</strong>\s*<span[^>]*>Ja</span>", text)
+
+
+@pytest.mark.parametrize(("qid", "suffix"), [(441, "SLASH PAPA"), (445, "SLASH MIKE MIKE")])
+def test_the_expected_spelling_is_built_by_rule_in_both_languages(client, learner, german, qid, suffix):
+    step = step_of(qid)
+    german([step.module], "preview")
+    for lang in ("fr", "de"):
+        client.cookies.set(PREFS_COOKIE, f'{{"lang": "{lang}"}}')
+        post(client, url(step) + "/answer", {"item_0": "Lima"})
+        text = html.unescape(client.get(url(step)).text)
+        assert re.search(rf"LIMA X-RAY [A-Z]+ .*{suffix}</span>", text), lang
+        assert "MARITIME MOBILE" not in text and "SLASH PORTABLE" not in text

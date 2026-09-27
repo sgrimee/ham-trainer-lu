@@ -66,4 +66,5 @@
 {% endif %}
 
 {% if solved and note %}<div class="answer-note">{{ note|safe }}</div>{% endif %}
+{% if solved and note_untranslated %}<p class="note-untranslated" lang="de">{{ t('de', 'note_untranslated') }}</p>{% endif %}
 {% if wrong %}{{ review_links() }}{% endif %}

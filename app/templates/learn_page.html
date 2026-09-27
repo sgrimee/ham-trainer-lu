@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% from "_learner.html" import not_you %}
+{% from "_lang_switch.html" import lang_bar %}
 {% from "_learn_step.html" import course_progress, crumbs, missing_lessons, previous_link %}
 {% block title %}{{ title }} — {{ t(ui, 'learn_title') }}{% endblock %}
 {% block content %}
@@ -14,6 +15,7 @@
 </nav>
 {%- endmacro %}
 {{ not_you(ui, learner) }}
+{{ lang_bar(ui, lang_switch, here, untranslated) }}
 {{ crumbs(ui, module, module_title, position, module_total) }}
 {{ missing_lessons(ui, missing) }}
 <article class="card lesson lesson-{{ step.kind }}">

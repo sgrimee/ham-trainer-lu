@@ -9,11 +9,17 @@ Only the international alphabet counts: old national alphabets (London,
 Robert), invented words (Iceland, Zebra) and French letter names are wrong.
 Near forms -- Juliette, Whisky, Charly, Zoulou, "stroke", French or ITU
 digits, a numeral -- are accepted, with the catalogue's form as a hint.
+
+A German answer (`lang` `de`, or the trainer's `both`) also accepts the forms
+a German speaker types, from a table beside the French one
+(specs/LEARN-DE.md §2.5): near forms too, hinted with the catalogue's form.
+German letter names and both German spelling alphabets stay wrong.
 """
 
 from __future__ import annotations
 
 import difflib
+import functools
 import re
 import unicodedata
 from dataclasses import dataclass
@@ -99,8 +105,43 @@ SUFFIX_WORDS = {
     "mm": ["maritime", "mobile"],
     "am": ["aeronautical", "mobile"],
 }
+# The forms a German-speaking learner types (specs/LEARN-DE.md §2.5), each
+# settled by the audit (§3.1). Near forms, like NEAR: accepted, with the
+# catalogue's form as the hint. Normalised as above.
+NEAR_DE: dict[str, set[str]] = {}
+# German words for a suffix, word for word beside SUFFIX_WORDS' English ones,
+# which give the hint.
+SUFFIX_WORDS_DE: dict[str, list[str]] = {}
 LOOKUP = {w: ch for table in (OFFICIAL, NEAR) for ch, ws in table.items() for w in ws}
 NEAR_WORDS = {w for ws in NEAR.values() for w in ws}
+# The spoken word shown for a character in an expected answer, where it is
+# not the official form in capitals.
+SHOWN = {"xray": "X-RAY"}
+
+
+@functools.cache
+def _forms(german: bool) -> tuple[dict[str, str], dict[str, str], dict[str, list[list[str]]]]:
+    """(word -> character, near word -> the catalogue's form, suffix ->
+    its spoken wordings) for one language: German adds its own table."""
+    lookup, near = dict(LOOKUP), {w: official(LOOKUP[w]) for w in NEAR_WORDS}
+    suffixes = {sfx: [words] for sfx, words in SUFFIX_WORDS.items()}
+    if german:
+        for ch, words in NEAR_DE.items():
+            for w in words:
+                lookup[w] = ch
+                near[w] = official(ch)
+        for sfx, words in SUFFIX_WORDS_DE.items():
+            suffixes[sfx].append(words)
+            near |= {w: en.upper() for w, en in zip(words, SUFFIX_WORDS[sfx], strict=True) if w != en}
+    return lookup, near, suffixes
+
+
+def official(ch: str) -> str:
+    """The catalogue's word for a character, in capitals: ALPHA, ONE, SLASH."""
+    word = [*OFFICIAL[ch]][0]
+    return SHOWN.get(word, word.upper())
+
+
 # "barre de fraction" is the guide's own name for "/".
 FILLER = {("barre", "de"), ("de", "fraction")}
 
@@ -132,33 +173,44 @@ def target_of(question: str) -> str:
     return re.search(r"[\"«]\s*([^\"»]+?)\s*[\"»]", question).group(1)
 
 
-def expected_options(target: str) -> list[list[str]]:
+def expected_options(target: str, german: bool = False) -> list[list[str]]:
     """The target as characters; a trailing suffix also as words. Each option is a
     list of units: a character, or a '#word' for a spoken suffix word."""
     t = unicodedata.normalize("NFKD", target).encode("ascii", "ignore").decode().lower()
     options = [list(t)]
     if "/" in t:
         head, suffix = t.rsplit("/", 1)
-        if suffix in SUFFIX_WORDS:
-            options.append(list(head) + ["/"] + [f"#{w}" for w in SUFFIX_WORDS[suffix]])
+        for words in _forms(german)[2].get(suffix, []):
+            options.append(list(head) + ["/"] + [f"#{w}" for w in words])
     return options
 
 
-def unit_of(token: str) -> str:
-    if token in LOOKUP:
-        return LOOKUP[token]
-    if any(token in ws for ws in SUFFIX_WORDS.values()):
+def expected_answer(question: str) -> str:
+    """The answer shown after a miss (specs/LEARN-DE.md §2.5), in either
+    language: the first of `expected_options`, the target spelled in the
+    international alphabet, a suffix letter by letter, `/` as SLASH."""
+    return " ".join(official(ch) for ch in expected_options(target_of(question))[0])
+
+
+def unit_of(token: str, german: bool = False) -> str:
+    lookup, _, suffixes = _forms(german)
+    if token in lookup:
+        return lookup[token]
+    if any(token in ws for wordings in suffixes.values() for ws in wordings):
         return f"#{token}"
     return f"?{token}"
 
 
-def grade(question: str, candidate: str) -> SpellingResult:
+def grade(question: str, candidate: str, lang: str = "fr") -> SpellingResult:
     """Grade a spelling answer against the word or callsign quoted in the question
-    (never the catalogue's answer text, so 443's typo does not matter)."""
+    (never the catalogue's answer text, so 443's typo does not matter). A
+    German answer (`de`, or the trainer's `both`) also takes German forms."""
+    german = lang in ("de", "both")
+    lookup, near_forms, _ = _forms(german)
     toks = tokens(candidate)
-    got = [unit_of(t) for t in toks]
+    got = [unit_of(t, german) for t in toks]
     best = None
-    for want in expected_options(target_of(question)):
+    for want in expected_options(target_of(question), german):
         sm = difflib.SequenceMatcher(a=want, b=got, autojunk=False)
         found = sum(b.size for b in sm.get_matching_blocks())
         extra, missing = [], []
@@ -172,10 +224,10 @@ def grade(question: str, candidate: str) -> SpellingResult:
             best = (score, found, len(want), extra, missing)
     _, found, total, extra, missing = best
     # Letters or numerals alone are not the alphabet: nothing was spelled.
-    spelled = any(t in LOOKUP and not t.isdigit() and len(t) > 1 for t in toks)
+    spelled = any(t in lookup and not t.isdigit() and len(t) > 1 for t in toks)
     if not spelled:
         return SpellingResult("incorrect", 0.0, extra, missing, [])
-    near = list(dict.fromkeys((t, [*OFFICIAL[LOOKUP[t]]][0].upper()) for t in toks if t in NEAR_WORDS))
+    near = list(dict.fromkeys((t, near_forms[t]) for t in toks if t in near_forms))
     if found == total and not extra and not missing:
         return SpellingResult("correct", 1.0, [], [], near)
     return SpellingResult("incorrect" if found == 0 else "partial", found / total, extra, missing, near)

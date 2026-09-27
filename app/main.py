@@ -11,7 +11,7 @@ import logging
 import pathlib
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
-from urllib.parse import urlencode
+from urllib.parse import unquote, urlencode, urlsplit
 
 import httpx2 as httpx
 from fastapi import APIRouter, Depends, FastAPI, Form, HTTPException, Request
@@ -20,7 +20,7 @@ from fastapi.responses import RedirectResponse, Response
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
-from . import admin, awards, catalogue, grader, scoring, session
+from . import admin, awards, catalogue, grader, scoring, session, spelling
 from . import annotations as annotations_module
 from . import course as course_module
 from .catalogue import BLUEPRINT
@@ -602,9 +602,43 @@ COURSE_PREFIX = f"/learn/{course_module.CERT}"
 
 def course_ui(request: Request, module: course_module.Module | None = None) -> str:
     """The one effective language of a course page (§4.3), from the trainer's
-    own `lang` preference: German only where the page's module offers it, or,
-    off-module, once any module does."""
+    own `lang` preference, as COURSE_DE allows (specs/LEARN-DE.md §2.2)."""
     return request.app.state.course.effective_lang(_read_prefs(request)["lang"], module)
+
+
+def course_lang(request: Request, module: course_module.Module | None = None) -> dict:
+    """A course page's language and what goes with it (specs/LEARN-DE.md
+    §2.1-2.2): `ui`; whether it shows the FR/DE switch, and the page's own URL
+    for it to come back to; and whether it is a French page shown to a learner
+    who prefers German in `preview`, which says so."""
+    course = request.app.state.course
+    ui = course_ui(request, module)
+    query = request.url.query
+    return {
+        "ui": ui,
+        "lang_switch": course.offers_switch(module),
+        "here": request.url.path + (f"?{query}" if query else ""),
+        "untranslated": course.de == "preview" and _read_prefs(request)["lang"] == "de" and ui == "fr",
+    }
+
+
+def safe_learn_path(target: str) -> str:
+    """`target` if it is a course page of this site, else the dashboard: a
+    path of `/learn` or under `/learn/`, with no scheme, host, `\\`, empty or
+    dot segment (specs/LEARN-DE.md §2.1). The query string is kept."""
+    parts = urlsplit(target)
+    path = parts.path
+    segments = [unquote(seg) for seg in path.split("/")[1:]]
+    if (
+        parts.scheme
+        or parts.netloc
+        or "\\" in target
+        or any(ch.isspace() or ord(ch) < 0x20 for ch in target)
+        or not (path == "/learn" or path.startswith("/learn/"))
+        or any(seg in ("", ".", "..") or "/" in seg or "\\" in seg for seg in segments)
+    ):
+        return "/learn"
+    return path + (f"?{parts.query}" if parts.query else "")
 
 
 def current_learner(request: Request, store: Store) -> dict | None:
@@ -639,6 +673,35 @@ def _question(step: course_module.Step) -> dict:
     """A practice step's catalogue question, joined on id (§4.1)."""
     assert step.question_id is not None
     return cat.get(step.question_id)
+
+
+# specs/LEARN-DE.md §2.5: the one catalogue cell with no German that is not
+# language-neutral, shown in the German course in its German half. The
+# catalogue is not edited, and the stored answer is still the letter.
+DE_OPTION_DISPLAY = {(499, "a"): "Ja"}
+
+
+def practice_view(q: dict, ui: str) -> dict:
+    """A practice question as the course shows it (specs/LEARN-DE.md §2.5):
+    the exam trainer's view, except that on a German page a cell with no
+    German is shown without the language tag (after the audit every such
+    BASE cell is neutral or overridden above), and that a spelling
+    question's expected answer is built by the rule that grades it, not
+    read from the catalogue's French cell."""
+    view = session.localize_question(q, ui, None)
+    if ui == "de":
+        for opt in view.get("options", []):
+            text = DE_OPTION_DISPLAY.get((q["id"], opt["letter"]))
+            opt["cells"] = [
+                {**c, "fallback": False, **({"text": text} if text else {})} for c in opt["cells"]
+            ]
+        for item in view.get("sub_items", []):
+            item["cells"] = [{**c, "fallback": False} for c in item["cells"]]
+    if q["id"] in spelling.SPELLING_QUESTIONS:
+        expected = spelling.expected_answer(q["text"]["fr"])
+        for item in view["sub_items"]:
+            item["cells"] = [{"lang": ui, "text": expected, "fallback": False}]
+    return view
 
 
 def _awards(course: course_module.Course, step: course_module.Step):
@@ -691,11 +754,12 @@ def _lesson_links(
 def learn_home(
     request: Request, store: Store = Depends(get_store), course: course_module.Course = Depends(get_course)
 ):
-    ui = course_ui(request)
+    lang = course_lang(request)
+    ui = lang["ui"]
     learner = current_learner(request, store)
     if learner is None:
         response = templates.TemplateResponse(
-            request=request, name="learn_who.html", context={"ui": ui, "accounts": store.accounts()}
+            request=request, name="learn_who.html", context={**lang, "accounts": store.accounts()}
         )
         if request.cookies.get(LEARNER_COOKIE):
             response.delete_cookie(LEARNER_COOKIE)
@@ -735,7 +799,7 @@ def learn_home(
         store,
         "learn_home.html",
         {
-            "ui": ui,
+            **lang,
             "learner": learner,
             "parts": parts,
             "next_up": course.next_up(completed),
@@ -764,6 +828,29 @@ def learn_clear():
     return response
 
 
+@app.post("/learn/lang")
+def learn_lang(request: Request, lang: str = Form(""), next: str = Form("/learn")):
+    """The course's FR/DE switch (specs/LEARN-DE.md §2.1): rewrites only the
+    `lang` key of the shared preferences cookie, keeping every other key as
+    it was, and goes back to the page. It writes nothing else: no progress,
+    no grading, no "next"."""
+    response = RedirectResponse(safe_learn_path(next), status_code=303)
+    if lang not in ("fr", "de"):
+        return response
+    prefs: dict = dict(DEFAULT_PREFS)
+    raw = request.cookies.get(PREFS_COOKIE)
+    if raw:
+        try:
+            stored = json.loads(raw)
+        except json.JSONDecodeError:
+            stored = None
+        if isinstance(stored, dict):
+            prefs = stored
+    prefs["lang"] = lang
+    response.set_cookie(PREFS_COOKIE, json.dumps(prefs), max_age=60 * 60 * 24 * 365, samesite="lax")
+    return response
+
+
 def _step(
     course: course_module.Course, part_slug: str, module_slug: str, step_slug: str
 ) -> course_module.Step | None:
@@ -787,7 +874,8 @@ def learn_module(
     module = course.module(module_slug)
     if module is None or module.part != part_slug:
         return _to_next_up(course, completed)
-    ui = course_ui(request, module)
+    lang = course_lang(request, module)
+    ui = lang["ui"]
     next_up = course.next_up(completed)
     steps = [
         {"step": s, "title": _step_title(s, ui), "done": s.id in completed, "next_up": s == next_up}
@@ -798,7 +886,7 @@ def learn_module(
         store,
         "learn_module.html",
         {
-            "ui": ui,
+            **lang,
             "learner": learner,
             "module": module,
             "title": module.title.get(ui, module.title["fr"]),
@@ -826,11 +914,12 @@ def learn_step(
         return _to_next_up(course, completed)
     module = course.module(module_slug)
     assert module is not None
-    ui = course_ui(request, module)
+    lang = course_lang(request, module)
+    ui = lang["ui"]
     context = {
         # Reached ahead of the recommended path: point at what it builds on (§7).
         "missing": _lesson_links(request, course, course.missing_lessons(step, completed)),
-        "ui": ui,
+        **lang,
         "learner": learner,
         "step": step,
         "module": module,
@@ -874,13 +963,14 @@ def learn_step(
         {
             **context,
             "title": t(ui, "question_n", id=step.question_id),
-            "q": session.localize_question(q, ui, None),
+            "q": practice_view(q, ui),
             "marks": marks,
             "picked": picked,
             "solved": solved,
             "wrong": wrong,
             "done": done,
             "note": course_module.answer_note(step, ui) if solved else None,
+            "note_untranslated": solved and course_module.note_untranslated(course, step, ui),
             # A review lesson may sit in an earlier module, which need not offer
             # the same language as this one (§4.3): each title in its own.
             "review": _lesson_links(request, course, course.review_lessons(step)) if wrong else [],
@@ -907,7 +997,7 @@ def _render_open_practice(
     solved = result["solved_items"] if result else {}
     last_try = result["last_try"] if result else {}
     missed = bool(result and result["submissions"]) and not done
-    view = session.localize_question(q, ui, None)
+    view = practice_view(q, ui)
     fields = [
         {
             **item,
@@ -932,6 +1022,7 @@ def _render_open_practice(
             "pending": pending,
             "done": done,
             "note": course_module.answer_note(step, ui) if done else None,
+            "note_untranslated": done and course_module.note_untranslated(course, step, ui),
             "review": _lesson_links(request, course, course.review_lessons(step)) if missed else [],
         },
     )

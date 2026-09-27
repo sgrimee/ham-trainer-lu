@@ -167,6 +167,9 @@ MESSAGES = {
         "steps_completed": "Étapes terminées",
         "xp": "XP",
         "badges": "Badges",
+        "course_language": "Langue du cours",
+        "untranslated_page": "Pas encore traduit.",
+        "note_untranslated": "Explication pas encore traduite.",
     },
     "de": {
         "app_title": "ILR-Amateurfunkprüfung",
@@ -327,6 +330,9 @@ MESSAGES = {
         "steps_completed": "Abgeschlossene Schritte",
         "xp": "XP",
         "badges": "Abzeichen",
+        "course_language": "Sprache des Kurses",
+        "untranslated_page": "Noch nicht übersetzt: Diese Seite gibt es bisher nur auf Französisch.",
+        "note_untranslated": "Erklärung noch nicht übersetzt.",
     },
 }
 

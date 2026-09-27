@@ -1,8 +1,10 @@
 {% extends "base.html" %}
 {% from "_learner.html" import not_you %}
+{% from "_lang_switch.html" import lang_bar %}
 {% block title %}{{ t(ui, 'dashboard') }} — {{ t(ui, 'learn_title') }}{% endblock %}
 {% block content %}
 {{ not_you(ui, learner) }}
+{{ lang_bar(ui, lang_switch, here, untranslated) }}
 <section class="card">
   <h1>{{ t(ui, 'hello_learner', name=learner.display_name) }}</h1>
   <p class="course-name">{{ t(ui, 'course_title') }}</p>

@@ -370,7 +370,11 @@ translating a learner's own answers or the grader's past comments.
    display of catalogue cells and spelling answers, the `lang` key in
    `official_wordings.yaml` and a German spelling form table (mechanisms,
    empty or with test data only), the validator's `--de`, the tests.
-   Ships with `off`.
+   Ships with `off`. **Done 2026-09-27**: `COURSE_DE` is read by
+   `app/course.py` (`de_setting`), CI validates with `preview`; the switch
+   is `POST /learn/lang`; the 499a override is `DE_OPTION_DISPLAY` in
+   `app/main.py`; `scripts/course_tools.py` applies French typography to
+   `.fr.md` only (German gets the digit groups) and takes `--lang de`.
 2. **Audit** (§3.1). The table of German findings and their decisions,
    notes and neutral cells included; filling the German grading entries,
    the German spelling forms and their cases.

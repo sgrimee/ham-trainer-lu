@@ -6,10 +6,15 @@
 # catalogue's reference, so that it neither rejects nor contradicts the guide.
 #
 # question id -> sub-item (the catalogue's item_no; 0 for a single answer) ->
-# wordings, French only, verbatim from the guide: the lines of a list, or the
-# sentences of one section, may be joined, and a certificate's name may head its
-# sentence. `source` is the guide page, as `ilr-guide-2023 p.N §x`, or, for a
-# form the project owner decided to accept or refuse, `decision YYYY-MM-DD`.
+# wordings, verbatim from the guide: the lines of a list, or the sentences of
+# one section, may be joined, and a certificate's name may head its sentence.
+# `source` is the guide page, as `ilr-guide-2023 p.N §x`, or, for a form the
+# project owner decided to accept or refuse, `decision YYYY-MM-DD`.
+#
+# An entry is French unless it has `lang: de`. The guide is French only, so a
+# German entry is always a decision, about a German reference answer that is
+# wrong or incomplete (specs/LEARN-DE.md §3.1); a German answer is graded
+# against the German reference and the `de` entries alone.
 #
 # An entry may be a `note` instead of a `text`: a fact from the guide the grader
 # must apply, such as a neighbouring code's meaning that is a wrong answer here.

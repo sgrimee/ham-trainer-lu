@@ -218,12 +218,14 @@ async def _grade_open_item(
     }
 
 
-def _grade_spelling_item(q: dict, candidate: str, item_weight: float) -> dict:
+def _grade_spelling_item(q: dict, candidate: str, item_weight: float, lang: str = "fr") -> dict:
     """Spelling is graded by rule, in both apps (specs/LEARN-2-3.md §4.3): the
-    target is read from the French stem, the same string in either language.
-    Missing characters show as missing elements; a near form is accepted and
-    reported as a hint with the catalogue's form."""
-    result = spelling.grade(q["text"]["fr"], candidate)
+    target is read from the French stem, the same string in either language
+    (the German stems quote it inconsistently, specs/LEARN-DE.md §2.5).
+    Missing characters show as missing elements; a near form, German ones
+    included for a German answer, is accepted and reported as a hint with
+    the catalogue's form."""
+    result = spelling.grade(q["text"]["fr"], candidate, lang)
     return {
         "verdict": result.verdict,
         "points": item_weight * (1.0 if result.verdict == "correct" else result.share),
@@ -254,7 +256,7 @@ async def grade_open_question(
         candidate = (answer or {}).get(str(item["item_no"]), "") if isinstance(answer, dict) else ""
         graded_items.append(item)
         if q["id"] in spelling.SPELLING_QUESTIONS:
-            tasks.append(asyncio.sleep(0, _grade_spelling_item(q, candidate, item_weight)))
+            tasks.append(asyncio.sleep(0, _grade_spelling_item(q, candidate, item_weight, lang)))
             continue
         stem = ref_text(q["text"], lang)
         question_text = f"{stem}\n{item['label']}" if item.get("label") else stem

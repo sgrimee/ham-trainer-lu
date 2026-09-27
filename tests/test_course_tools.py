@@ -48,9 +48,15 @@ def test_word_count_excludes_figures():
     assert tools.word_count(html) == 4
 
 
+def test_german_typography_groups_digits_only():
+    text = "Welche Spannung? „ein Volt“: 1 000 000 W; gut!\n"
+    assert tools.typeset(text, "de") == f"Welche Spannung? „ein Volt“: 1{NB}000{NB}000 W; gut!\n"
+
+
 def test_the_real_course_is_typeset_and_renders_cleanly():
     for module in course.load().modules:
         for path in tools.module_files(module.slug):
-            assert tools.typeset(path.read_text()) == path.read_text(), path
-        for step, _, html in tools._pages(module.slug):
-            assert tools.render_problems(html) == [], step.id
+            assert tools.typeset(path.read_text(), tools.lang_of(path)) == path.read_text(), path
+        for lang in course.LANGS:
+            for step, _, html in tools._pages(module.slug, lang):
+                assert tools.render_problems(html) == [], (step.id, lang)

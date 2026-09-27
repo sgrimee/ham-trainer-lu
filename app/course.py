@@ -9,9 +9,15 @@ Layout, under `data/course/base/`:
     <module>/en-savoir-plus.fr.md    the module's closing links: {title, links}
     <module>/q<id>.fr.md             optional answer note, no frontmatter
 
-A `.de.md` sibling may exist for each of them, all-or-nothing per module
-(§4.3). Practice steps carry only a question id; the question text is always
-joined from `data/questions.jsonl`, which `mise run extract` owns.
+A `.de.md` sibling may exist for each of them. Lesson and learn-more pages
+and the module title are all-or-nothing per module (§4.3); answer notes are
+per language, and a German one may exist alone (specs/LEARN-DE.md §2.3).
+`COURSE_DE` (`off`, `preview`, `on`; LEARN-DE §2.2) decides what learners get
+and how much German the validator demands: with `on`, all of it, save the
+French notes listed in `notes-de-omitted.yaml`. A German page's figures must
+match the French ones shape for shape (LEARN-DE §2.4). Practice steps carry
+only a question id; the question text is always joined from
+`data/questions.jsonl`, which `mise run extract` owns.
 
 One file and one concept graph hold all three parts of the exam, because the
 parts lean on each other (LEARN-2-3 §2.1); modules keep their directory
@@ -29,19 +35,23 @@ A `links` entry pointing at a video host (`VIDEO_HOSTS`) must carry a
 the host is the rule.
 
 Run `uv run python -m app.course` to validate (`mise run verify` does), and
-`uv run python -m app.course --report` for the review report. The application
-runs the same validation at startup and refuses to start if it fails.
+`uv run python -m app.course --report` for the review report, which also
+lists what German still lacks. `--de on` overrides `COURSE_DE`. The
+application runs the same validation at startup and refuses to start if it
+fails.
 """
 
 from __future__ import annotations
 
 import argparse
 import functools
+import os
 import pathlib
 import re
 import sys
+import xml.etree.ElementTree as ET
 from collections import Counter
-from dataclasses import dataclass, replace
+from dataclasses import dataclass, field, replace
 from urllib.parse import urlparse
 
 import yaml
@@ -60,6 +70,10 @@ CERT = "base"
 SECTION_OF_PART = {name: number for number, name in catalogue.PART_NAMES.items()}
 LANGS = ("fr", "de")
 LEARN_MORE = "en-savoir-plus"
+# LEARN-DE §2.2: `off` shows no German; `preview` shows each module in German
+# once it is translated; `on` is the finished German course.
+DE_MODES = ("off", "preview", "on")
+NOTES_DE_OMITTED = "notes-de-omitted.yaml"
 
 SLUG = re.compile(r"[a-z0-9-]+")
 PRACTICE_SLUG = re.compile(r"q(\d+)")
@@ -77,6 +91,7 @@ LINK_KEYS = {"url", "comment", "language_note"}
 VIDEO_HOSTS = ("youtube.com", "youtu.be", "vimeo.com", "dailymotion.com")
 
 FRONTMATTER = re.compile(r"---\n(.*?)^---[ \t]*(?:\n|\Z)", re.S | re.M)
+SVG_BLOCK = re.compile(r"<svg\b.*?</svg>", re.S | re.I)
 IMG_TAG_SRC = re.compile(r"""<img\b[^>]*?\bsrc\s*=\s*["']([^"']*)["']""", re.I)
 
 
@@ -121,6 +136,9 @@ class Part:
 @dataclass(frozen=True)
 class Course:
     parts: tuple[Part, ...]
+    de: str = "off"  # COURSE_DE (LEARN-DE §2.2)
+    # Question ids whose French note has no German one on purpose (LEARN-DE §2.3).
+    notes_de_omitted: frozenset[int] = field(default=frozenset())
 
     @property
     def modules(self) -> tuple[Module, ...]:
@@ -140,7 +158,7 @@ class Course:
 
     def only(self, *slugs: str) -> Course:
         """The course reduced to the named parts, in course order."""
-        return Course(tuple(p for p in self.parts if p.slug in slugs))
+        return replace(self, parts=tuple(p for p in self.parts if p.slug in slugs))
 
     def introduced_by(self) -> dict[str, Step]:
         """Concept slug -> the lesson that introduces it."""
@@ -206,9 +224,20 @@ class Course:
 
     def effective_lang(self, preference: str, module: Module | None = None) -> str:
         """The one language of a page (§4.3): `de` only if the learner prefers
-        it and the page's module (or, off-module, some module) offers it."""
+        it and German is offered (LEARN-DE §2.2). With `on` it always is; in
+        `preview`, where the page's module (or, off-module, some module) offers
+        it; with `off`, never."""
+        if preference != "de" or self.de == "off":
+            return "fr"
+        if self.de == "on":
+            return "de"
         offered = module.offers_de if module is not None else self.offers_de()
-        return "de" if preference == "de" and offered else "fr"
+        return "de" if offered else "fr"
+
+    def offers_switch(self, module: Module | None = None) -> bool:
+        """Whether a page's language could be German, so it shows the FR/DE
+        switch (LEARN-DE §2.1)."""
+        return self.effective_lang("de", module) == "de"
 
 
 class CourseError(Exception):
@@ -593,39 +622,50 @@ def _check_file(path: pathlib.Path, kind: str, problems: list[str]) -> None:
 
 
 def _check_files(course: Course, course_dir: pathlib.Path, problems: list[str]) -> None:
-    """Check 7: every page has its file, no file is orphaned, German is all-or-nothing."""
+    """Check 7: every page has its file, no file is orphaned, German pages are
+    all-or-nothing per module and their figures match the French ones."""
     practice_module = {s.slug: s.module for s in course.steps if s.kind == "practice"}
     for m in course.modules:
         d = course_dir / m.slug
         pages = [s for s in m.steps if s.kind in ("lesson", "learn-more")]
         for s in pages:
-            fr = d / f"{s.slug}.fr.md"
+            fr, de = d / f"{s.slug}.fr.md", d / f"{s.slug}.de.md"
             if fr.is_file():
                 _check_file(fr, s.kind, problems)
             else:
                 problems.append(f"{m.slug}/{fr.name}: missing ({s.kind} step {s.slug})")
-            if (d / f"{s.slug}.de.md").is_file():
-                _check_file(d / f"{s.slug}.de.md", s.kind, problems)
+            if de.is_file():
+                _check_file(de, s.kind, problems)
+                if fr.is_file():
+                    _check_figures(fr, de, problems)
 
-        notes = []
+        # Notes are per language (LEARN-DE §2.3): either may exist alone.
         for s in m.steps:
             if s.kind != "practice":
                 continue
             for lang in LANGS:
                 if (d / f"{s.slug}.{lang}.md").is_file():
                     _check_file(d / f"{s.slug}.{lang}.md", "note", problems)
-            if (d / f"{s.slug}.fr.md").is_file():
-                notes.append(s.slug)
-            elif (d / f"{s.slug}.de.md").is_file():
-                problems.append(f"{m.slug}/{s.slug}.de.md: answer note has no French original")
 
-        # §4.3: a module offers German only when all of it is translated.
-        translatable = [s.slug for s in pages] + notes
+        # §4.3: a module offers German only when all its pages are translated.
+        translatable = [s.slug for s in pages]
         missing_de = [f"{x}.de.md" for x in translatable if not (d / f"{x}.de.md").is_file()]
         has_de_title = "de" in m.title
         if (has_de_title or len(missing_de) < len(translatable)) and (missing_de or not has_de_title):
             gaps = missing_de + ([] if has_de_title else ["title.de"])
             problems.append(f"module {m.slug}: partly translated to German; missing {', '.join(gaps)}")
+
+    # LEARN-DE §2.2: a part is titled in German exactly when it holds German.
+    for p in course.parts:
+        german = [m.slug for m in p.modules if m.offers_de]
+        if german and "de" not in p.title:
+            problems.append(f"part {p.slug}: module {german[0]} offers German, so title.de is required")
+        elif not german and "de" in p.title:
+            problems.append(f"part {p.slug}: has title.de but none of its modules offers German yet")
+
+    if course.de == "on":
+        for gap in german_gaps(course, course_dir):
+            problems.append(f"COURSE_DE=on: German is missing: {gap}")
 
     module_pages = {m.slug: {s.slug for s in m.steps if s.kind != "practice"} for m in course.modules}
     for path in sorted(course_dir.rglob("*.md")):
@@ -643,9 +683,132 @@ def _check_files(course: Course, course_dir: pathlib.Path, problems: list[str]) 
             problems.append(f"{rel}: not attached to any step")
 
 
-def _check(course_dir: pathlib.Path, questions: list[dict]) -> tuple[Course | None, list[str]]:
+def german_gaps(course: Course, course_dir: pathlib.Path) -> list[str]:
+    """Everything the German course still lacks (LEARN-DE §2.2, §2.3): pages,
+    module and part titles, and the German notes of French notes not omitted
+    on purpose. Empty once `COURSE_DE=on` can be set."""
+    gaps: list[str] = []
+    for p in course.parts:
+        if "de" not in p.title:
+            gaps.append(f"part {p.slug}: title.de")
+    for m in course.modules:
+        d = course_dir / m.slug
+        if "de" not in m.title:
+            gaps.append(f"module {m.slug}: title.de")
+        for s in m.steps:
+            if s.kind != "practice":
+                if not (d / f"{s.slug}.de.md").is_file():
+                    gaps.append(f"{m.slug}/{s.slug}.de.md")
+            elif (
+                (d / f"{s.slug}.fr.md").is_file()
+                and not (d / f"{s.slug}.de.md").is_file()
+                and s.question_id not in course.notes_de_omitted
+            ):
+                gaps.append(f"{m.slug}/{s.slug}.de.md (note; or list q{s.question_id} in {NOTES_DE_OMITTED})")
+    return gaps
+
+
+def _parse_omitted(course: Course, course_dir: pathlib.Path, problems: list[str]) -> frozenset[int]:
+    """`notes-de-omitted.yaml`: question id -> why its French note has no
+    German counterpart (LEARN-DE §2.3). Optional."""
+    path = course_dir / NOTES_DE_OMITTED
+    if not path.is_file():
+        return frozenset()
+    try:
+        raw = yaml.safe_load(path.read_text()) or {}
+    except yaml.YAMLError as e:
+        problems.append(f"{NOTES_DE_OMITTED}: not valid YAML ({e})")
+        return frozenset()
+    if not isinstance(raw, dict):
+        problems.append(f"{NOTES_DE_OMITTED}: must map a question id to the reason")
+        return frozenset()
+    steps = {s.question_id: s for s in course.steps if s.kind == "practice"}
+    good = set()
+    for qid, reason in raw.items():
+        where = f"{NOTES_DE_OMITTED}: {qid}"
+        step = steps.get(qid) if isinstance(qid, int) else None
+        if step is None:
+            problems.append(f"{where}: not a practice step's question id")
+        elif not isinstance(reason, str) or not reason.strip():
+            problems.append(f"{where}: needs the reason, from the audit (LEARN-DE §3.1)")
+        elif not (course_dir / step.module / f"{step.slug}.fr.md").is_file():
+            problems.append(f"{where}: has no French note to omit")
+        elif (course_dir / step.module / f"{step.slug}.de.md").is_file():
+            problems.append(f"{where}: listed as omitted, but {step.module}/{step.slug}.de.md exists")
+        else:
+            good.add(qid)
+    return frozenset(good)
+
+
+# --- figures: a German page's SVG must be the French one's (LEARN-DE §2.4) ----
+#
+# Free to differ: each <text> subtree and its attributes, the <svg>'s
+# aria-label, any <title> or <desc>, and the figcaption (outside the <svg>).
+# Everything else must be identical, attributes and order included.
+
+FREE_ELEMENTS = ("title", "desc")
+
+
+def _svgs(path: pathlib.Path) -> list[ET.Element] | str:
+    """The page's <svg> elements, parsed; or why one could not be parsed."""
+    _, body = split_frontmatter(path.read_text())
+    out = []
+    for i, m in enumerate(SVG_BLOCK.finditer(body), start=1):
+        try:
+            out.append(ET.fromstring(m.group(0)))
+        except ET.ParseError as e:
+            return f"figure {i} is not well-formed XML ({e})"
+    return out
+
+
+def _svg_difference(fr: ET.Element, de: ET.Element, at: str = "svg") -> str | None:
+    """Where the German drawing departs from the French one, or None."""
+    if fr.tag != de.tag:
+        return f"{at}: <{de.tag}> where the French has <{fr.tag}>"
+    if fr.tag == "text":
+        return None
+    skip = {"aria-label"} if at == "svg" else set()
+    fr_attrs = [(k, v) for k, v in fr.attrib.items() if k not in skip]
+    de_attrs = [(k, v) for k, v in de.attrib.items() if k not in skip]
+    if fr_attrs != de_attrs:
+        return f"{at}: attributes differ ({dict(de_attrs)} vs French {dict(fr_attrs)})"
+    if (fr.text or "").strip() != (de.text or "").strip():
+        return f"{at}: content differs"
+    fr_kids = [c for c in fr if c.tag not in FREE_ELEMENTS]
+    de_kids = [c for c in de if c.tag not in FREE_ELEMENTS]
+    for i, (a, b) in enumerate(zip(fr_kids, de_kids, strict=False)):
+        diff = _svg_difference(a, b, f"{at} > {a.tag}[{i + 1}]")
+        if diff:
+            return diff
+    if len(fr_kids) != len(de_kids):
+        return f"{at}: {len(de_kids)} child elements, the French has {len(fr_kids)}"
+    return None
+
+
+def _check_figures(fr: pathlib.Path, de: pathlib.Path, problems: list[str]) -> None:
+    where = str(de.relative_to(de.parent.parent))
+    fr_svgs, de_svgs = _svgs(fr), _svgs(de)
+    for path, svgs in ((fr, fr_svgs), (de, de_svgs)):
+        if isinstance(svgs, str):
+            problems.append(f"{path.relative_to(path.parent.parent)}: {svgs}")
+    if isinstance(fr_svgs, str) or isinstance(de_svgs, str):
+        return
+    if len(fr_svgs) != len(de_svgs):
+        problems.append(f"{where}: {len(de_svgs)} figures, the French page has {len(fr_svgs)}")
+        return
+    for i, (a, b) in enumerate(zip(fr_svgs, de_svgs, strict=True), start=1):
+        diff = _svg_difference(a, b)
+        if diff:
+            problems.append(f"{where}: figure {i} differs from the French drawing at {diff}")
+
+
+def _check(
+    course_dir: pathlib.Path, questions: list[dict], de: str = "off"
+) -> tuple[Course | None, list[str]]:
     """Run checks 1-7. Returns the parsed course (possibly partial) and every problem."""
     problems: list[str] = []
+    if de not in DE_MODES:
+        return None, [f"COURSE_DE must be one of {', '.join(DE_MODES)}, got {de!r}"]
     path = course_dir / CURRICULUM
     try:
         raw = yaml.safe_load(path.read_text())
@@ -656,6 +819,8 @@ def _check(course_dir: pathlib.Path, questions: list[dict]) -> tuple[Course | No
     course = _parse(raw, problems)
     if course is None:
         return None, problems
+    course = replace(course, de=de)
+    course = replace(course, notes_de_omitted=_parse_omitted(course, course_dir, problems))
     _check_uniqueness(course, problems)
     _check_order(course, problems)
     _check_coverage(course, questions, problems)
@@ -753,28 +918,58 @@ def page(step: Step, lang: str, course_dir: pathlib.Path | None = None) -> Page:
 
 
 def answer_note(step: Step, lang: str, course_dir: pathlib.Path | None = None) -> str | None:
-    """A practice step's optional answer note (§4.4), rendered; None if it has none."""
+    """A practice step's optional answer note (§4.4), rendered; None if it has
+    none in `lang`. Never the other language's note (LEARN-DE §2.3)."""
     path = (course_dir or COURSE_DIR) / step.module / f"{step.slug}.{lang}.md"
     return _read_page(path, step.module).html if path.is_file() else None
+
+
+def note_untranslated(course: Course, step: Step, lang: str, course_dir: pathlib.Path | None = None) -> bool:
+    """A German page whose French note has no German one, not omitted on
+    purpose: the "not yet translated" line of `preview` (LEARN-DE §2.2)."""
+    d = (course_dir or COURSE_DIR) / step.module
+    return (
+        lang == "de"
+        and step.kind == "practice"
+        and step.question_id not in course.notes_de_omitted
+        and (d / f"{step.slug}.fr.md").is_file()
+        and not (d / f"{step.slug}.de.md").is_file()
+    )
 
 
 # --- entry points ------------------------------------------------------------
 
 
-def _inputs(course_dir: pathlib.Path | None, questions: list[dict] | None) -> tuple[pathlib.Path, list[dict]]:
+def de_setting() -> str:
+    """COURSE_DE from the environment; `off` when unset (LEARN-DE §2.2)."""
+    return os.environ.get("COURSE_DE", "").strip() or "off"
+
+
+def _inputs(
+    course_dir: pathlib.Path | None, questions: list[dict] | None, de: str | None
+) -> tuple[pathlib.Path, list[dict], str]:
     # Resolved at call time, not as default arguments, so tests can point
     # COURSE_DIR at a fixture.
-    return (course_dir or COURSE_DIR, questions if questions is not None else catalogue.load().questions)
+    return (
+        course_dir or COURSE_DIR,
+        questions if questions is not None else catalogue.load().questions,
+        de if de is not None else de_setting(),
+    )
 
 
-def validate(course_dir: pathlib.Path | None = None, questions: list[dict] | None = None) -> list[str]:
-    """Return every problem found; empty means the course is sound."""
-    return _check(*_inputs(course_dir, questions))[1]
+def validate(
+    course_dir: pathlib.Path | None = None, questions: list[dict] | None = None, de: str | None = None
+) -> list[str]:
+    """Return every problem found; empty means the course is sound. `de`
+    defaults to COURSE_DE."""
+    return _check(*_inputs(course_dir, questions, de))[1]
 
 
-def load(course_dir: pathlib.Path | None = None, questions: list[dict] | None = None) -> Course:
+def load(
+    course_dir: pathlib.Path | None = None, questions: list[dict] | None = None, de: str | None = None
+) -> Course:
     """The validated course. Raises CourseError listing every problem otherwise."""
-    course, problems = _check(*_inputs(course_dir, questions))
+    course, problems = _check(*_inputs(course_dir, questions, de))
     if problems or course is None:
         raise CourseError(problems)
     return course
@@ -785,9 +980,14 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument(
         "--report", action="store_true", help="also print the authoring review report (never fails the gate)"
     )
+    parser.add_argument(
+        "--de",
+        choices=DE_MODES,
+        help="validate as with this COURSE_DE (default: the environment's, else off)",
+    )
     args = parser.parse_args(argv)
 
-    course, problems = _check(*_inputs(None, None))
+    course, problems = _check(*_inputs(None, None, args.de))
     for p in problems:
         print(f"  {p}")
     if course is not None:
@@ -800,6 +1000,10 @@ def main(argv: list[str] | None = None) -> int:
         if args.report:
             print()
             print("\n".join(report(course)))
+            gaps = german_gaps(course, COURSE_DIR)
+            print()
+            print(f"German still missing (COURSE_DE={course.de}; empty before `on`): {len(gaps)}")
+            print("\n".join(f"  {g}" for g in gaps) or "  (none)")
     return 1 if problems else 0
 
 

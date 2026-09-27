@@ -8,6 +8,10 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+    # The German course's setting for the next deployment (specs/LEARN-DE.md
+    # §2.2): `preview` while it is being translated, `on` from its release.
+    env:
+      COURSE_DE: preview
     steps:
       - uses: actions/checkout@v7
 

@@ -1,8 +1,10 @@
 {% extends "base.html" %}
 {% from "_learner.html" import not_you %}
+{% from "_lang_switch.html" import lang_bar %}
 {% block title %}{{ title }} — {{ t(ui, 'learn_title') }}{% endblock %}
 {% block content %}
 {{ not_you(ui, learner) }}
+{{ lang_bar(ui, lang_switch, here, untranslated) }}
 <p class="crumbs"><a href="/learn">{{ t(ui, 'dashboard') }}</a></p>
 <section class="card">
   <h1>{{ title }}</h1>

@@ -1,6 +1,8 @@
 {% extends "base.html" %}
 {% block title %}{{ t(ui, 'learn_title') }} — {{ t(ui, 'app_title') }}{% endblock %}
+{% from "_lang_switch.html" import lang_bar %}
 {% block content %}
+{{ lang_bar(ui, lang_switch, here, untranslated) }}
 <section class="card">
   <h1>{{ t(ui, 'who_are_you') }}</h1>
   {% if accounts %}
