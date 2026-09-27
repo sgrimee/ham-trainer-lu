@@ -11,10 +11,10 @@
 cert: base
 parts:
   - slug: technique
-    title: {fr: "Techniques"}
+    title: {fr: "Techniques", de: "Technik"}
     modules:
       - slug: electricite
-        title: {fr: "Électricité de base"}
+        title: {fr: "Électricité de base", de: "Grundlagen der Elektrizität"}
         steps:
           - lesson: unites
             introduces: [si-units]
