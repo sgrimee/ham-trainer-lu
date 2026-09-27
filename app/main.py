@@ -837,6 +837,8 @@ def learn_step(
         "module_title": module.title.get(ui, module.title["fr"]),
         "position": module.steps.index(step) + 1,
         "module_total": len(module.steps),
+        "course_position": course.steps.index(step) + 1,
+        "course_total": len(course.steps),
         "previous": course.preceding(step),
         "following": course.following(step),
     }

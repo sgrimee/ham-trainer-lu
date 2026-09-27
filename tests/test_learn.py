@@ -214,6 +214,13 @@ def test_any_step_and_module_opens_out_of_order(client, learner):
     assert f'href="{T}/ondes"' in page and "À découvrir" in page
 
 
+def test_step_pages_show_their_place_in_the_whole_course(client, learner):
+    total = len(COURSE.steps)
+    for i in (0, COURSE.steps.index(Q2), total - 1):
+        page = client.get(url(COURSE.steps[i])).text
+        assert f"Page {i + 1} / {total} du cours" in page
+
+
 def test_a_step_ahead_names_the_lessons_it_builds_on(client, store: Store, learner):
     missing = COURSE.missing_lessons(Q2, set())
     assert missing

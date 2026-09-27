@@ -188,6 +188,17 @@ a.button:hover { background: var(--accent-hover); color: #fff; }
 .course-name { color: var(--muted); margin-top: -0.4rem; }
 .course-done { font-weight: 600; color: var(--correct); }
 .crumbs { font-size: 0.85rem; color: var(--muted); margin: 0 0 0.75rem; }
+.course-progress {
+  display: flex; align-items: center; gap: 0.6rem; font-size: 0.75rem; color: var(--muted);
+  margin: 0.75rem 0 0;
+}
+.course-progress progress {
+  flex: 1; max-width: 12rem; height: 4px; border: 0; border-radius: 2px;
+  background: var(--border); appearance: none; -webkit-appearance: none;
+}
+.course-progress progress::-webkit-progress-bar { background: var(--border); border-radius: 2px; }
+.course-progress progress::-webkit-progress-value { background: var(--muted); border-radius: 2px; }
+.course-progress progress::-moz-progress-bar { background: var(--muted); border-radius: 2px; }
 .module-list, .step-list { list-style: none; padding: 0; margin: 0; }
 .module-item {
   display: flex; flex-wrap: wrap; align-items: baseline; gap: 0.3rem 0.8rem;

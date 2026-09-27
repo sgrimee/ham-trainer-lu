@@ -10,6 +10,15 @@
 </p>
 {%- endmacro %}
 
+{#- Where the step sits in the whole course, all parts together: a thin bar
+    and the page count, kept quiet under the step. #}
+{% macro course_progress(ui, n, total) -%}
+<p class="course-progress">
+  <progress value="{{ n }}" max="{{ total }}" aria-hidden="true"></progress>
+  <span>{{ t(ui, 'course_progress', n=n, total=total) }}</span>
+</p>
+{%- endmacro %}
+
 {#- Shown on a step reached ahead of the recommended path (§7): the lessons it
     builds on that are not done yet. A suggestion, never a gate. #}
 {% macro missing_lessons(ui, missing) -%}

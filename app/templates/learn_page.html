@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% from "_learner.html" import not_you %}
-{% from "_learn_step.html" import crumbs, missing_lessons, previous_link %}
+{% from "_learn_step.html" import course_progress, crumbs, missing_lessons, previous_link %}
 {% block title %}{{ title }} — {{ t(ui, 'learn_title') }}{% endblock %}
 {% block content %}
 {#- Rendered above and below the step, so Previous / Next stay put whatever the
@@ -43,4 +43,5 @@
 
   {{ prev_next() }}
 </article>
+{{ course_progress(ui, course_position, course_total) }}
 {% endblock %}
