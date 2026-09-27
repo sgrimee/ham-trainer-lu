@@ -361,7 +361,7 @@ parts:
           - learn-more
 
   - slug: procedures
-    title: {fr: "Règles et procédures d'exploitation"}
+    title: {fr: "Règles et procédures d'exploitation", de: "Betriebliche Regeln und Verfahren"}
     modules:
       - slug: bandes-et-puissance
         title: {fr: "Bandes et puissance"}
@@ -394,7 +394,7 @@ parts:
           - learn-more
 
       - slug: indicatif-a-l-antenne
-        title: {fr: "L'indicatif à l'antenne"}
+        title: {fr: "L'indicatif à l'antenne", de: "Das Rufzeichen beim Funken"}
         steps:
           - lesson: quand-dire-son-indicatif
             introduces: [callsign-rules]
