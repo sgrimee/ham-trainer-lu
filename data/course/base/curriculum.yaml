@@ -328,7 +328,7 @@ parts:
           - learn-more
 
       - slug: certificats
-        title: {fr: "Certificat, licence, indicatif"}
+        title: {fr: "Certificat, licence, indicatif", de: "Zertifikat, Lizenz, Rufzeichen"}
         steps:
           - lesson: certificat-et-licence
             introduces: [operator-certificate, licence]
