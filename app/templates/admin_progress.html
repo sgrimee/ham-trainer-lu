@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block head %}<meta name="robots" content="noindex, nofollow">{% endblock %}
+{% block title %}{{ t(ui, 'admin_progress') }} — admin{% endblock %}
+{% block content %}
+<p><a href="/admin">&larr; {{ t(ui, 'admin_home') }}</a></p>
+<h1>{{ t(ui, 'admin_progress') }}</h1>
+{% for l in learners %}
+{%- set pct = (100 * l.steps_done / steps_total) | round | int if steps_total else 0 %}
+<section class="card learner-progress">
+  <header class="lp-head">
+    <h2>{{ l.account.display_name }}</h2>
+    <span class="lp-pct">{{ pct }} %</span>
+  </header>
+  <div class="lp-bar" role="progressbar" aria-valuemin="0" aria-valuemax="{{ steps_total }}"
+       aria-valuenow="{{ l.steps_done }}"><span style="width: {{ pct }}%"></span></div>
+  <p class="lp-counts">
+    <strong>{{ t(ui, 'steps_progress', done=l.steps_done, total=steps_total) }}</strong>
+    · {{ t(ui, 'progress_modules', done=l.modules_done, total=modules_total) }}
+  </p>
+  {% for p in l.parts %}
+  <h3 class="lp-part">{{ t(ui, 'part_heading', n=p.part.number, title=p.title) }}</h3>
+  <ol class="lp-modules">
+    {% for m in p.modules %}
+    <li class="lp-module lp-{{ m.state }}" title="{{ m.title }} — {{ t(ui, 'module_state_' + m.state) }}">
+      <span class="lp-title">{% if m.state == 'completed' %}<span class="lp-check" aria-hidden="true">✓</span> {% endif %}{{ m.title }}</span>
+      <span class="lp-mini"><span style="width: {{ (100 * m.done / m.total) | round | int if m.total else 0 }}%"></span></span>
+      <span class="lp-steps">{{ m.done }} / {{ m.total }}</span>
+    </li>
+    {% endfor %}
+  </ol>
+  {% endfor %}
+</section>
+{% else %}
+<section class="card"><p>{{ t(ui, 'no_accounts') }}</p></section>
+{% endfor %}
+{% endblock %}

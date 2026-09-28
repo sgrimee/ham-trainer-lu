@@ -1163,7 +1163,7 @@ def learn_self_grade(
 
 # -- admin (specs/LEARN.md §6.1, §6.1.1) ----------------------------------------
 #
-# Unpublished: nothing links here. Every route sits on this router, whose
+# Unpublished: nothing outside /admin links here. Every route sits on this router, whose
 # dependency enforces the admin password; none looks at the current learner.
 
 admin_router = APIRouter(prefix="/admin", dependencies=[Depends(admin.require_admin)])
@@ -1185,6 +1185,54 @@ def _admin_redirect(url: str) -> Response:
 def _learners_page(request: Request, store: Store, error: str | None = None, name: str = "") -> Response:
     return _admin_page(
         request, "admin_learners.html", {"accounts": store.accounts(), "error": error, "name": name}
+    )
+
+
+@admin_router.get("")
+def admin_index(request: Request):
+    return _admin_page(request, "admin_index.html", {})
+
+
+def _module_progress(module: course_module.Module, completed: set[str], ui: str) -> dict:
+    """What was done, not course.module_state: that one also marks next up
+    as in progress, which says nothing about the learner here."""
+    done = sum(1 for s in module.steps if s.id in completed)
+    total = len(module.steps)
+    state = "completed" if done == total else "in-progress" if done else "not-started"
+    return {"title": module.title.get(ui, module.title["fr"]), "state": state, "done": done, "total": total}
+
+
+@admin_router.get("/progress")
+def admin_progress(
+    request: Request, store: Store = Depends(get_store), course: course_module.Course = Depends(get_course)
+):
+    ui = course_ui(request)
+    by_account = store.completed_steps_by_account()
+    course_ids = {s.id for s in course.steps}
+    learners = []
+    for a in store.accounts():
+        # Ids of steps no longer in the course are not counted (§7).
+        completed = by_account.get(a["id"], set()) & course_ids
+        parts = [
+            {
+                "part": p,
+                "title": p.title.get(ui, p.title["fr"]),
+                "modules": [_module_progress(m, completed, ui) for m in p.modules],
+            }
+            for p in course.parts
+        ]
+        learners.append(
+            {
+                "account": a,
+                "steps_done": len(completed),
+                "modules_done": sum(1 for m in course.modules if all(s.id in completed for s in m.steps)),
+                "parts": parts,
+            }
+        )
+    return _admin_page(
+        request,
+        "admin_progress.html",
+        {"learners": learners, "steps_total": len(course_ids), "modules_total": len(course.modules)},
     )
 
 

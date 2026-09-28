@@ -257,6 +257,15 @@ class Store:
             ).fetchall()
         return {r[0] for r in rows}
 
+    def completed_steps_by_account(self) -> dict[str, set[str]]:
+        """Every account's completed step ids, in one query (the admin
+        progress page). Accounts with no progress are absent."""
+        by_account: dict[str, set[str]] = {}
+        with self._connect() as con:
+            for account_id, step_id in con.execute("SELECT account_id, step_id FROM step_progress"):
+                by_account.setdefault(account_id, set()).add(step_id)
+        return by_account
+
     @staticmethod
     def _account_exists(con: sqlite3.Connection, account_id: str) -> bool:
         """Checked first in every progress write, under the write lock: a

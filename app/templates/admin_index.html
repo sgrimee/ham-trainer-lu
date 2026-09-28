@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block head %}<meta name="robots" content="noindex, nofollow">{% endblock %}
+{% block title %}{{ t(ui, 'admin_home') }} — admin{% endblock %}
+{% block content %}
+<section class="card">
+  <h1>{{ t(ui, 'admin_home') }}</h1>
+  <ul class="resume-list">
+    <li class="resume-item">
+      <a href="/admin/learners">{{ t(ui, 'admin_learners') }}</a>
+      <span class="hint">{{ t(ui, 'admin_learners_hint') }}</span>
+    </li>
+    <li class="resume-item">
+      <a href="/admin/progress">{{ t(ui, 'admin_progress') }}</a>
+      <span class="hint">{{ t(ui, 'admin_progress_hint') }}</span>
+    </li>
+  </ul>
+</section>
+{% endblock %}

@@ -268,3 +268,30 @@ a.button:hover { background: var(--accent-hover); color: #fff; }
   padding: 0.6rem 1rem; margin: 0 0 1rem; font-weight: 600;
 }
 .toast::before { content: "★ "; color: var(--partial); }
+
+/* Admin progress page: one card per learner, one tile per module. */
+.learner-progress h2 { margin: 0; }
+.lp-head { display: flex; justify-content: space-between; align-items: baseline; gap: 1rem; }
+.lp-pct { font-size: 1.6rem; font-weight: 700; color: var(--accent); font-variant-numeric: tabular-nums; }
+.lp-bar { height: 0.7rem; margin: 0.5rem 0 0.4rem; background: var(--border); border-radius: 1rem; overflow: hidden; }
+.lp-bar > span { display: block; height: 100%; background: linear-gradient(90deg, var(--accent), var(--correct)); border-radius: 1rem; }
+.lp-counts { margin: 0 0 0.5rem; color: var(--muted); font-size: 0.9rem; }
+.lp-counts strong { color: var(--fg); }
+.lp-part { font-size: 0.85rem; font-weight: 600; color: var(--muted); margin: 1rem 0 0.4rem; text-transform: uppercase; letter-spacing: 0.03em; }
+.lp-modules {
+  list-style: none; padding: 0; margin: 0;
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(8rem, 1fr)); gap: 0.45rem;
+}
+.lp-module {
+  display: flex; flex-direction: column; gap: 0.3rem; padding: 0.5rem 0.6rem;
+  border: 1px solid var(--border); border-radius: 8px; background: var(--surface); font-size: 0.8rem; line-height: 1.3;
+}
+.lp-title { flex: 1; font-weight: 500; }
+.lp-mini { height: 0.3rem; background: var(--border); border-radius: 1rem; overflow: hidden; }
+.lp-mini > span { display: block; height: 100%; background: var(--accent); }
+.lp-steps { color: var(--muted); font-variant-numeric: tabular-nums; }
+.lp-not-started { color: var(--muted); background: var(--bg); }
+.lp-in-progress { border-color: #c7d4f5; }
+.lp-completed { background: #e6f4ea; border-color: #b7dfc3; }
+.lp-completed .lp-mini > span { background: var(--correct); }
+.lp-completed .lp-steps, .lp-check { color: var(--correct); font-weight: 600; }

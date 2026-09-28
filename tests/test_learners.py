@@ -152,6 +152,38 @@ def test_admin_needs_the_password(client, with_password):
     assert '<meta name="robots" content="noindex' in resp.text
 
 
+def test_admin_landing_page_links_to_learners(client, with_password):
+    assert client.get("/admin").status_code == 401
+    resp = client.get("/admin", auth=AUTH)
+    assert resp.status_code == 200
+    assert "noindex" in resp.headers["x-robots-tag"]
+    assert 'href="/admin/learners"' in resp.text
+    assert 'href="/admin/progress"' in resp.text
+
+
+def test_admin_progress_shows_steps_and_completed_modules(client, store: Store, with_password):
+    course = client.app.state.course
+    first, second = course.modules[0], course.modules[1]
+    ada = store.create_account("Ada")
+    store.create_account("Bob")
+    for step in first.steps:
+        store.complete_step(ada, step.id)
+    store.complete_step(ada, second.steps[0].id)
+    store.complete_step(ada, "no-longer-in-the-course")
+    assert client.get("/admin/progress").status_code == 401
+    resp = client.get("/admin/progress", auth=AUTH)
+    assert resp.status_code == 200
+    assert "noindex" in resp.headers["x-robots-tag"]
+    ada_card, bob_card = resp.text.split('class="card learner-progress"')[1:]
+    done = len(first.steps) + 1
+    assert f"{done} / {len(course.steps)} étapes" in ada_card
+    assert f"1 / {len(course.modules)} modules terminés" in ada_card
+    assert ada_card.count("lp-module lp-completed") == 1
+    assert ada_card.count("lp-module lp-in-progress") == 1
+    assert f"0 / {len(course.steps)} étapes" in bob_card
+    assert "lp-module lp-completed" not in bob_card
+
+
 def test_admin_password_file_wins(client, monkeypatch, tmp_path):
     secret = tmp_path / "admin_password"
     secret.write_text("from-file\n")
