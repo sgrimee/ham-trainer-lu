@@ -19,6 +19,10 @@
 {%- endmacro %}
 <div class="session-layout">
 
+{#- On a phone the grid would push the question below the fold: it folds away
+    there, and the inline script closes it before the first paint. #}
+<details class="grid-details" open>
+<summary>{{ t(ui, 'question_of', n=n, total=total) }}</summary>
 <nav class="grid-nav">
   {% for cell in grid %}
     {% if loop.first or cell.part != grid[loop.index0 - 1].part %}
@@ -33,6 +37,8 @@
     {% endif %}
   {% endfor %}
 </nav>
+</details>
+<script>if (matchMedia('(max-width: 600px)').matches) document.currentScript.previousElementSibling.open = false;</script>
 
 <article class="question">
   {{ prev_next(top=true) }}
@@ -94,5 +100,5 @@
   {{ prev_next() }}
 </article>
 </div>
-<p class="hint">{{ t(ui, 'flag_shortcut_hint') }}</p>
+<p class="hint key-hint">{{ t(ui, 'flag_shortcut_hint') }}</p>
 {% endblock %}

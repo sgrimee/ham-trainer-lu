@@ -153,10 +153,21 @@ textarea { max-width: 100%; }
 .appendix-page { max-width: 900px; margin: 0 auto; padding: 1rem; }
 .appendix-page img { width: 100%; margin-bottom: 1rem; }
 
-@media (max-width: 480px) {
-  .part-name { width: 6rem; font-size: 0.85rem; }
-  .q-meta { font-size: 0.75rem; }
+/* The question grid folds away on a phone (question.html); on a wider screen
+   it is always open and the toggle is hidden. */
+.grid-details > summary {
+  cursor: pointer; font-weight: 600; font-size: 0.9rem; color: var(--accent);
+  padding: 0.5rem 0.75rem; background: var(--surface); border: 1px solid var(--border); border-radius: 8px;
 }
+.grid-details[open] > summary { margin-bottom: 0.6rem; }
+@media (min-width: 601px) {
+  .grid-details > summary { display: none; }
+}
+
+/* Wide lesson tables scroll on their own instead of widening the page. */
+.lesson-body table { display: block; max-width: 100%; overflow-x: auto; }
+
+.review-actions { display: flex; flex-wrap: wrap; gap: 0.5rem; margin: 1rem 0; }
 
 @media print {
   .topbar, .grid-nav, form, .review-actions, .hint, .footer { display: none; }
@@ -295,3 +306,37 @@ a.button:hover { background: var(--accent-hover); color: #fff; }
 .lp-completed { background: #e6f4ea; border-color: #b7dfc3; }
 .lp-completed .lp-mini > span { background: var(--correct); }
 .lp-completed .lp-steps, .lp-check { color: var(--correct); font-weight: 600; }
+
+/* Phones: tighter gutters, stacked rows, 16px fields. */
+@media (max-width: 600px) {
+  main { padding: 0.75rem 0.75rem 1.5rem; }
+  .topbar { position: static; padding: 0.6rem 0.75rem; }
+  .card, .question { padding: 1rem 0.9rem; }
+  h1 { font-size: 1.25rem; }
+  /* Below 16px, iOS Safari zooms the page in when a field takes focus. */
+  select, input[type=text], textarea { font-size: 1rem; max-width: 100%; }
+  .choice { margin-right: 0.8rem; padding: 0.2rem 0; }
+  .q-meta { gap: 0.2rem 0.75rem; font-size: 0.78rem; }
+  .stem { font-size: 1rem; }
+  .lesson-body { font-size: 1rem; }
+  .options li label { padding: 0.65rem 0.7rem; }
+  .answer-actions button { flex: 1 1 auto; }
+  .prev-next { flex-wrap: wrap; }
+  .part-bar { flex-wrap: wrap; gap: 0.2rem 0.6rem; margin-bottom: 0.8rem; }
+  .part-name { width: 100%; font-size: 0.9rem; }
+  .part-score { width: auto; }
+  .module-title { flex-basis: 100%; }
+  .resume-item { flex-wrap: wrap; }
+  .summary { grid-template-columns: 1fr; }
+  .summary dd { margin-bottom: 0.4rem; }
+  .lp-head { flex-wrap: wrap; }
+}
+
+/* Touch screens: no keyboard, bigger targets. */
+@media (hover: none) and (pointer: coarse) {
+  .key-hint { display: none; }
+  .grid-cell { width: 2.5rem; height: 2.5rem; font-size: 0.9rem; }
+  .grid-nav { gap: 0.4rem; }
+  .lang-switch button { padding: 0.35rem 0.8rem; }
+  .topbar nav a { padding: 0.25rem 0; }
+}
