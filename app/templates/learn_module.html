@@ -4,7 +4,7 @@
 {% block title %}{{ title }} — {{ t(ui, 'learn_title') }}{% endblock %}
 {% block content %}
 {{ not_you(ui, learner) }}
-{{ lang_bar(ui, lang_switch, here, untranslated) }}
+{{ lang_bar(ui, lang_switch, here, untranslated, lang_chosen) }}
 <p class="crumbs"><a href="/learn">{{ t(ui, 'dashboard') }}</a></p>
 <section class="card">
   <h1>{{ title }}</h1>

@@ -161,10 +161,6 @@ def test_landing_links_both_halves(client):
     assert 'href="/learn"' in resp.text and 'href="/exam?lang=fr"' in resp.text
 
 
-def test_landing_points_parts_2_and_3_to_the_ilr_guide(client):
-    assert "guide_du_radioamateur.pdf" in client.get("/").text
-
-
 def test_landing_follows_the_language_preference(client):
     client.cookies.set(PREFS_COOKIE, '{"lang": "de"}')
     resp = client.get("/")
@@ -972,6 +968,8 @@ def test_the_switch_ignores_an_unknown_language(client):
     "target",
     [
         "/learnfoo",
+        "/adminfoo",
+        "/admin/../exam",
         "//evil.example/learn",
         "/learn/../exam",
         "/learn/%2e%2e/exam",
@@ -987,21 +985,46 @@ def test_the_switch_only_goes_back_to_a_course_page(client, target):
     assert location(switch(client, "de", target)) == "/learn"
 
 
-def test_the_switch_shows_only_where_german_is_offered(client, learner, german):
+def test_the_switch_shows_on_every_course_page_unless_german_is_off(client, learner, german):
     other = module("ondes").steps[0]
-    for mode, on_electricite, on_ondes, on_dashboard in (
-        ("off", False, False, False),
-        ("preview", True, False, True),
-        ("on", True, True, True),
-    ):
+    for mode in ("off", "preview", "on"):
         german(["electricite"] if mode != "on" else "all", mode)
-        pages = {url(FIRST): on_electricite, f"{T}/electricite": on_electricite, url(other): on_ondes}
-        pages["/learn"] = on_dashboard
-        for path, shown in pages.items():
+        for path in (url(FIRST), f"{T}/electricite", url(other), "/learn"):
             text = client.get(path).text
-            assert ('action="/learn/lang"' in text) == shown, (mode, path)
-            if shown:
+            assert ('action="/learn/lang"' in text) == (mode != "off"), (mode, path)
+            if mode != "off":
                 assert f'name="next" value="{path}"' in text
+
+
+def test_the_switch_marks_the_preference_on_a_page_not_yet_in_german(client, learner, german):
+    german(["electricite"], "preview")
+    client.cookies.set(PREFS_COOKIE, '{"lang": "de"}')
+    text = client.get(url(module("ondes").steps[0])).text
+    assert '<html lang="fr">' in text and "Noch nicht übersetzt" in text
+    assert 'value="de" lang="de"\n          class="current"' in text
+
+
+def test_the_landing_page_has_the_switch_and_it_comes_back_there(client, german):
+    german(["electricite"], "off")
+    text = client.get("/").text
+    assert 'action="/learn/lang"' in text and 'name="next" value="/"' in text
+    resp = switch(client, "de", "/")
+    assert location(resp) == "/" and prefs_cookie(resp)["lang"] == "de"
+    client.cookies.set(PREFS_COOKIE, '{"lang": "de"}')
+    assert '<html lang="de">' in client.get("/").text
+
+
+def test_the_admin_pages_have_the_switch_unless_german_is_off(client, learner, german, monkeypatch):
+    monkeypatch.setenv("ADMIN_PASSWORD", "pw")
+    monkeypatch.delenv("ADMIN_PASSWORD_FILE", raising=False)
+    auth = ("admin", "pw")
+    pages = ("/admin", "/admin/learners", "/admin/progress", f"/admin/learners/{learner}/delete")
+    for mode in ("off", "preview"):
+        german(["electricite"], mode)
+        for path in pages:
+            text = client.get(path, auth=auth).text
+            assert ('action="/learn/lang"' in text) == (mode == "preview"), (mode, path)
+    assert location(switch(client, "de", "/admin/progress")) == "/admin/progress"
 
 
 def test_off_shows_no_german_even_to_a_german_preference(client, learner, german):

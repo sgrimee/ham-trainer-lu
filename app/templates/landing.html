@@ -1,6 +1,8 @@
 {% extends "base.html" %}
 {% from "_learner.html" import not_you %}
+{% from "_lang_switch.html" import lang_bar %}
 {% block content %}
+{{ lang_bar(ui, lang_switch, here, untranslated, lang_chosen) }}
 {% if learner %}{{ not_you(ui, learner) }}{% endif %}
 <section class="card landing-intro">
   <h1>{{ t(ui, 'landing_heading') }}</h1>
@@ -21,8 +23,5 @@
 <section class="card">
   <h2>{{ t(ui, 'landing_path_title') }}</h2>
   <p>{{ t(ui, 'landing_path_text') }}</p>
-  <p>{{ t(ui, 'landing_guide_text') }}
-    <a href="https://www.ilr.lu/wp-content/uploads/publication/ilr-fre-pub-2023-01-01-service_amateur_guide_du_radioamateur.pdf"
-       target="_blank" rel="noopener">{{ t(ui, 'landing_guide_link') }}</a></p>
 </section>
 {% endblock %}

@@ -1,7 +1,9 @@
 {% extends "base.html" %}
+{% from "_lang_switch.html" import lang_bar %}
 {% block head %}<meta name="robots" content="noindex, nofollow">{% endblock %}
 {% block title %}{{ t(ui, 'admin_home') }} — admin{% endblock %}
 {% block content %}
+{{ lang_bar(ui, lang_switch, here, untranslated, lang_chosen) }}
 <section class="card">
   <h1>{{ t(ui, 'admin_home') }}</h1>
   <ul class="resume-list">

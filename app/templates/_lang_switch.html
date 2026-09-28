@@ -1,15 +1,16 @@
 {#- The course's FR/DE switch and the preview banner (specs/LEARN-DE.md §2.1,
     §2.2). The switch posts the page's own URL, query string included, and
-    comes back to it; it changes nothing but the language. The banner marks
+    comes back to it; it changes nothing but the language. It marks the
+    learner's preference, which a page not yet in German does not follow. The banner marks
     a French page shown to a learner who prefers German while German is in
     preview, so a gap is never mistaken for the finished course. #}
-{% macro lang_bar(ui, lang_switch, here, untranslated) -%}
+{% macro lang_bar(ui, lang_switch, here, untranslated, chosen=ui) -%}
 {% if lang_switch %}
 <form method="post" action="/learn/lang" class="lang-switch" aria-label="{{ t(ui, 'course_language') }}">
   <input type="hidden" name="next" value="{{ here }}">
   {% for code, label in (('fr', 'FR'), ('de', 'DE')) %}
   <button type="submit" name="lang" value="{{ code }}" lang="{{ code }}"
-          {% if code == ui %}class="current" aria-current="true"{% endif %}>{{ label }}</button>
+          {% if code == chosen %}class="current" aria-current="true"{% endif %}>{{ label }}</button>
   {% endfor %}
 </form>
 {% endif %}

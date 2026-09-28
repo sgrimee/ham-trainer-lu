@@ -591,7 +591,7 @@ def test_effective_language_per_setting(fixture):
         assert loaded.effective_lang("de", loaded.modules[0]) == de_page, mode
         assert loaded.effective_lang("fr", loaded.modules[0]) == "fr"
         assert loaded.effective_lang("both", loaded.modules[0]) == "fr"
-        assert loaded.offers_switch() == (de_page == "de")
+        assert loaded.offers_switch() == (mode != "off")
 
 
 def test_preview_is_german_module_by_module(tmp_path, curriculum):
@@ -601,7 +601,6 @@ def test_preview_is_german_module_by_module(tmp_path, curriculum):
     alpha, beta = loaded.modules[0], loaded.modules[1]
     assert loaded.effective_lang("de", alpha) == "de" and loaded.effective_lang("de", beta) == "fr"
     assert loaded.effective_lang("de") == "de"  # off-module: some module offers it
-    assert loaded.offers_switch(alpha) and not loaded.offers_switch(beta)
     assert course.load(root, QUESTIONS, "off").effective_lang("de", alpha) == "fr"
 
 

@@ -103,7 +103,7 @@ MESSAGES = {
             "Dès que tu en sais assez pour répondre, une vraie question d'examen "
             "apparaît. Ta progression est enregistrée à ton nom."
         ),
-        "landing_learn_button": "Commencer le cours",
+        "landing_learn_button": "Apprendre",
         "landing_exam_text": (
             "L'entraînement à l'examen, pour les trois certificats : le mode étude, "
             "section par section avec la correction tout de suite, ou l'examen blanc, "
@@ -115,11 +115,6 @@ MESSAGES = {
             "Commence par le cours, puis passe à l'entraînement une fois le cours terminé, "
             "pour t'exercer dans les conditions de l'examen."
         ),
-        "landing_guide_text": (
-            "Pour aller plus loin sur la réglementation et les procédures, la référence est "
-            "le guide du radioamateur publié par l'ILR :"
-        ),
-        "landing_guide_link": "Guide du radioamateur (ILR, PDF)",
         "course_title": "Cours BASE",
         "dashboard": "Mon parcours",
         "continue": "Continuer",
@@ -271,7 +266,7 @@ MESSAGES = {
             "Sobald du genug weißt, um zu antworten, erscheint eine echte Prüfungsfrage. "
             "Dein Fortschritt wird unter deinem Namen gespeichert."
         ),
-        "landing_learn_button": "Kurs starten",
+        "landing_learn_button": "Lernen",
         "landing_exam_text": (
             "Das Prüfungstraining für alle drei Zertifikate: der Lernmodus, Abschnitt für "
             "Abschnitt mit sofortiger Korrektur, oder die Probeprüfung, zusammengestellt "
@@ -283,11 +278,6 @@ MESSAGES = {
             "Fang mit dem Kurs an und wechsle zum Training, wenn du ihn abgeschlossen "
             "hast, um unter Prüfungsbedingungen zu üben."
         ),
-        "landing_guide_text": (
-            "Um mehr über Vorschriften und Verfahren zu erfahren, ist der vom ILR "
-            "veröffentlichte Leitfaden für Funkamateure die Referenz (auf Französisch):"
-        ),
-        "landing_guide_link": "Guide du radioamateur (ILR, PDF)",
         "course_title": "BASE-Kurs",
         "dashboard": "Mein Kurs",
         "continue": "Weiter",

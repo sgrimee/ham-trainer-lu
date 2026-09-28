@@ -2,7 +2,7 @@
 {% block title %}{{ t(ui, 'learn_title') }} — {{ t(ui, 'app_title') }}{% endblock %}
 {% from "_lang_switch.html" import lang_bar %}
 {% block content %}
-{{ lang_bar(ui, lang_switch, here, untranslated) }}
+{{ lang_bar(ui, lang_switch, here, untranslated, lang_chosen) }}
 <section class="card">
   <h1>{{ t(ui, 'who_are_you') }}</h1>
   {% if accounts %}

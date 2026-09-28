@@ -68,17 +68,20 @@ the 55 answer notes (`q<number>.fr.md`, §3.2). Two lessons also start with
 
 ### 2.1 The language switch
 
-A FR/DE switch on every course page (dashboard, module page, step page)
-whose effective language could be German (§2.2): with German `on`, every
-page; in `preview`, a module or step page whose module offers German, and
-the dashboard once some module does. Elsewhere no switch shows.
+A FR/DE switch on every course page (name picker, dashboard, module page,
+step page) whenever German is `preview` or `on` (§2.2); with `off` no course
+page shows it. In `preview` a module without German shows it too: choosing
+DE there keeps the French page, with its "Noch nicht übersetzt" banner, and
+the switch marks the preference (DE), not the page's language. The landing
+page (`/`, `LEARN.md` §10.1), fully translated whatever `COURSE_DE` says,
+always shows it.
 
 - It posts to a new `POST /learn/lang` with `lang` (`fr` | `de`) and `next`,
   the page's own URL including its query string (`?picked=`). The route
   writes the preference and redirects to `next`.
 - `next` is parsed with `urllib.parse.urlsplit` and accepted only if it
-  has no scheme and no host, and its path is `/learn` or starts with
-  `/learn/`, with no `\`, no empty segment (`//`) and no `..` segment; the
+  has no scheme and no host, and it is `/` (the landing page) or its path
+  is `/learn` or starts with `/learn/`, with no `\`, no empty segment (`//`) and no `..` segment; the
   query string is kept. Anything else redirects to `/learn`.
   (`/learnfoo`, `//evil.example/learn` and `/learn/../exam` are refused.)
 - It changes **only** the `lang` key of the preferences cookie and keeps

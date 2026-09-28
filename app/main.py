@@ -231,12 +231,21 @@ def _read_prefs(request: Request) -> dict:
 @app.get("/")
 def landing(request: Request, store: Store = Depends(get_store)):
     """What the site is for and which half to start with. Static apart from
-    the language, which follows the preferences cookie, and the current
-    learner's "not you? change" line when there is one."""
+    the language, which follows the preferences cookie and has its own FR/DE
+    switch, and the current learner's "not you? change" line when there is
+    one."""
+    ui = ui_lang(_read_prefs(request)["lang"])
     return templates.TemplateResponse(
         request=request,
         name="landing.html",
-        context={"ui": ui_lang(_read_prefs(request)["lang"]), "learner": current_learner(request, store)},
+        context={
+            "ui": ui,
+            "lang_switch": True,
+            "lang_chosen": ui,
+            "here": "/",
+            "untranslated": False,
+            "learner": current_learner(request, store),
+        },
     )
 
 
@@ -608,33 +617,40 @@ def course_ui(request: Request, module: course_module.Module | None = None) -> s
 
 def course_lang(request: Request, module: course_module.Module | None = None) -> dict:
     """A course page's language and what goes with it (specs/LEARN-DE.md
-    §2.1-2.2): `ui`; whether it shows the FR/DE switch, and the page's own URL
-    for it to come back to; and whether it is a French page shown to a learner
-    who prefers German in `preview`, which says so."""
+    §2.1-2.2): `ui`; whether it shows the FR/DE switch, the language it marks
+    as chosen (the preference, which a French page in `preview` may not
+    follow) and the page's own URL for it to come back to; and whether it is
+    a French page shown to a learner who prefers German in `preview`, which
+    says so."""
     course = request.app.state.course
     ui = course_ui(request, module)
+    chosen = ui_lang(_read_prefs(request)["lang"])
     query = request.url.query
     return {
         "ui": ui,
-        "lang_switch": course.offers_switch(module),
+        "lang_switch": course.offers_switch(),
+        "lang_chosen": chosen,
         "here": request.url.path + (f"?{query}" if query else ""),
-        "untranslated": course.de == "preview" and _read_prefs(request)["lang"] == "de" and ui == "fr",
+        "untranslated": course.de == "preview" and chosen == "de" and ui == "fr",
     }
 
 
 def safe_learn_path(target: str) -> str:
-    """`target` if it is a course page of this site, else the dashboard: a
-    path of `/learn` or under `/learn/`, with no scheme, host, `\\`, empty or
-    dot segment (specs/LEARN-DE.md §2.1). The query string is kept."""
+    """`target` if it is the landing page, a course page or an admin page of
+    this site, else the dashboard: `/`, or a path of `/learn`, `/admin` or
+    under either, with no scheme, host, `\\`, empty or dot segment
+    (specs/LEARN-DE.md §2.1). The query string is kept."""
     parts = urlsplit(target)
     path = parts.path
+    if target == "/":
+        return target
     segments = [unquote(seg) for seg in path.split("/")[1:]]
     if (
         parts.scheme
         or parts.netloc
         or "\\" in target
         or any(ch.isspace() or ord(ch) < 0x20 for ch in target)
-        or not (path == "/learn" or path.startswith("/learn/"))
+        or not any(path == root or path.startswith(root + "/") for root in ("/learn", "/admin"))
         or any(seg in ("", ".", "..") or "/" in seg or "\\" in seg for seg in segments)
     ):
         return "/learn"
@@ -1172,7 +1188,7 @@ NOINDEX = {"X-Robots-Tag": "noindex, nofollow"}
 
 def _admin_page(request: Request, name: str, context: dict) -> Response:
     response = templates.TemplateResponse(
-        request=request, name=name, context={"ui": course_ui(request), **context}
+        request=request, name=name, context={**course_lang(request), **context}
     )
     response.headers.update(NOINDEX)
     return response

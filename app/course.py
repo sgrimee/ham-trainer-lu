@@ -234,10 +234,11 @@ class Course:
         offered = module.offers_de if module is not None else self.offers_de()
         return "de" if offered else "fr"
 
-    def offers_switch(self, module: Module | None = None) -> bool:
-        """Whether a page's language could be German, so it shows the FR/DE
-        switch (LEARN-DE §2.1)."""
-        return self.effective_lang("de", module) == "de"
+    def offers_switch(self) -> bool:
+        """Whether course pages show the FR/DE switch (LEARN-DE §2.1): all of
+        them, as soon as German is not `off`. In `preview` a module without
+        German still shows it, and its banner says the page is not translated."""
+        return self.de != "off"
 
 
 class CourseError(Exception):

@@ -24,7 +24,7 @@
 {% endif %}
 {%- endmacro %}
 {{ not_you(ui, learner) }}
-{{ lang_bar(ui, lang_switch, here, untranslated) }}
+{{ lang_bar(ui, lang_switch, here, untranslated, lang_chosen) }}
 {{ crumbs(ui, module, module_title, position, module_total) }}
 {{ missing_lessons(ui, missing) }}
 {# A practice question looks exactly like an exam question (specs/LEARN.md §5):

@@ -1,7 +1,9 @@
 {% extends "base.html" %}
+{% from "_lang_switch.html" import lang_bar %}
 {% block head %}<meta name="robots" content="noindex, nofollow">{% endblock %}
 {% block title %}{{ t(ui, 'delete') }} — admin{% endblock %}
 {% block content %}
+{{ lang_bar(ui, lang_switch, here, untranslated, lang_chosen) }}
 <section class="card">
   <h1>{{ t(ui, 'confirm_delete_learner', name=account.display_name) }}</h1>
   <dl class="summary">
