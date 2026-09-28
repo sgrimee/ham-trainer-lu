@@ -4,7 +4,7 @@
 services:
   app:
     build: .
-    image: examen-ilr
+    image: sgrimee/examen-ilr
     ports:
       - "8000:8000"
     # Bare names pass through from the environment, which mise loads from .env.
