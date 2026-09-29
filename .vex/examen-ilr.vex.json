@@ -1,0 +1,41 @@
+{
+  "@context": "https://openvex.dev/ns/v0.2.0",
+  "@id": "https://github.com/sgrimee/ham-trainer-lu/blob/main/.vex/examen-ilr.vex.json",
+  "author": "Sam Grimee <sgrimee@users.noreply.github.com>",
+  "timestamp": "2026-09-29T10:00:00Z",
+  "version": 1,
+  "statements": [
+    {
+      "vulnerability": {
+        "name": "CVE-2026-82560"
+      },
+      "products": [
+        {
+          "@id": "pkg:docker/sgrimee/examen-ilr"
+        },
+        {
+          "@id": "pkg:docker/examen-ilr"
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_present",
+      "impact_statement": "The flaw is in Pod::Text, which ships in perl-modules. The image only has perl-base (Essential for dpkg), which does not include Pod::Text, and the application never runs perl."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-85091"
+      },
+      "products": [
+        {
+          "@id": "pkg:docker/sgrimee/examen-ilr"
+        },
+        {
+          "@id": "pkg:docker/examen-ilr"
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_present",
+      "impact_statement": "The overflow affects zlib 1.3.1.2 through 1.3.2; the image ships zlib 1.3.1, which predates it. Independently, it needs gzprintf() after a stalled non-blocking gzwrite(), and neither Python's zlib/gzip modules nor the application use zlib's gz* file API."
+    }
+  ]
+}

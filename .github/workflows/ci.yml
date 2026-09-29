@@ -86,6 +86,8 @@ jobs:
           command: cves
           image: local://examen-ilr:scan
           sarif-file: scout.sarif
+          vex-location: .vex
+          vex-author: ".*<sgrimee@users.noreply.github.com>"
 
       - uses: github/codeql-action/upload-sarif@v4
         if: always() && hashFiles('scout.sarif') != ''
@@ -101,6 +103,8 @@ jobs:
           only-severities: critical,high
           only-fixed: true
           exit-code: true
+          vex-location: .vex
+          vex-author: ".*<sgrimee@users.noreply.github.com>"
 
       - name: Build and push
         if: env.PUBLISH == 'true'
@@ -116,6 +120,20 @@ jobs:
             sgrimee/examen-ilr:${{ steps.sha.outputs.short }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+      # Docker Hub's Scout view reads exceptions only from attestations (the
+      # image has provenance, so a VEX file in the filesystem would be
+      # ignored). .vex/ records the CVEs that don't affect this image and why.
+      - name: Attach VEX exceptions
+        if: env.PUBLISH == 'true'
+        run: |
+          curl -fsSL https://raw.githubusercontent.com/docker/scout-cli/main/install.sh | sh
+          for tag in latest ${{ steps.sha.outputs.short }}; do
+            docker scout attestation add \
+              --file .vex/examen-ilr.vex.json \
+              --predicate-type https://openvex.dev/ns/v0.2.0 \
+              sgrimee/examen-ilr:$tag
+          done
 
       # The Docker Hub page's text comes from DOCKERHUB.md. Unlike the push,
       # this needs the token's read/write/delete scope.

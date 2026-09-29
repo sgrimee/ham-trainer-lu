@@ -85,6 +85,11 @@ sha=$(git rev-parse --short HEAD)
 docker buildx build --platform linux/amd64,linux/arm64 \
   --tag "$image:latest" --tag "$image:$sha" \
   --push .
+# CVE exceptions (.vex/) for Docker Hub's Scout view; see .github/workflows/ci.yml.
+for tag in latest "$sha"; do
+  docker scout attestation add --file .vex/examen-ilr.vex.json \
+    --predicate-type https://openvex.dev/ns/v0.2.0 "$image:$tag"
+done
 echo "pushed $image:latest and $image:$sha"
 '''
 
