@@ -69,7 +69,7 @@
       {% for item in q.sub_items %}
         <div class="open-item">
           {% if item.label %}<strong>{{ item.label }}</strong>{% endif %}
-          <textarea name="item_{{ item.item_no }}" rows="2">{{-
+          <textarea name="item_{{ item.item_no }}" rows="2" maxlength="{{ max_answer_chars }}">{{-
             (response.answer or {}).get(item.item_no|string, '') if response else '' -}}</textarea>
         </div>
       {% endfor %}

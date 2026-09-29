@@ -126,3 +126,24 @@ def test_spelling_is_graded_by_rule_without_a_model(client, store: Store):
     assert (row["verdict"], row["source"], row["points"]) == ("correct", "rule", 1.0)
     page = client.get(f"/attempts/{attempt_id}/q/{n}").text
     assert "ONE" in page and "self-grade" not in page
+
+
+def test_the_grader_charges_each_client_address_separately():
+    from types import SimpleNamespace
+
+    import httpx2 as httpx
+
+    from app.grader import LLMGrader
+    from app.main import get_llm_grader
+
+    grader = LLMGrader("http://llm", "key", "fake", 5.0, httpx.AsyncClient())
+
+    def request(host):
+        return SimpleNamespace(
+            app=SimpleNamespace(state=SimpleNamespace(llm_grader=grader)),
+            client=(host and SimpleNamespace(host=host)),
+        )
+
+    bound = [get_llm_grader(request(h)) for h in ("10.0.0.1", "10.0.0.2", None)]
+    assert [g.caller for g in bound if g] == ["10.0.0.1", "10.0.0.2", "unknown"]
+    assert all(g is not None and g.budget is grader.budget and g._cache is grader._cache for g in bound)

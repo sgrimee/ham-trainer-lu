@@ -135,3 +135,110 @@ def test_cache_key_includes_the_other_wordings():
     assert len(calls) == 2
     assert "<also_official>www.itu.int</also_official>" in calls[1]
     assert "also_official" not in calls[0]
+
+
+def _counting_grader(budget_calls: int = 120):
+    import json
+
+    import httpx2 as httpx
+
+    from app.grader import CallBudget, LLMGrader
+
+    calls = []
+
+    def handler(request):
+        calls.append(request)
+        content = json.dumps({"elements": [], "incorrect": [], "comment": ""})
+        return httpx.Response(200, json={"choices": [{"message": {"content": content}}]})
+
+    def make(client):
+        grader = LLMGrader("http://llm", "key", "fake", 5.0, client)
+        grader.budget = CallBudget(max_calls=budget_calls)
+        return grader
+
+    return calls, make, httpx.AsyncClient(transport=httpx.MockTransport(handler))
+
+
+def test_a_caller_past_its_budget_is_refused_but_cached_answers_still_serve():
+    import pytest
+
+    from app.grader import GradingRefused
+
+    calls, make, http = _counting_grader(budget_calls=2)
+    args: dict[str, Any] = dict(question_id=1, lang="fr", question="Q ?", reference="R")
+
+    async def run():
+        async with http:
+            grader = make(http)
+            alice, bob = grader.for_caller("10.0.0.1"), grader.for_caller("10.0.0.2")
+            await alice.grade(candidate="a", **args)
+            await alice.grade(candidate="b", **args)
+            with pytest.raises(GradingRefused):
+                await alice.grade(candidate="c", **args)
+            await alice.grade(candidate="a", **args)  # cached: free
+            await bob.grade(candidate="c", **args)  # another caller's own budget
+
+    asyncio.run(run())
+    assert len(calls) == 3
+
+
+def test_refused_grading_degrades_to_ungraded():
+    calls, make, http = _counting_grader(budget_calls=0)
+
+    async def run():
+        async with http:
+            return await _grade_open_item(
+                make(http).for_caller("10.0.0.1"),
+                qid=1,
+                lang="fr",
+                question_text="Q ?",
+                reference="R",
+                candidate="an answer",
+                item_weight=1.0,
+            )
+
+    assert asyncio.run(run()) is None
+    assert calls == []
+
+
+def test_the_verdict_cache_is_bounded(monkeypatch):
+    from app import grader as grader_module
+
+    monkeypatch.setattr(grader_module, "CACHE_MAX", 3)
+    calls, make, http = _counting_grader()
+    args: dict[str, Any] = dict(question_id=1, lang="fr", question="Q ?", reference="R")
+
+    async def run():
+        async with http:
+            grader = make(http)
+            for text in "abc":
+                await grader.grade(candidate=text, **args)
+            await grader.grade(candidate="a", **args)  # used again: now the newest
+            await grader.grade(candidate="d", **args)  # evicts "b", the least recently used
+            await grader.grade(candidate="a", **args)
+            await grader.grade(candidate="b", **args)
+            return len(grader._cache)
+
+    assert asyncio.run(run()) == 3
+    assert len(calls) == 5  # a, b, c, d, then b again; "a" was never evicted
+
+
+def test_a_spent_budget_comes_back_once_the_window_has_passed(monkeypatch):
+    from app import grader as grader_module
+    from app.grader import CallBudget
+
+    clock = [1000.0]
+    monkeypatch.setattr(grader_module.time, "monotonic", lambda: clock[0])
+    budget = CallBudget(max_calls=2, window=600.0)
+    assert budget.take("10.0.0.1")
+    clock[0] += 300.0
+    assert budget.take("10.0.0.1")
+    assert not budget.take("10.0.0.1")
+    clock[0] += 299.0
+    assert not budget.take("10.0.0.1")
+    clock[0] += 1.0  # the first call has aged out, the second has not
+    assert budget.take("10.0.0.1")
+    assert not budget.take("10.0.0.1")
+    clock[0] += 600.0
+    budget.take("10.0.0.2")
+    assert "10.0.0.1" not in budget._calls  # a caller gone quiet is forgotten

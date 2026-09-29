@@ -43,7 +43,7 @@
       {% endfor %}
       {% if solved %}{{ reference(f) }}{% endif %}
     {% else %}
-      <textarea id="item-{{ f.item_no }}" name="item_{{ f.item_no }}" rows="2"{% if pending %} readonly{% endif %}>{{ g.answer if g else '' }}</textarea>
+      <textarea id="item-{{ f.item_no }}" name="item_{{ f.item_no }}" rows="2" maxlength="{{ max_answer_chars }}"{% if pending %} readonly{% endif %}>{{ g.answer if g else '' }}</textarea>
       {% if g and g.verdict != 'ungraded' %}{{ feedback(g) }}{% endif %}
       {% for typed, form in (g.detail.hints if g and g.detail else []) or [] %}
         <p class="spelling-hint">{{ t(ui, 'spelling_hint', typed=typed, form=form) }}</p>

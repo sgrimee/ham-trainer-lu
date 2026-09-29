@@ -69,6 +69,8 @@ templates.env.globals["doc_files"] = annotations_module.documents()  # type: ign
 PREFS_COOKIE = "ilr_session_prefs"
 LEARNER_COOKIE = "ilr_learner"  # the current course learner's account.id (specs/LEARN.md §6.1)
 GITHUB_REPO = "sgrimee/ham-trainer-lu"
+MAX_ANSWER_CHARS = grader.MAX_ANSWER_CHARS
+templates.env.globals["max_answer_chars"] = MAX_ANSWER_CHARS  # type: ignore
 
 
 def get_store(request: Request) -> Store:
@@ -76,7 +78,11 @@ def get_store(request: Request) -> Store:
 
 
 def get_llm_grader(request: Request) -> LLMGrader | None:
-    return request.app.state.llm_grader
+    """The grader, charging this client's address for the calls it makes."""
+    llm_grader = request.app.state.llm_grader
+    if llm_grader is None:
+        return None
+    return llm_grader.for_caller(request.client.host if request.client else "unknown")
 
 
 def get_course(request: Request) -> course_module.Course:
@@ -138,6 +144,11 @@ def form_str(form: FormData, key: str, default: str = "") -> str:
     absent rather than letting `.strip()`/`.isdigit()` raise on it."""
     value = form.get(key)
     return value if isinstance(value, str) else default
+
+
+def form_answer(form: FormData, key: str) -> str:
+    """An open answer's field, cut to the length the form allows."""
+    return form_str(form, key).strip()[:MAX_ANSWER_CHARS]
 
 
 @app.get("/healthz")
@@ -445,9 +456,7 @@ async def submit_answer(
     if q["kind"] == "mcq":
         answer = form.get("answer") or None
     else:
-        answer = {
-            str(item["item_no"]): form_str(form, f"item_{item['item_no']}").strip() for item in q["answer"]
-        }
+        answer = {str(item["item_no"]): form_answer(form, f"item_{item['item_no']}") for item in q["answer"]}
     flagged = form.get("flag") == "on"
 
     if attempt["mode"] == "study":
@@ -1203,7 +1212,7 @@ async def _answer_open(
     result = store.practice_result(learner["id"], q["id"])
     solved = result["solved_items"] if result else {}
     todo = {item["item_no"] for item in q["answer"]} - set(solved)
-    answer = {str(n): form_str(form, f"item_{n}").strip() for n in todo}
+    answer = {str(n): form_answer(form, f"item_{n}") for n in todo}
     if not any(answer.values()):
         return RedirectResponse(here, status_code=303)  # nothing typed
     ui = course_ui(request, course.module(step.module))

@@ -474,7 +474,15 @@ more than throughput.
 
 **Cache on `(question_id, model, normalised answer)`**, in process memory. The
 pool is fixed and candidates repeat it, so a repeated drill is instant and costs
-nothing.
+nothing. It keeps the 5,000 most recently used verdicts, so unique answers
+cannot grow it without bound.
+
+**Spend is bounded per client.** Anyone who reaches the server can post an open
+answer, so each client address gets 120 uncached calls per 10 minutes, enough
+for two full HAREC papers (at most 48 open sub-items each). A call past the
+budget is refused and treated as a failed call (§7.3), so the candidate grades
+themselves. An answer is capped at 500 characters per sub-item (the form's
+`maxlength`, and cut to that server-side), which also bounds a call's input.
 
 **The candidate's text is untrusted input** flowing into a prompt. It is wrapped
 in a `<candidate>` delimiter, the model is told it is material to grade and not
