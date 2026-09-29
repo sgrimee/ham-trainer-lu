@@ -62,3 +62,13 @@ jobs:
             sgrimee/examen-ilr:${{ steps.sha.outputs.short }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+      # The Docker Hub page's text comes from DOCKERHUB.md. Unlike the push,
+      # this needs the token's read/write/delete scope.
+      - uses: peter-evans/dockerhub-description@v5
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+          repository: sgrimee/examen-ilr
+          readme-filepath: ./DOCKERHUB.md
+          short-description: Web trainer for the Luxembourg ILR amateur-radio exam (BASE, NOVICE, HAREC)
