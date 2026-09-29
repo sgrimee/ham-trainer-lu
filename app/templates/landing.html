@@ -24,4 +24,20 @@
   <h2>{{ t(ui, 'landing_path_title') }}</h2>
   <p>{{ t(ui, 'landing_path_text') }}</p>
 </section>
+{% if leaderboard %}
+<section class="card race">
+  <h2><a href="/learn/progress">{{ t(ui, 'race_title') }}</a></h2>
+  <ol class="race-lanes">
+    {% for r in leaderboard %}
+    <li class="race-lane{% if r.pct == 100 %} race-finished{% endif %}">
+      <span class="race-name">{{ r.name }}</span>
+      <span class="race-track" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="{{ r.pct }}"
+            aria-label="{{ r.name }}"><span class="race-trail" style="width: {{ r.pct }}%"><span class="race-car" aria-hidden="true">🏎️</span></span></span>
+      <span class="race-pct">{{ r.pct }} %</span>
+    </li>
+    {% endfor %}
+  </ol>
+  <p class="race-more"><a href="/learn/progress">{{ t(ui, 'race_details') }} &rarr;</a></p>
+</section>
+{% endif %}
 {% endblock %}

@@ -158,10 +158,10 @@ def test_admin_landing_page_links_to_learners(client, with_password):
     assert resp.status_code == 200
     assert "noindex" in resp.headers["x-robots-tag"]
     assert 'href="/admin/learners"' in resp.text
-    assert 'href="/admin/progress"' in resp.text
+    assert "/progress" not in resp.text
 
 
-def test_admin_progress_shows_steps_and_completed_modules(client, store: Store, with_password):
+def test_progress_shows_steps_and_completed_modules(client, store: Store):
     course = client.app.state.course
     first, second = course.modules[0], course.modules[1]
     ada = store.create_account("Ada")
@@ -170,10 +170,8 @@ def test_admin_progress_shows_steps_and_completed_modules(client, store: Store, 
         store.complete_step(ada, step.id)
     store.complete_step(ada, second.steps[0].id)
     store.complete_step(ada, "no-longer-in-the-course")
-    assert client.get("/admin/progress").status_code == 401
-    resp = client.get("/admin/progress", auth=AUTH)
+    resp = client.get("/learn/progress")
     assert resp.status_code == 200
-    assert "noindex" in resp.headers["x-robots-tag"]
     ada_card, bob_card = resp.text.split('class="card learner-progress"')[1:]
     done = len(first.steps) + 1
     assert f"{done} / {len(course.steps)} étapes" in ada_card
@@ -182,6 +180,24 @@ def test_admin_progress_shows_steps_and_completed_modules(client, store: Store, 
     assert ada_card.count("lp-module lp-in-progress") == 1
     assert f"0 / {len(course.steps)} étapes" in bob_card
     assert "lp-module lp-completed" not in bob_card
+
+
+def test_landing_leaderboard_ranks_learners_past_zero(client, store: Store):
+    course = client.app.state.course
+    assert "race-lane" not in client.get("/").text
+    ada = store.create_account("Ada")
+    bob = store.create_account("Bob")
+    store.create_account("Cleo")
+    for step in course.steps:
+        store.complete_step(ada, step.id)
+    store.complete_step(bob, course.steps[0].id)
+    text = client.get("/").text
+    assert 'href="/learn/progress"' in text
+    lanes = text.split('<li class="race-lane')[1:]
+    assert len(lanes) == 2
+    assert "Ada" in lanes[0] and "race-finished" in lanes[0] and "100 %" in lanes[0]
+    assert "Bob" in lanes[1] and "1 %" in lanes[1]
+    assert "Cleo" not in text
 
 
 def test_admin_password_file_wins(client, monkeypatch, tmp_path):

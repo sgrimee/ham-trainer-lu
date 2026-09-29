@@ -228,12 +228,30 @@ def _read_prefs(request: Request) -> dict:
 # -- landing page (specs/LEARN.md §10.1) ---------------------------------------
 
 
+def _leaderboard(store: Store, course: course_module.Course) -> list[dict]:
+    """Share of the course each learner has done, best first. Learners at 0 %
+    are left out: the board is there to encourage, not to single anyone out."""
+    course_ids = {s.id for s in course.steps}
+    if not course_ids:
+        return []
+    by_account = store.completed_steps_by_account()
+    board = []
+    for a in store.accounts():
+        done = len(by_account.get(a["id"], set()) & course_ids)
+        if done:
+            # Rounded down, so 100 % means finished, but a first step shows.
+            board.append({"name": a["display_name"], "pct": max(1, 100 * done // len(course_ids))})
+    return sorted(board, key=lambda r: -r["pct"])
+
+
 @app.get("/")
-def landing(request: Request, store: Store = Depends(get_store)):
+def landing(
+    request: Request, store: Store = Depends(get_store), course: course_module.Course = Depends(get_course)
+):
     """What the site is for and which half to start with. Static apart from
     the language, which follows the preferences cookie and has its own FR/DE
-    switch, and the current learner's "not you? change" line when there is
-    one."""
+    switch, the current learner's "not you? change" line when there is one,
+    and the leaderboard."""
     ui = ui_lang(_read_prefs(request)["lang"])
     return templates.TemplateResponse(
         request=request,
@@ -245,6 +263,7 @@ def landing(request: Request, store: Store = Depends(get_store)):
             "here": "/",
             "untranslated": False,
             "learner": current_learner(request, store),
+            "leaderboard": _leaderboard(store, course),
         },
     )
 
@@ -827,6 +846,56 @@ def learn_home(
     )
 
 
+def _module_progress(module: course_module.Module, completed: set[str], ui: str) -> dict:
+    """What was done, not course.module_state: that one also marks next up
+    as in progress, which says nothing about the learner here."""
+    done = sum(1 for s in module.steps if s.id in completed)
+    total = len(module.steps)
+    state = "completed" if done == total else "in-progress" if done else "not-started"
+    return {"title": module.title.get(ui, module.title["fr"]), "state": state, "done": done, "total": total}
+
+
+@app.get("/learn/progress")
+def progress(
+    request: Request, store: Store = Depends(get_store), course: course_module.Course = Depends(get_course)
+):
+    """Every learner's progress, module by module. Public: anyone can already
+    see it by picking another name, so it is no secret."""
+    ui = course_ui(request)
+    by_account = store.completed_steps_by_account()
+    course_ids = {s.id for s in course.steps}
+    learners = []
+    for a in store.accounts():
+        # Ids of steps no longer in the course are not counted (§7).
+        completed = by_account.get(a["id"], set()) & course_ids
+        parts = [
+            {
+                "part": p,
+                "title": p.title.get(ui, p.title["fr"]),
+                "modules": [_module_progress(m, completed, ui) for m in p.modules],
+            }
+            for p in course.parts
+        ]
+        learners.append(
+            {
+                "account": a,
+                "steps_done": len(completed),
+                "modules_done": sum(1 for m in course.modules if all(s.id in completed for s in m.steps)),
+                "parts": parts,
+            }
+        )
+    return templates.TemplateResponse(
+        request=request,
+        name="progress.html",
+        context={
+            **course_lang(request),
+            "learners": learners,
+            "steps_total": len(course_ids),
+            "modules_total": len(course.modules),
+        },
+    )
+
+
 @app.post("/learn/who")
 def learn_pick(account_id: str = Form(""), store: Store = Depends(get_store)):
     response = _to_dashboard()
@@ -1207,49 +1276,6 @@ def _learners_page(request: Request, store: Store, error: str | None = None, nam
 @admin_router.get("")
 def admin_index(request: Request):
     return _admin_page(request, "admin_index.html", {})
-
-
-def _module_progress(module: course_module.Module, completed: set[str], ui: str) -> dict:
-    """What was done, not course.module_state: that one also marks next up
-    as in progress, which says nothing about the learner here."""
-    done = sum(1 for s in module.steps if s.id in completed)
-    total = len(module.steps)
-    state = "completed" if done == total else "in-progress" if done else "not-started"
-    return {"title": module.title.get(ui, module.title["fr"]), "state": state, "done": done, "total": total}
-
-
-@admin_router.get("/progress")
-def admin_progress(
-    request: Request, store: Store = Depends(get_store), course: course_module.Course = Depends(get_course)
-):
-    ui = course_ui(request)
-    by_account = store.completed_steps_by_account()
-    course_ids = {s.id for s in course.steps}
-    learners = []
-    for a in store.accounts():
-        # Ids of steps no longer in the course are not counted (§7).
-        completed = by_account.get(a["id"], set()) & course_ids
-        parts = [
-            {
-                "part": p,
-                "title": p.title.get(ui, p.title["fr"]),
-                "modules": [_module_progress(m, completed, ui) for m in p.modules],
-            }
-            for p in course.parts
-        ]
-        learners.append(
-            {
-                "account": a,
-                "steps_done": len(completed),
-                "modules_done": sum(1 for m in course.modules if all(s.id in completed for s in m.steps)),
-                "parts": parts,
-            }
-        )
-    return _admin_page(
-        request,
-        "admin_progress.html",
-        {"learners": learners, "steps_total": len(course_ids), "modules_total": len(course.modules)},
-    )
 
 
 @admin_router.get("/learners")

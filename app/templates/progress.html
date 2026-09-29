@@ -1,11 +1,10 @@
 {% extends "base.html" %}
 {% from "_lang_switch.html" import lang_bar %}
-{% block head %}<meta name="robots" content="noindex, nofollow">{% endblock %}
-{% block title %}{{ t(ui, 'admin_progress') }} — admin{% endblock %}
+{% block title %}{{ t(ui, 'progress_title') }}{% endblock %}
 {% block content %}
 {{ lang_bar(ui, lang_switch, here, untranslated, lang_chosen) }}
-<p><a href="/admin">&larr; {{ t(ui, 'admin_home') }}</a></p>
-<h1>{{ t(ui, 'admin_progress') }}</h1>
+<p><a href="/">&larr; {{ t(ui, 'home') }}</a></p>
+<h1>{{ t(ui, 'progress_title') }}</h1>
 {% for l in learners %}
 {%- set pct = (100 * l.steps_done / steps_total) | round | int if steps_total else 0 %}
 <section class="card learner-progress">

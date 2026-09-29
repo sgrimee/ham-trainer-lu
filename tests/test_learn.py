@@ -1018,13 +1018,21 @@ def test_the_admin_pages_have_the_switch_unless_german_is_off(client, learner, g
     monkeypatch.setenv("ADMIN_PASSWORD", "pw")
     monkeypatch.delenv("ADMIN_PASSWORD_FILE", raising=False)
     auth = ("admin", "pw")
-    pages = ("/admin", "/admin/learners", "/admin/progress", f"/admin/learners/{learner}/delete")
+    pages = ("/admin", "/admin/learners", f"/admin/learners/{learner}/delete")
     for mode in ("off", "preview"):
         german(["electricite"], mode)
         for path in pages:
             text = client.get(path, auth=auth).text
             assert ('action="/learn/lang"' in text) == (mode == "preview"), (mode, path)
-    assert location(switch(client, "de", "/admin/progress")) == "/admin/progress"
+    assert location(switch(client, "de", "/admin/learners")) == "/admin/learners"
+
+
+def test_the_progress_page_has_the_switch_unless_german_is_off(client, german):
+    for mode in ("off", "preview"):
+        german(["electricite"], mode)
+        text = client.get("/learn/progress").text
+        assert ('action="/learn/lang"' in text) == (mode == "preview"), mode
+    assert location(switch(client, "de", "/learn/progress")) == "/learn/progress"
 
 
 def test_off_shows_no_german_even_to_a_german_preference(client, learner, german):

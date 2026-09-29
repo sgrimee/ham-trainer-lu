@@ -889,11 +889,11 @@ rather than `/learn/technique/base/...`, for two reasons:
 
 | Method and path | What it does |
 |---|---|
-| `GET /` | The landing page (§10.1): what the site is for, how to use it, links to the course and the exam trainer. |
+| `GET /` | The landing page (§10.1): what the site is for, how to use it, links to the course and the exam trainer, and a small leaderboard of course completion (learners at 0 % left out). |
 | `GET /exam` | The exam trainer's home, moved from `/` unchanged (§10.1). |
+| `GET /learn/progress` | Public: each learner's steps completed and which modules are complete. Not a secret, since anyone can pick another name; the landing page's leaderboard links here. |
 | `GET /learn` | No current learner: the name dropdown (§6.1). Otherwise the dashboard: modules and their state, XP, badges, "Continue" to next up (§7). |
 | `GET /admin` | Unpublished (§6.1): the admin landing page, linking to each admin page. |
-| `GET /admin/progress` | Unpublished (§6.1): each learner's steps completed and which modules are complete. |
 | `GET /admin/learners` | Unpublished (§6.1): the account list, with an add form. |
 | `POST /admin/learners` | Adds an account, redirects back to the list. |
 | `GET /admin/learners/<id>/delete` | Confirmation page: name and progress summary. |

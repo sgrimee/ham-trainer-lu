@@ -115,6 +115,9 @@ MESSAGES = {
             "Commence par le cours, puis passe à l'entraînement une fois le cours terminé, "
             "pour t'exercer dans les conditions de l'examen."
         ),
+        "race_title": "La course au cours",
+        "race_details": "Voir le détail",
+        "progress_title": "Progression",
         "course_title": "Cours BASE",
         "dashboard": "Mon parcours",
         "continue": "Continuer",
@@ -151,8 +154,6 @@ MESSAGES = {
         "admin_home": "Administration",
         "admin_learners": "Élèves",
         "admin_learners_hint": "Ajouter ou supprimer des comptes.",
-        "admin_progress": "Progression",
-        "admin_progress_hint": "Étapes et modules terminés, élève par élève.",
         "progress_modules": "{done} / {total} modules terminés",
         "add_learner": "Ajouter",
         "display_name": "Prénom ou surnom",
@@ -278,6 +279,9 @@ MESSAGES = {
             "Fang mit dem Kurs an und wechsle zum Training, wenn du ihn abgeschlossen "
             "hast, um unter Prüfungsbedingungen zu üben."
         ),
+        "race_title": "Das Kursrennen",
+        "race_details": "Details ansehen",
+        "progress_title": "Fortschritt",
         "course_title": "BASE-Kurs",
         "dashboard": "Mein Kurs",
         "continue": "Weiter",
@@ -314,8 +318,6 @@ MESSAGES = {
         "admin_home": "Verwaltung",
         "admin_learners": "Lernende",
         "admin_learners_hint": "Konten hinzufügen oder löschen.",
-        "admin_progress": "Fortschritt",
-        "admin_progress_hint": "Abgeschlossene Schritte und Module, pro Lernendem.",
         "progress_modules": "{done} / {total} Module abgeschlossen",
         "add_learner": "Hinzufügen",
         "display_name": "Vorname oder Spitzname",

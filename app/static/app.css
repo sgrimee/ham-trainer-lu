@@ -197,6 +197,28 @@ a.button:hover { background: var(--accent-hover); color: #fff; }
 .landing-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr)); gap: 1rem; }
 .landing-cards .card { margin-bottom: 0; }
 .landing-cards + .card { margin-top: 1rem; }
+/* Landing leaderboard: a quiet race track, one lane per learner past 0 %. */
+.race h2 { font-size: 1.05rem; }
+.race h2 a { color: inherit; text-decoration: none; }
+.race h2 a:hover { text-decoration: underline; }
+.race-lanes { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.45rem; }
+.race-lane { display: grid; grid-template-columns: minmax(4rem, 9rem) 1fr 3rem; align-items: center; gap: 0.6rem; font-size: 0.9rem; }
+.race-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.race-track {
+  position: relative; height: 1.4rem; border-radius: 0.3rem; background:
+    repeating-linear-gradient(90deg, transparent 0 0.6rem, var(--border) 0.6rem 1rem) center / 100% 2px no-repeat,
+    var(--bg);
+  border-right: 4px double var(--muted);
+}
+.race-trail {
+  position: relative; display: block; height: 100%; min-width: 1.4rem; border-radius: 0.3rem;
+  background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--accent) 25%, transparent));
+}
+/* The emoji car faces left on most platforms: turn it towards the flag. */
+.race-car { position: absolute; right: -0.2rem; top: 50%; transform: translateY(-52%) scaleX(-1); font-size: 1.1rem; line-height: 1; }
+.race-pct { text-align: right; white-space: nowrap; color: var(--muted); font-variant-numeric: tabular-nums; }
+.race-finished .race-pct { color: var(--correct); font-weight: 600; }
+.race-more { margin: 0.6rem 0 0; font-size: 0.85rem; text-align: right; }
 .course-name { color: var(--muted); margin-top: -0.4rem; }
 .course-done { font-weight: 600; color: var(--correct); }
 .lang-switch { display: flex; justify-content: flex-end; gap: 0.25rem; margin: -0.4rem 0 0.75rem; }
@@ -330,6 +352,7 @@ a.button:hover { background: var(--accent-hover); color: #fff; }
   .summary { grid-template-columns: 1fr; }
   .summary dd { margin-bottom: 0.4rem; }
   .lp-head { flex-wrap: wrap; }
+  .race-lane { grid-template-columns: 5rem 1fr 3rem; }
 }
 
 /* Touch screens: no keyboard, bigger targets. */
