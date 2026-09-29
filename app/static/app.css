@@ -239,17 +239,7 @@ a.button:hover { background: var(--accent-hover); color: #fff; }
 .course-progress progress::-webkit-progress-bar { background: var(--border); border-radius: 2px; }
 .course-progress progress::-webkit-progress-value { background: var(--muted); border-radius: 2px; }
 .course-progress progress::-moz-progress-bar { background: var(--muted); border-radius: 2px; }
-.module-list, .step-list { list-style: none; padding: 0; margin: 0; }
-.module-item {
-  display: flex; flex-wrap: wrap; align-items: baseline; gap: 0.3rem 0.8rem;
-  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
-  padding: 0.75rem 1rem; margin-bottom: 0.5rem;
-}
-.module-title { flex: 1; font-weight: 600; }
-.module-item a.module-title { text-decoration: none; }
-.module-state { font-size: 0.8rem; padding: 0.1rem 0.6rem; border-radius: 1rem; background: #eef2ff; color: var(--accent); }
-.module-not-started .module-state { background: #f0f0f0; color: var(--muted); }
-.module-completed .module-state { background: #e6f4ea; color: var(--correct); }
+.step-list { list-style: none; padding: 0; margin: 0; }
 .step-item { padding: 0.45rem 0 0.45rem 1.6rem; border-bottom: 1px solid var(--border); position: relative; }
 .step-item::before { position: absolute; left: 0.2rem; color: var(--muted); content: "○"; }
 .step-item.done::before { content: "✓"; color: var(--correct); }
@@ -285,9 +275,6 @@ a.button:hover { background: var(--accent-hover); color: #fff; }
 .practice-field.field-wrong { border-left-color: var(--incorrect); }
 .solved-answer { background: #f2fbf5; border: 1px solid var(--correct); border-radius: var(--radius); padding: 0.4rem 0.6rem; margin: 0.3rem 0; }
 .spelling-hint { font-size: 0.9rem; color: var(--partial); }
-.course-part { margin: 1.5rem 0; }
-.course-part h2 { font-size: 1.15rem; margin-bottom: 0.4rem; }
-.course-part .part-continue { margin-bottom: 0.6rem; }
 .part-done { font-weight: 600; color: var(--correct); }
 .xp-total { font-size: 1.1rem; font-weight: 700; color: var(--accent); }
 .badge-shelf h2 { font-size: 1rem; margin-top: 0; }
@@ -295,14 +282,13 @@ a.button:hover { background: var(--accent-hover); color: #fff; }
 .badge { font-size: 0.85rem; padding: 0.3rem 0.8rem; border-radius: 1rem; border: 1px solid var(--border); }
 .badge.earned { background: #fff7e0; border-color: var(--partial); color: var(--fg); font-weight: 600; }
 .badge.earned::before { content: "★ "; color: var(--partial); }
-.badge.locked { color: var(--muted); }
 .toast {
   background: #fff7e0; border: 1px solid var(--partial); border-radius: var(--radius);
   padding: 0.6rem 1rem; margin: 0 0 1rem; font-weight: 600;
 }
 .toast::before { content: "★ "; color: var(--partial); }
 
-/* Admin progress page: one card per learner, one tile per module. */
+/* Progress cards (progress page, dashboard): one tile per module. */
 .learner-progress h2 { margin: 0; }
 .lp-head { display: flex; justify-content: space-between; align-items: baseline; gap: 1rem; }
 .lp-pct { font-size: 1.6rem; font-weight: 700; color: var(--accent); font-variant-numeric: tabular-nums; }
@@ -310,7 +296,9 @@ a.button:hover { background: var(--accent-hover); color: #fff; }
 .lp-bar > span { display: block; height: 100%; background: linear-gradient(90deg, var(--accent), var(--correct)); border-radius: 1rem; }
 .lp-counts { margin: 0 0 0.5rem; color: var(--muted); font-size: 0.9rem; }
 .lp-counts strong { color: var(--fg); }
-.lp-part { font-size: 0.85rem; font-weight: 600; color: var(--muted); margin: 1rem 0 0.4rem; text-transform: uppercase; letter-spacing: 0.03em; }
+.lp-part-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 0.2rem 1rem; margin: 1rem 0 0.4rem; }
+.lp-part { font-size: 0.85rem; font-weight: 600; color: var(--muted); margin: 0; text-transform: uppercase; letter-spacing: 0.03em; }
+.lp-part-head .part-continue, .lp-part-head .part-done { font-size: 0.85rem; }
 .lp-modules {
   list-style: none; padding: 0; margin: 0;
   display: grid; grid-template-columns: repeat(auto-fill, minmax(8rem, 1fr)); gap: 0.45rem;
@@ -319,6 +307,9 @@ a.button:hover { background: var(--accent-hover); color: #fff; }
   display: flex; flex-direction: column; gap: 0.3rem; padding: 0.5rem 0.6rem;
   border: 1px solid var(--border); border-radius: 8px; background: var(--surface); font-size: 0.8rem; line-height: 1.3;
 }
+.lp-module:has(> .lp-link) { padding: 0; }
+.lp-link { display: flex; flex-direction: column; gap: 0.3rem; flex: 1; padding: 0.5rem 0.6rem; color: inherit; text-decoration: none; border-radius: 8px; }
+.lp-link:hover { background: #eef2ff; }
 .lp-title { flex: 1; font-weight: 500; }
 .lp-mini { height: 0.3rem; background: var(--border); border-radius: 1rem; overflow: hidden; }
 .lp-mini > span { display: block; height: 100%; background: var(--accent); }

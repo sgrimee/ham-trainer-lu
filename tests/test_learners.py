@@ -182,6 +182,18 @@ def test_progress_shows_steps_and_completed_modules(client, store: Store):
     assert "lp-module lp-completed" not in bob_card
 
 
+def test_progress_lists_the_furthest_along_first(client, store: Store):
+    course = client.app.state.course
+    store.create_account("Ada")
+    bob = store.create_account("Bob")
+    cleo = store.create_account("Cleo")
+    store.complete_step(bob, course.steps[0].id)
+    for step in course.steps[:3]:
+        store.complete_step(cleo, step.id)
+    text = client.get("/learn/progress").text
+    assert text.index("Cleo") < text.index("Bob") < text.index("Ada")
+
+
 def test_landing_leaderboard_ranks_learners_past_zero(client, store: Store):
     course = client.app.state.course
     assert "race-lane" not in client.get("/").text

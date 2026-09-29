@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 {% from "_learner.html" import not_you %}
 {% from "_lang_switch.html" import lang_bar %}
+{% from "_progress_card.html" import progress_card with context %}
 {% block title %}{{ t(ui, 'dashboard') }} — {{ t(ui, 'learn_title') }}{% endblock %}
 {% block content %}
 {{ not_you(ui, learner) }}
@@ -10,41 +11,22 @@
   <p class="course-name">{{ t(ui, 'course_title') }}</p>
   <p class="xp-total" id="xp-total">{{ t(ui, 'xp_total', n=xp) }}</p>
   {% if next_up %}
-    <p>{{ t(ui, 'questions_remaining', n=questions_remaining, total=questions_total) }}</p>
+    <p>{{ t(ui, 'questions_remaining', done=questions_done, total=questions_total, n=questions_total - questions_done) }}</p>
     <a class="button button-large" id="next-link" href="{{ step_url(next_up) }}">{{ t(ui, 'continue') }} &rarr;</a>
   {% else %}
     <p class="course-done">{{ t(ui, 'course_done') }}</p>
   {% endif %}
 </section>
-{#- Parts by exam number; each has its own "Continue", which follows the
-    course order within it (specs/LEARN-2-3.md §2.2, §6). #}
-{% for p in parts %}
-<section class="course-part" id="part-{{ p.part.slug }}">
-  <h2>{{ t(ui, 'part_heading', n=p.part.number, title=p.title) }}</h2>
-  {% if p.next_up %}
-    <a class="button part-continue" href="{{ step_url(p.next_up) }}">{{ t(ui, 'continue_part', n=p.part.number) }} &rarr;</a>
-  {% else %}
-    <p class="part-done">{{ t(ui, 'part_done') }}</p>
-  {% endif %}
-  <ol class="module-list">
-    {% for m in p.modules %}
-    <li class="module-item module-{{ m.state }}">
-      <a class="module-title" href="{{ module_url(m.module) }}">{{ m.title }}</a>
-      <span class="module-state">{{ t(ui, 'module_state_' + m.state) }}</span>
-      <span class="hint">{{ t(ui, 'steps_progress', done=m.done, total=m.total) }}</span>
-    </li>
-    {% endfor %}
-  </ol>
-</section>
-{% endfor %}
+{{ progress_card(ui, t(ui, 'progress_title'), progress, steps_total, modules_total, link=true) }}
+{#- Only the badges won so far: locked ones are clutter. #}
+{% if shelf %}
 <section class="card badge-shelf">
   <h2>{{ t(ui, 'badges') }}</h2>
   <ul>
-    {% for b in shelf %}
-    <li class="badge{% if b.earned %} earned{% else %} locked{% endif %}">
-      {{ b.label }}{% if not b.earned %} <span class="hint">({{ t(ui, 'badge_locked') }})</span>{% endif %}
-    </li>
+    {% for label in shelf %}
+    <li class="badge earned">{{ label }}</li>
     {% endfor %}
   </ul>
 </section>
+{% endif %}
 {% endblock %}

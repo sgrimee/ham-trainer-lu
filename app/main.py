@@ -13,6 +13,7 @@ import re
 import uuid
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
+from typing import Any
 from urllib.parse import unquote, urlencode, urlsplit
 
 import httpx2 as httpx
@@ -843,32 +844,17 @@ def learn_home(
     earned = store.awards(learner["id"])
     badges_earned = {a["ref"] for a in earned if a["kind"] == "badge"}
     shelf = [
-        {"label": label, "earned": ref in badges_earned}
+        label
         for ref in awards.badges(course)
-        if (label := badge_label(course, ref, ui))
+        if ref in badges_earned and (label := badge_label(course, ref, ui))
     ]
     practice = [s for s in course.steps if s.kind == "practice"]
 
     # Listed and numbered in course order (specs/LEARN-2-3.md §2.2), each
     # part with its own "Continue".
-    parts = [
-        {
-            "part": p,
-            "title": p.title.get(ui, p.title["fr"]),
-            "next_up": course.next_up_in(p, completed),
-            "modules": [
-                {
-                    "module": m,
-                    "title": m.title.get(ui, m.title["fr"]),
-                    "state": course.module_state(m, completed),
-                    "done": sum(1 for s in m.steps if s.id in completed),
-                    "total": len(m.steps),
-                }
-                for m in p.modules
-            ],
-        }
-        for p in course.parts
-    ]
+    progress = _learner_progress(course, completed, ui)
+    for part in progress["parts"]:
+        part["next_up"] = course.next_up_in(part["part"], completed)
     return _render_learn(
         request,
         store,
@@ -876,11 +862,13 @@ def learn_home(
         {
             **lang,
             "learner": learner,
-            "parts": parts,
+            "progress": progress,
+            "steps_total": len(course.steps),
+            "modules_total": len(course.modules),
             "next_up": course.next_up(completed),
             "xp": sum(a["amount"] or 0 for a in earned if a["kind"] == "xp"),
             "shelf": shelf,
-            "questions_remaining": sum(1 for s in practice if s.id not in completed),
+            "questions_done": sum(1 for s in practice if s.id in completed),
             "questions_total": len(practice),
         },
     )
@@ -892,7 +880,31 @@ def _module_progress(module: course_module.Module, completed: set[str], ui: str)
     done = sum(1 for s in module.steps if s.id in completed)
     total = len(module.steps)
     state = "completed" if done == total else "in-progress" if done else "not-started"
-    return {"title": module.title.get(ui, module.title["fr"]), "state": state, "done": done, "total": total}
+    return {
+        "module": module,
+        "title": module.title.get(ui, module.title["fr"]),
+        "state": state,
+        "done": done,
+        "total": total,
+    }
+
+
+def _learner_progress(course: course_module.Course, completed: set[str], ui: str) -> dict[str, Any]:
+    """One learner's progress card (progress.html, learn_home.html). Ids of
+    steps no longer in the course are not counted (§7)."""
+    completed = completed & {s.id for s in course.steps}
+    return {
+        "steps_done": len(completed),
+        "modules_done": sum(1 for m in course.modules if all(s.id in completed for s in m.steps)),
+        "parts": [
+            {
+                "part": p,
+                "title": p.title.get(ui, p.title["fr"]),
+                "modules": [_module_progress(m, completed, ui) for m in p.modules],
+            }
+            for p in course.parts
+        ],
+    }
 
 
 @app.get("/learn/progress")
@@ -903,34 +915,19 @@ def progress(
     see it by picking another name, so it is no secret."""
     ui = course_ui(request)
     by_account = store.completed_steps_by_account()
-    course_ids = {s.id for s in course.steps}
-    learners = []
-    for a in store.accounts():
-        # Ids of steps no longer in the course are not counted (§7).
-        completed = by_account.get(a["id"], set()) & course_ids
-        parts = [
-            {
-                "part": p,
-                "title": p.title.get(ui, p.title["fr"]),
-                "modules": [_module_progress(m, completed, ui) for m in p.modules],
-            }
-            for p in course.parts
-        ]
-        learners.append(
-            {
-                "account": a,
-                "steps_done": len(completed),
-                "modules_done": sum(1 for m in course.modules if all(s.id in completed for s in m.steps)),
-                "parts": parts,
-            }
-        )
+    learners: list[dict[str, Any]] = [
+        {"account": acc, **_learner_progress(course, by_account.get(acc["id"], set()), ui)}
+        for acc in store.accounts()
+    ]
+    # Furthest along first; ties keep the accounts' order.
+    learners.sort(key=lambda learner: learner["steps_done"], reverse=True)
     return templates.TemplateResponse(
         request=request,
         name="progress.html",
         context={
             **course_lang(request),
             "learners": learners,
-            "steps_total": len(course_ids),
+            "steps_total": len(course.steps),
             "modules_total": len(course.modules),
         },
     )

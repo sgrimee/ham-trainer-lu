@@ -1,0 +1,41 @@
+{#- One learner's progress card: overall bar, then a tile per module, part by
+    part. On the dashboard (`link`), tiles open their module and each part
+    offers its own "Continue" (specs/LEARN-2-3.md §2.2, §6). -#}
+{% macro progress_card(ui, heading, pr, steps_total, modules_total, link=false) %}
+{%- set pct = (100 * pr.steps_done / steps_total) | round | int if steps_total else 0 %}
+<section class="card learner-progress">
+  <header class="lp-head">
+    <h2>{{ heading }}</h2>
+    <span class="lp-pct">{{ pct }} %</span>
+  </header>
+  <div class="lp-bar" role="progressbar" aria-valuemin="0" aria-valuemax="{{ steps_total }}"
+       aria-valuenow="{{ pr.steps_done }}"><span style="width: {{ pct }}%"></span></div>
+  <p class="lp-counts">
+    <strong>{{ t(ui, 'steps_progress', done=pr.steps_done, total=steps_total) }}</strong>
+    · {{ t(ui, 'progress_modules', done=pr.modules_done, total=modules_total) }}
+  </p>
+  {% for p in pr.parts %}
+  <div class="lp-part-head"{% if link %} id="part-{{ p.part.slug }}"{% endif %}>
+    <h3 class="lp-part">{{ t(ui, 'part_heading', n=p.part.number, title=p.title) }}</h3>
+    {% if link %}
+      {% if p.next_up %}
+        <a class="part-continue" href="{{ step_url(p.next_up) }}">{{ t(ui, 'continue_part', n=p.part.number) }} &rarr;</a>
+      {% else %}
+        <span class="part-done">{{ t(ui, 'part_done') }}</span>
+      {% endif %}
+    {% endif %}
+  </div>
+  <ol class="lp-modules">
+    {% for m in p.modules %}
+    <li class="lp-module lp-{{ m.state }}" title="{{ m.title }} — {{ t(ui, 'module_state_' + m.state) }}">
+      {%- if link %}<a class="lp-link" href="{{ module_url(m.module) }}">{% endif %}
+      <span class="lp-title">{% if m.state == 'completed' %}<span class="lp-check" aria-hidden="true">✓</span> {% endif %}{{ m.title }}</span>
+      <span class="lp-mini"><span style="width: {{ (100 * m.done / m.total) | round | int if m.total else 0 }}%"></span></span>
+      <span class="lp-steps">{{ m.done }} / {{ m.total }}</span>
+      {%- if link %}</a>{% endif %}
+    </li>
+    {% endfor %}
+  </ol>
+  {% endfor %}
+</section>
+{% endmacro %}

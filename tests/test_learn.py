@@ -248,7 +248,8 @@ def test_deleted_learner_writes_nothing(client, store: Store, learner):
 def test_dashboard_continues_at_the_first_step(client, learner):
     resp = client.get("/learn")
     assert f'href="{url(FIRST)}"' in resp.text
-    assert "Questions restantes : 77 sur 77" in resp.text
+    counts = "Questions d'examen déjà travaillées dans le cours : 0 sur 77 (77 restantes)"
+    assert counts in html.unescape(resp.text)
 
 
 def test_next_on_a_lesson_completes_it_and_advances(client, store: Store, learner):
@@ -592,13 +593,19 @@ def test_finishing_the_course_earns_its_badge(client, store: Store, learner):
 
 
 def test_dashboard_shows_xp_and_the_badge_shelf(client, store: Store, learner):
-    seed(store, learner, steps_before(Q2))
+    post(client, url(FIRST) + "/next")  # earns "Première leçon"
+    seed(store, learner, [s for s in steps_before(Q2) if s != FIRST])
     correct, _ = options(QID)
     post(client, url(Q2) + "/answer", {"answer": correct})
     page = client.get("/learn").text
     assert f">{awards.XP_FIRST_TRY} XP<" in page
-    assert page.count('class="badge ') == len(awards.badges(COURSE))
-    assert "Première leçon" in page and 'class="badge locked"' in page
+    # Only the badges won so far are shown.
+    assert page.count('class="badge ') == len(badge_rows(store, learner)) == 1
+    assert "Première leçon" in page and "Cours BASE terminé" not in page
+
+
+def test_dashboard_hides_the_shelf_before_any_badge(client, learner):
+    assert "badge-shelf" not in client.get("/learn").text
 
 
 def test_a_wrong_answer_holding_the_lock_denies_first_try_xp(store: Store, monkeypatch):
