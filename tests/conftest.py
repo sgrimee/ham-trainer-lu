@@ -1,4 +1,4 @@
-"""Shared fixtures for the endpoint tests (tests/test_main.py)."""
+"""Shared fixtures: the endpoint tests' client and store, and a clean COURSE_DE."""
 
 from __future__ import annotations
 
@@ -12,6 +12,14 @@ sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent))
 
 from app.main import app, get_llm_grader, get_store
 from app.store import Store
+
+
+@pytest.fixture(autouse=True)
+def _no_course_de(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Tests must not depend on the developer's local .env for COURSE_DE
+    either: the fixture courses are French-only, so `on` would fail them.
+    A test that wants a mode sets it itself."""
+    monkeypatch.delenv("COURSE_DE", raising=False)
 
 
 @pytest.fixture
