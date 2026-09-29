@@ -52,12 +52,23 @@ import sys
 import xml.etree.ElementTree as ET
 from collections import Counter
 from dataclasses import dataclass, field, replace
+from typing import Any
 from urllib.parse import urlparse
 
 import yaml
 from markdown_it import MarkdownIt
 
 from . import catalogue
+
+# libyaml's parser when PyYAML was built with it: the course has ~400 YAML
+# blocks, and the pure-Python one makes every load (each app boot, each test
+# client) take the better part of a second.
+_YAML_LOADER = getattr(yaml, "CSafeLoader", yaml.SafeLoader)
+
+
+def _yaml_load(text: str) -> Any:
+    return yaml.load(text, Loader=_YAML_LOADER)  # noqa: S506 -- a safe loader
+
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 COURSE_DIR = ROOT / "data" / "course" / "base"
@@ -257,7 +268,7 @@ def split_frontmatter(text: str) -> tuple[object, str]:
     m = FRONTMATTER.match(text)
     if not m:
         raise ValueError("frontmatter opened with --- but never closed")
-    return yaml.safe_load(m.group(1)) or {}, text[m.end() :]
+    return _yaml_load(m.group(1)) or {}, text[m.end() :]
 
 
 # --- checks ------------------------------------------------------------------
@@ -538,6 +549,8 @@ _MD = MarkdownIt("commonmark", {"html": True})
 def _image_srcs(body: str) -> list[str]:
     """Every image a Markdown body references, as `![](x)` or as raw `<img src>`."""
     srcs: list[str] = []
+    if "![" not in body and "<img" not in body.lower():
+        return srcs  # most pages: no need to parse
     for tok in _MD.parse(body):
         if tok.type == "html_block":
             srcs += IMG_TAG_SRC.findall(tok.content)
@@ -716,7 +729,7 @@ def _parse_omitted(course: Course, course_dir: pathlib.Path, problems: list[str]
     if not path.is_file():
         return frozenset()
     try:
-        raw = yaml.safe_load(path.read_text()) or {}
+        raw = _yaml_load(path.read_text()) or {}
     except yaml.YAMLError as e:
         problems.append(f"{NOTES_DE_OMITTED}: not valid YAML ({e})")
         return frozenset()
@@ -812,7 +825,7 @@ def _check(
         return None, [f"COURSE_DE must be one of {', '.join(DE_MODES)}, got {de!r}"]
     path = course_dir / CURRICULUM
     try:
-        raw = yaml.safe_load(path.read_text())
+        raw = _yaml_load(path.read_text())
     except FileNotFoundError:
         return None, [f"{path}: missing"]
     except yaml.YAMLError as e:
