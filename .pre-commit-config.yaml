@@ -24,3 +24,9 @@ repos:
         language: system
         types: [python]
         pass_filenames: false
+      # The workflows' own lint gate, run only when one of them is staged.
+      - id: actionlint
+        name: actionlint
+        entry: actionlint
+        language: system
+        files: ^\.github/workflows/
