@@ -9,6 +9,8 @@ from __future__ import annotations
 import json
 import logging
 import pathlib
+import re
+import uuid
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from urllib.parse import unquote, urlencode, urlsplit
@@ -68,6 +70,7 @@ templates.env.globals["doc_files"] = annotations_module.documents()  # type: ign
 
 PREFS_COOKIE = "ilr_session_prefs"
 LEARNER_COOKIE = "ilr_learner"  # the current course learner's account.id (specs/LEARN.md §6.1)
+BROWSER_COOKIE = "ilr_browser"  # owns the attempts started with no learner picked
 GITHUB_REPO = "sgrimee/ham-trainer-lu"
 MAX_ANSWER_CHARS = grader.MAX_ANSWER_CHARS
 templates.env.globals["max_answer_chars"] = MAX_ANSWER_CHARS  # type: ignore
@@ -160,9 +163,22 @@ def healthz(llm_grader: LLMGrader | None = Depends(get_llm_grader)):
     }
 
 
-def _load_attempt_or_404(store: Store, attempt_id: str) -> dict:
+def attempt_owner(request: Request, store: Store) -> str | None:
+    """Whose attempts this request sees: the current learner's, or with no
+    learner picked, this browser's. None for a browser that has started none."""
+    learner = current_learner(request, store)
+    if learner is not None:
+        return learner["id"]
+    browser_id = request.cookies.get(BROWSER_COOKIE, "")
+    return browser_id if re.fullmatch(r"[0-9a-f]{32}", browser_id) else None
+
+
+def _load_attempt_or_404(request: Request, store: Store, attempt_id: str) -> dict:
+    """The attempt, if it is this request's owner's. Another owner's attempt
+    is "not found", like one that doesn't exist. One from before attempts had
+    owners stays reachable by its address, which only its taker ever had."""
     attempt = store.get_attempt(attempt_id)
-    if attempt is None:
+    if attempt is None or attempt["owner"] not in (None, attempt_owner(request, store)):
         raise not_found("no such attempt")
     return attempt
 
@@ -287,7 +303,8 @@ def home(request: Request, lang: str = "fr", store: Store = Depends(get_store)):
     ui = ui_lang(lang)
     section_names = _section_labels(ui)
     resumes = []
-    for a in store.in_progress_attempts():
+    owner = attempt_owner(request, store)
+    for a in store.in_progress_attempts(owner) if owner else []:
         responses = store.responses(a["id"])
         grades = store.grades(a["id"])
         done = grades if a["mode"] == "study" else responses
@@ -320,6 +337,7 @@ def home(request: Request, lang: str = "fr", store: Store = Depends(get_store)):
 
 @app.post("/attempts")
 def create_attempt(
+    request: Request,
     tag: str = Form(...),
     mode: str = Form(...),
     lang: str = Form(...),
@@ -343,6 +361,10 @@ def create_attempt(
     option_order = session.build_option_order(cat, question_ids, shuffle)
     # sample_exam ignores section, so don't record one the exam never applied.
     stored_section = section_filter if mode == "study" else None
+    owner = attempt_owner(request, store)
+    new_browser = owner is None
+    if new_browser:
+        owner = uuid.uuid4().hex
     attempt_id = store.create_attempt(
         catalogue="ra-2024",
         tag=tag,
@@ -350,8 +372,11 @@ def create_attempt(
         lang=lang,
         spec={"section": stored_section, "shuffle_options": shuffle, "option_order": option_order},
         question_ids=question_ids,
+        owner=owner,
     )
     response = RedirectResponse(f"/attempts/{attempt_id}/q/1", status_code=303)
+    if new_browser:
+        response.set_cookie(BROWSER_COOKIE, owner, max_age=60 * 60 * 24 * 365, httponly=True, samesite="lax")
     prefs = {
         "tag": tag,
         "mode": mode,
@@ -369,7 +394,7 @@ def create_attempt(
 
 @app.get("/attempts/{attempt_id}/q/{n}")
 def show_question(request: Request, attempt_id: str, n: int, store: Store = Depends(get_store)):
-    attempt = _load_attempt_or_404(store, attempt_id)
+    attempt = _load_attempt_or_404(request, store, attempt_id)
     total = len(attempt["question_ids"])
     if not 1 <= n <= total:
         raise not_found("no such question in this attempt")
@@ -440,7 +465,7 @@ async def submit_answer(
     store: Store = Depends(get_store),
     llm_grader: LLMGrader | None = Depends(get_llm_grader),
 ):
-    attempt = _load_attempt_or_404(store, attempt_id)
+    attempt = _load_attempt_or_404(request, store, attempt_id)
     total = len(attempt["question_ids"])
     if not 1 <= n <= total:
         raise not_found("no such question in this attempt")
@@ -479,7 +504,7 @@ async def submit_answer(
 
 @app.post("/attempts/{attempt_id}/q/{n}/flag")
 async def toggle_flag(request: Request, attempt_id: str, n: int, store: Store = Depends(get_store)):
-    attempt = _load_attempt_or_404(store, attempt_id)
+    attempt = _load_attempt_or_404(request, store, attempt_id)
     if not 1 <= n <= len(attempt["question_ids"]):
         raise not_found("no such question in this attempt")
     qid = attempt["question_ids"][n - 1]
@@ -490,7 +515,7 @@ async def toggle_flag(request: Request, attempt_id: str, n: int, store: Store = 
 
 @app.post("/attempts/{attempt_id}/questions/{qid}/self-grade")
 async def self_grade(request: Request, attempt_id: str, qid: int, store: Store = Depends(get_store)):
-    attempt = _load_attempt_or_404(store, attempt_id)
+    attempt = _load_attempt_or_404(request, store, attempt_id)
     if qid not in attempt["question_ids"]:
         raise not_found("no such question in this attempt")
     form = await request.form()
@@ -507,9 +532,12 @@ async def self_grade(request: Request, attempt_id: str, qid: int, store: Store =
 
 @app.post("/attempts/{attempt_id}/submit")
 async def submit_exam(
-    attempt_id: str, store: Store = Depends(get_store), llm_grader: LLMGrader | None = Depends(get_llm_grader)
+    request: Request,
+    attempt_id: str,
+    store: Store = Depends(get_store),
+    llm_grader: LLMGrader | None = Depends(get_llm_grader),
 ):
-    attempt = _load_attempt_or_404(store, attempt_id)
+    attempt = _load_attempt_or_404(request, store, attempt_id)
     if attempt["mode"] != "exam":
         raise HTTPException(400, "only exam attempts are submitted")
     if not attempt["submitted_at"]:
@@ -522,7 +550,7 @@ async def submit_exam(
 
 @app.get("/attempts/{attempt_id}/results")
 def results(request: Request, attempt_id: str, store: Store = Depends(get_store)):
-    attempt = _load_attempt_or_404(store, attempt_id)
+    attempt = _load_attempt_or_404(request, store, attempt_id)
     ann = annotations_module.load()
     grades = store.grades(attempt_id)
     responses = store.responses(attempt_id)
@@ -581,8 +609,8 @@ def results(request: Request, attempt_id: str, store: Store = Depends(get_store)
 
 
 @app.post("/attempts/{attempt_id}/retry-wrong")
-def retry_wrong(attempt_id: str, store: Store = Depends(get_store)):
-    attempt = _load_attempt_or_404(store, attempt_id)
+def retry_wrong(request: Request, attempt_id: str, store: Store = Depends(get_store)):
+    attempt = _load_attempt_or_404(request, store, attempt_id)
     ids = session.wrong_question_ids(store, attempt)
     if not ids:
         return RedirectResponse(f"/attempts/{attempt_id}/results", status_code=303)
@@ -594,13 +622,16 @@ def retry_wrong(attempt_id: str, store: Store = Depends(get_store)):
         lang=attempt["lang"],
         spec={"section": None, "shuffle_options": True, "option_order": option_order, "retry_of": attempt_id},
         question_ids=ids,
+        owner=attempt["owner"],
     )
     return RedirectResponse(f"/attempts/{new_id}/q/1", status_code=303)
 
 
 @app.post("/attempts/{attempt_id}/delete")
-def delete_attempt(attempt_id: str, lang: str = Form("fr"), store: Store = Depends(get_store)):
-    _load_attempt_or_404(store, attempt_id)
+def delete_attempt(
+    request: Request, attempt_id: str, lang: str = Form("fr"), store: Store = Depends(get_store)
+):
+    _load_attempt_or_404(request, store, attempt_id)
     store.delete_attempt(attempt_id)
     return RedirectResponse(f"/exam?lang={ui_lang(lang)}", status_code=303)
 

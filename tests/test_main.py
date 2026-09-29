@@ -4,6 +4,7 @@ themselves, not the grading/session logic already covered elsewhere."""
 from __future__ import annotations
 
 import pathlib
+import re
 import sys
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent))
@@ -128,6 +129,74 @@ def test_spelling_is_graded_by_rule_without_a_model(client, store: Store):
     assert "ONE" in page and "self-grade" not in page
 
 
+# -- attempt ownership --------------------------------------------------------
+
+
+def _resume_ids(client) -> set[str]:
+    text = client.get("/exam").text
+    return set(re.findall(r"/attempts/([0-9a-f]{32})/", text))
+
+
+def test_attempts_are_listed_and_reachable_only_by_their_owner(client, store: Store):
+    from app.main import BROWSER_COOKIE, LEARNER_COOKIE
+
+    anonymous = _create_study_attempt(client)
+    browser_id = client.cookies.get(BROWSER_COOKIE)
+    assert browser_id and _resume_ids(client) == {anonymous}
+
+    lea = store.create_account("Léa")
+    client.cookies.set(LEARNER_COOKIE, lea)
+    assert _resume_ids(client) == set()  # the browser's attempt is not Léa's
+    assert client.get(f"/attempts/{anonymous}/q/1").status_code == 404
+    leas = _create_study_attempt(client)
+    assert _resume_ids(client) == {leas}
+
+    client.cookies.set(LEARNER_COOKIE, store.create_account("Tom"))
+    assert _resume_ids(client) == set()
+    for path in (f"/attempts/{leas}/q/1", f"/attempts/{leas}/results"):
+        assert client.get(path).status_code == 404
+    assert client.post(f"/attempts/{leas}/delete", data={"lang": "fr"}).status_code == 404
+    assert store.get_attempt(leas) is not None
+
+    client.cookies.clear()
+    client.cookies.set(BROWSER_COOKIE, browser_id)
+    assert _resume_ids(client) == {anonymous}
+
+
+def test_every_attempt_route_refuses_another_owner(client, store: Store):
+    from app.main import LEARNER_COOKIE
+
+    attempt_id = _create_study_attempt(client)
+    attempt = store.get_attempt(attempt_id)
+    assert attempt is not None
+    qid = attempt["question_ids"][0]
+    client.cookies.set(LEARNER_COOKIE, store.create_account("Tom"))
+    for path, data in (
+        (f"/attempts/{attempt_id}/q/1/answer", {"answer": "a"}),
+        (f"/attempts/{attempt_id}/q/1/flag", {"flagged": "1"}),
+        (f"/attempts/{attempt_id}/questions/{qid}/self-grade", {"correct": "1"}),
+        (f"/attempts/{attempt_id}/submit", {}),
+        (f"/attempts/{attempt_id}/retry-wrong", {}),
+    ):
+        assert client.post(path, data=data, follow_redirects=False).status_code == 404, path
+    assert store.responses(attempt_id) == {}
+
+
+def test_a_retry_belongs_to_the_same_owner(client, store: Store):
+    attempt_id = _create_study_attempt(client)
+    attempt = store.get_attempt(attempt_id)
+    assert attempt is not None
+    qid = next(q for q in attempt["question_ids"] if cat.get(q)["kind"] == "mcq")
+    wrong = next(o["letter"] for o in cat.get(qid)["options"] if not o["is_correct"])
+    n = attempt["question_ids"].index(qid) + 1
+    client.post(f"/attempts/{attempt_id}/q/{n}/answer", data={"answer": wrong})
+    resp = client.post(f"/attempts/{attempt_id}/retry-wrong", follow_redirects=False)
+    retry_id = resp.headers["location"].split("/")[2]
+    retry = store.get_attempt(retry_id)
+    assert retry is not None and retry["owner"] == attempt["owner"]
+    assert retry_id in _resume_ids(client)
+
+
 def test_the_grader_charges_each_client_address_separately():
     from types import SimpleNamespace
 
@@ -147,3 +216,42 @@ def test_the_grader_charges_each_client_address_separately():
     bound = [get_llm_grader(request(h)) for h in ("10.0.0.1", "10.0.0.2", None)]
     assert [g.caller for g in bound if g] == ["10.0.0.1", "10.0.0.2", "unknown"]
     assert all(g is not None and g.budget is grader.budget and g._cache is grader._cache for g in bound)
+
+
+def test_a_new_browser_sees_no_one_elses_attempts(client):
+    _create_study_attempt(client)
+    client.cookies.clear()
+    assert _resume_ids(client) == set()
+
+
+def test_attempts_from_before_owners_stay_reachable_but_unlisted(client, store: Store):
+    legacy = store.create_attempt(
+        catalogue="ra-2024", tag="base", mode="study", lang="fr", spec={}, question_ids=[1]
+    )
+    assert client.get(f"/attempts/{legacy}/q/1").status_code == 200
+    assert legacy not in _resume_ids(client)
+
+
+def test_deleting_a_learner_deletes_their_attempts(client, store: Store):
+    from app.main import LEARNER_COOKIE
+
+    lea = store.create_account("Léa")
+    client.cookies.set(LEARNER_COOKIE, lea)
+    attempt_id = _create_study_attempt(client)
+    store.delete_account(lea)
+    assert store.get_attempt(attempt_id) is None
+
+
+def test_open_answers_are_cut_to_the_maximum_length(client, store: Store):
+    from app.main import MAX_ANSWER_CHARS
+
+    attempt_id = _create_study_attempt(client)
+    attempt = store.get_attempt(attempt_id)
+    assert attempt is not None
+    qid = next(q for q in attempt["question_ids"] if cat.get(q)["kind"] == "open")
+    n = attempt["question_ids"].index(qid) + 1
+    item_no = cat.get(qid)["answer"][0]["item_no"]
+    assert f'maxlength="{MAX_ANSWER_CHARS}"' in client.get(f"/attempts/{attempt_id}/q/{n}").text
+    client.post(f"/attempts/{attempt_id}/q/{n}/answer", data={f"item_{item_no}": "x" * 5000})
+    stored = store.responses(attempt_id)[qid]["answer"][str(item_no)]
+    assert stored == "x" * MAX_ANSWER_CHARS

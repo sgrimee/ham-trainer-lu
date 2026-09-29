@@ -274,7 +274,8 @@ CREATE TABLE attempt (
                                      --   option_order per question, retry_of
   question_ids TEXT NOT NULL,        -- JSON array, the order as presented
   started_at   TEXT NOT NULL,
-  submitted_at TEXT                  -- NULL while in progress
+  submitted_at TEXT,                 -- NULL while in progress
+  owner        TEXT                  -- learner account id, or browser id (§5.3)
 );
 
 CREATE TABLE response (
@@ -306,9 +307,20 @@ questions and options exactly as they were answered.
 
 ### 5.3 Identity, and going back and forth
 
-The attempt id in the URL is the only identity. A cookie remembers the last
-session settings (certificate, mode, language, section, count, shuffle) to
-pre-fill the home form; it carries no candidate data.
+Every attempt has an owner: the current course learner (LEARN.md §6.1) when one
+is picked, otherwise the browser that started it, named by an anonymous random
+id in the `ilr_browser` cookie, set when that browser starts its first attempt.
+The home screen lists only the owner's attempts, and every attempt route answers
+404 for anyone else's, as for an attempt that doesn't exist. Picking or changing
+the learner changes the owner, so the browser's anonymous attempts are not
+listed under a learner, nor one learner's under another. This is identification,
+not security: like the learner cookie, it only keeps honest users apart.
+Deleting a learner deletes their attempts. Attempts from before owners
+(`owner` NULL) are listed nowhere but stay reachable by their URL.
+
+A second cookie remembers the last session settings (certificate, mode,
+language, section, count, shuffle) to pre-fill the home form; it carries no
+candidate data.
 
 **Navigation is stateless in both modes.** Back, forward, jump to question 14,
 close the laptop, return tomorrow: every `response` row stands on its own. The

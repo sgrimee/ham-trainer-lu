@@ -101,6 +101,10 @@ CREATE TABLE IF NOT EXISTS award (
 MIGRATIONS = (
     ("practice_result", "solved_items", "TEXT NOT NULL DEFAULT '{}'"),
     ("practice_result", "last_try", "TEXT NOT NULL DEFAULT '{}'"),
+    # Whose attempt it is: the learner's account id, or the anonymous id of
+    # the browser that started it. NULL on attempts from before owners, which
+    # no list shows.
+    ("attempt", "owner", "TEXT"),
 )
 
 # Seconds a connection waits on another writer's lock before failing with
@@ -245,6 +249,10 @@ class Store:
         with self._write_tx() as con:
             for table in ACCOUNT_TABLES:
                 con.execute(f"DELETE FROM {table} WHERE account_id = ?", (account_id,))
+            owned = "SELECT id FROM attempt WHERE owner = ?"
+            con.execute(f"DELETE FROM grade WHERE attempt_id IN ({owned})", (account_id,))
+            con.execute(f"DELETE FROM response WHERE attempt_id IN ({owned})", (account_id,))
+            con.execute("DELETE FROM attempt WHERE owner = ?", (account_id,))
             cur = con.execute("DELETE FROM account WHERE id = ?", (account_id,))
             return cur.rowcount > 0
 
@@ -511,14 +519,33 @@ class Store:
     # -- attempts ---------------------------------------------------------
 
     def create_attempt(
-        self, *, catalogue: str, tag: str, mode: str, lang: str, spec: dict, question_ids: list[int]
+        self,
+        *,
+        catalogue: str,
+        tag: str,
+        mode: str,
+        lang: str,
+        spec: dict,
+        question_ids: list[int],
+        owner: str | None = None,
     ) -> str:
         attempt_id = uuid.uuid4().hex
+        row = (
+            attempt_id,
+            catalogue,
+            tag,
+            mode,
+            lang,
+            json.dumps(spec),
+            json.dumps(question_ids),
+            now(),
+            owner,
+        )
         with self._connect() as con:
             con.execute(
                 "INSERT INTO attempt (id, catalogue, tag, mode, lang, spec, "
-                "question_ids, started_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-                (attempt_id, catalogue, tag, mode, lang, json.dumps(spec), json.dumps(question_ids), now()),
+                "question_ids, started_at, owner) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                row,
             )
         return attempt_id
 
@@ -532,11 +559,13 @@ class Store:
         d["question_ids"] = json.loads(d["question_ids"])
         return d
 
-    def in_progress_attempts(self, limit: int = 10) -> list[dict]:
+    def in_progress_attempts(self, owner: str, limit: int = 10) -> list[dict]:
+        """`owner`'s unsubmitted attempts, newest first."""
         with self._connect() as con:
             rows = con.execute(
-                "SELECT * FROM attempt WHERE submitted_at IS NULL ORDER BY started_at DESC LIMIT ?",
-                (limit,),
+                "SELECT * FROM attempt WHERE submitted_at IS NULL AND owner = ? "
+                "ORDER BY started_at DESC LIMIT ?",
+                (owner, limit),
             ).fetchall()
         out = []
         for row in rows:
