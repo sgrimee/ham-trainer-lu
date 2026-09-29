@@ -66,7 +66,7 @@ mise run install-hooks            # run the lint gate as a git pre-commit hook
 mise run add-learner "<name>"     # add a course learner (python -m app.learners add|delete|list)
 mise run docker-build             # build the container image
 mise run serve-docker             # build and run it (compose.yaml) at http://127.0.0.1:8000
-mise run docker-publish           # push amd64+arm64 to Docker Hub (sgrimee/examen-ilr)
+mise run docker-publish           # push amd64+arm64 to Docker Hub (sgrimee/examen-ilr); CI also does it on every push to main
 mise run eval-grader <model>...   # score grading models (needs LLM_API_KEY)
 mise tasks        # everything else
 ```
