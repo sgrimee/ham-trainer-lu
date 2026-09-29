@@ -15,6 +15,12 @@ RUN uv sync --frozen --no-default-groups
 
 FROM python:3.13-slim
 
+# Pull in Debian security fixes newer than the base image, and drop the system
+# pip: the app runs from the uv venv, and pip's vendored libraries (msgpack,
+# setuptools, ...) are what image scanners flag most.
+RUN apt-get update && apt-get upgrade -y && rm -rf /var/lib/apt/lists/* \
+    && python -m pip uninstall -y pip
+
 RUN groupadd --system examen && useradd --system --gid examen --home-dir /app examen
 
 WORKDIR /app

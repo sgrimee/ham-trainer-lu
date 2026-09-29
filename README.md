@@ -51,6 +51,21 @@ data/         canonical output, committed
   appendix/         formula sheet as page images
 ```
 
+## Run with Docker
+
+To just run the training application, use the prebuilt image
+[`sgrimee/examen-ilr`](https://hub.docker.com/r/sgrimee/examen-ilr) (amd64 and
+arm64). You don't need to clone the repository or install a toolchain:
+
+```sh
+docker run -d --name examen-ilr -p 8000:8000 \
+  -v examen-data:/var/lib/examen sgrimee/examen-ilr
+```
+
+Then open <http://localhost:8000>. [DOCKERHUB.md](DOCKERHUB.md) covers tags,
+environment variables (LLM grading, admin page, German course), volumes,
+Compose with secrets, and updating.
+
 ## Use
 
 [mise](https://mise.jdx.dev) provides the toolchain and runs the tasks; `uv`

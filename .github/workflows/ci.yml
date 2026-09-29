@@ -4,6 +4,11 @@ on:
   push:
     branches: [main]
   pull_request:
+  # Weekly rebuild from a fresh base image, so Debian and Python security fixes
+  # reach the published image even when the code doesn't change.
+  schedule:
+    - cron: "17 4 * * 1"
+  workflow_dispatch:
 
 jobs:
   test:
@@ -29,13 +34,23 @@ jobs:
       - name: Extraction round trip + curated annotations
         run: mise run verify
 
-  # Same image and tags as `mise run docker-publish`, on every push to main
-  # that passes the tests. Needs the DOCKERHUB_USERNAME and DOCKERHUB_TOKEN
-  # repository secrets (a Docker Hub access token with write scope).
-  publish:
+  # Builds the image and scans it with Docker Scout (the same scanner Docker
+  # Hub shows). A critical or high CVE that has a fix fails the job before
+  # anything is pushed; the full report goes to the repository's Security tab.
+  # On main (push, the weekly schedule or a manual run) the image is then
+  # pushed with the same tags as `mise run docker-publish`. Needs the
+  # DOCKERHUB_USERNAME and DOCKERHUB_TOKEN repository secrets (a Docker Hub
+  # access token with write scope), so it skips pull requests from forks.
+  image:
     needs: test
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+      pull-requests: write
+    env:
+      PUBLISH: ${{ github.event_name != 'pull_request' && github.ref == 'refs/heads/main' }}
     steps:
       - uses: actions/checkout@v7
 
@@ -52,11 +67,50 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - uses: docker/build-push-action@v7
+      # The scheduled rebuild skips the layer cache, so `apt-get upgrade`
+      # really runs again instead of replaying last week's layer.
+      - name: Build for scanning
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          load: true
+          pull: true
+          no-cache: ${{ github.event_name == 'schedule' }}
+          tags: examen-ilr:scan
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Full vulnerability report
+        uses: docker/scout-action@v1
+        with:
+          command: cves
+          image: local://examen-ilr:scan
+          sarif-file: scout.sarif
+
+      - uses: github/codeql-action/upload-sarif@v4
+        if: always() && hashFiles('scout.sarif') != ''
+        with:
+          sarif_file: scout.sarif
+          category: docker-scout
+
+      - name: Fail on fixable critical or high CVEs
+        uses: docker/scout-action@v1
+        with:
+          command: cves
+          image: local://examen-ilr:scan
+          only-severities: critical,high
+          only-fixed: true
+          exit-code: true
+
+      - name: Build and push
+        if: env.PUBLISH == 'true'
+        uses: docker/build-push-action@v7
         with:
           context: .
           platforms: linux/amd64,linux/arm64
           push: true
+          pull: true
+          no-cache: ${{ github.event_name == 'schedule' }}
           tags: |
             sgrimee/examen-ilr:latest
             sgrimee/examen-ilr:${{ steps.sha.outputs.short }}
@@ -66,6 +120,7 @@ jobs:
       # The Docker Hub page's text comes from DOCKERHUB.md. Unlike the push,
       # this needs the token's read/write/delete scope.
       - uses: peter-evans/dockerhub-description@v5
+        if: env.PUBLISH == 'true'
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
