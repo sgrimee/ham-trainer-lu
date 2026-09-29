@@ -10,8 +10,34 @@ from starlette.testclient import TestClient
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent))
 
-from app.main import app, get_llm_grader, get_store
+from app import course as course_module
+from app.main import app, cat, get_llm_grader, get_store
 from app.store import Store
+
+# The real course is loaded once per run, not once per test client: the app's
+# lifespan loads it at every TestClient start, and so would every test that
+# asks for it. The Course is frozen, so sharing it is safe. Any other course
+# (a fixture directory, a repointed COURSE_DIR, other questions) still loads
+# fresh, as does one that fails validation.
+_REAL_COURSE_DIR = course_module.COURSE_DIR
+_load = course_module.load
+_loaded: dict[tuple[bool, str], course_module.Course] = {}
+
+
+def _load_once(
+    course_dir: pathlib.Path | None = None, questions: list[dict] | None = None, de: str | None = None
+) -> course_module.Course:
+    if (course_dir or course_module.COURSE_DIR) != _REAL_COURSE_DIR or (
+        questions is not None and questions is not cat.questions
+    ):
+        return _load(course_dir, questions, de)
+    key = (questions is None, de if de is not None else course_module.de_setting())
+    if key not in _loaded:
+        _loaded[key] = _load(course_dir, questions, de)
+    return _loaded[key]
+
+
+course_module.load = _load_once  # type: ignore  # same signature, a test-only stand-in
 
 
 @pytest.fixture(autouse=True)
