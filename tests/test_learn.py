@@ -25,6 +25,7 @@ from app.main import COURSE_PREFIX, LEARNER_COOKIE, PREFS_COOKIE, cat
 from app.store import Store
 
 COURSE = course_module.load(questions=cat.questions)
+REAL_COURSE_DIR = course_module.COURSE_DIR
 
 
 def module(slug: str) -> course_module.Module:
@@ -88,45 +89,82 @@ def steps_before(step: course_module.Step) -> list[course_module.Step]:
     return COURSE.steps[: COURSE.steps.index(step)]
 
 
+def _dump(data) -> str:
+    return yaml.dump(
+        data, Dumper=getattr(yaml, "CSafeDumper", yaml.SafeDumper), allow_unicode=True, sort_keys=False
+    )
+
+
+def build_german(d: pathlib.Path, slugs, notes: bool) -> None:
+    """Write at `d` a copy of the real course in which exactly the named
+    modules offer German (or "all"). A German page is its French page
+    copied, its title prefixed "DE", so tests do not depend on the real
+    translation's progress."""
+    shutil.copytree(
+        REAL_COURSE_DIR, d, ignore=shutil.ignore_patterns("*.de.md", course_module.NOTES_DE_OMITTED)
+    )
+    cur = course_module._yaml_load((d / "curriculum.yaml").read_text())
+    for part in cur["parts"]:
+        part["title"].pop("de", None)
+        for m in part["modules"]:
+            m["title"].pop("de", None)
+            if slugs != "all" and m["slug"] not in slugs:
+                continue
+            m["title"]["de"] = "DE " + m["title"]["fr"]
+            part["title"]["de"] = "DE " + part["title"]["fr"]
+            for f in (d / m["slug"]).glob("*.fr.md"):
+                if re.fullmatch(r"q\d+\.fr\.md", f.name) and not notes:
+                    continue
+                meta, body = course_module.split_frontmatter(f.read_text())
+                if isinstance(meta, dict):
+                    meta["title"] = "DE " + meta["title"]
+                    body = f"---\n{_dump(meta)}---\n{body}"
+                f.with_name(f.name.replace(".fr.md", ".de.md")).write_text(body)
+    (d / "curriculum.yaml").write_text(_dump(cur))
+
+
+def _read_only(d: pathlib.Path) -> None:
+    for p in d.rglob("*"):
+        p.chmod(0o555 if p.is_dir() else 0o444)
+    d.chmod(0o555)
+
+
+@pytest.fixture(scope="session")
+def german_variants(tmp_path_factory):
+    """The courses `german` serves, each built and loaded once per run:
+    (slugs, notes) -> directory, and (slugs, notes, mode) -> Course. They
+    are read-only, so a test that writes into one fails instead of leaking
+    into the next; such a test asks `german` for a private copy."""
+    return tmp_path_factory, {}, {}
+
+
 @pytest.fixture
-def german(tmp_path, monkeypatch):
-    """Serve a copy of the real course in which exactly the named modules
-    offer German (or "all"), with COURSE_DE set to `mode`
-    (specs/LEARN-DE.md §2.2). A German page is its French page copied, its
-    title prefixed "DE", so tests do not depend on the real translation's
-    progress. Returns the course directory."""
+def german(tmp_path, monkeypatch, german_variants):
+    """Serve a copy of the real course (see `build_german`) with COURSE_DE
+    set to `mode` (specs/LEARN-DE.md §2.2). Returns the course directory,
+    which only a `private=True` call may modify."""
     from app import main
 
-    source = course_module.COURSE_DIR
+    factory, dirs, courses = german_variants
 
-    def make(slugs, mode: str, notes: bool = True) -> pathlib.Path:
-        d = tmp_path / "base"
-        if d.exists():
-            shutil.rmtree(d)
-        shutil.copytree(source, d)
-        (d / course_module.NOTES_DE_OMITTED).unlink(missing_ok=True)
-        cur = yaml.safe_load((d / "curriculum.yaml").read_text())
-        for part in cur["parts"]:
-            part["title"].pop("de", None)
-            for m in part["modules"]:
-                m["title"].pop("de", None)
-                for f in (d / m["slug"]).glob("*.de.md"):
-                    f.unlink()
-                if slugs != "all" and m["slug"] not in slugs:
-                    continue
-                m["title"]["de"] = "DE " + m["title"]["fr"]
-                part["title"]["de"] = "DE " + part["title"]["fr"]
-                for f in (d / m["slug"]).glob("*.fr.md"):
-                    if re.fullmatch(r"q\d+\.fr\.md", f.name) and not notes:
-                        continue
-                    meta, body = course_module.split_frontmatter(f.read_text())
-                    if isinstance(meta, dict):
-                        meta["title"] = "DE " + meta["title"]
-                        body = f"---\n{yaml.safe_dump(meta, allow_unicode=True)}---\n{body}"
-                    f.with_name(f.name.replace(".fr.md", ".de.md")).write_text(body)
-        (d / "curriculum.yaml").write_text(yaml.safe_dump(cur, allow_unicode=True, sort_keys=False))
+    def make(slugs, mode: str, notes: bool = True, private: bool = False) -> pathlib.Path:
+        if private:
+            d = tmp_path / "base"
+            shutil.rmtree(d, ignore_errors=True)
+            build_german(d, slugs, notes)
+            course = course_module.load(d, cat.questions, mode)
+        else:
+            key = (slugs if slugs == "all" else tuple(sorted(slugs)), notes)
+            if key not in dirs:
+                dirs[key] = factory.mktemp("german") / "base"
+                build_german(dirs[key], slugs, notes)
+                _read_only(dirs[key])
+            d = dirs[key]
+            if (*key, mode) not in courses:
+                courses[(*key, mode)] = course_module.load(d, cat.questions, mode)
+            course = courses[(*key, mode)]
         monkeypatch.setattr(course_module, "COURSE_DIR", d)
-        monkeypatch.setattr(main.app.state, "course", course_module.load(d, cat.questions, mode))
+        monkeypatch.setattr(main.app.state, "course", course)
         return d
 
     return make
@@ -1069,7 +1107,7 @@ def test_on_with_a_page_missing_refuses_to_start(monkeypatch, german):
 
     from app.main import app
 
-    d = german("all", "on")
+    d = german("all", "on", private=True)
     (d / FIRST.module / f"{FIRST.slug}.de.md").unlink()
     monkeypatch.setenv("COURSE_DE", "on")
     with pytest.raises(course_module.CourseError, match="German is missing"), TestClient(app):
@@ -1104,7 +1142,7 @@ def test_solved_open_fields_survive_a_switch(client, store: Store, learner, grad
 
 
 def test_a_german_only_note_shows_in_german_only(client, store: Store, learner, german):
-    d = german(["electricite"], "preview", notes=False)
+    d = german(["electricite"], "preview", notes=False, private=True)
     (d / "electricite" / "q2.de.md").write_text("Nur **auf Deutsch**.\n")
     seed(store, learner, steps_before(Q2) + [Q2])
     correct, _ = options(QID)
@@ -1114,7 +1152,7 @@ def test_a_german_only_note_shows_in_german_only(client, store: Store, learner, 
 
 
 def test_preview_flags_a_missing_german_note_unless_omitted(client, store: Store, learner, german):
-    d = german(["electricite"], "preview", notes=False)
+    d = german(["electricite"], "preview", notes=False, private=True)
     q6 = next(s for s in module("electricite").steps if s.slug == "q6")
     seed(store, learner, steps_before(q6) + [q6])
     client.cookies.set(PREFS_COOKIE, '{"lang": "de"}')
