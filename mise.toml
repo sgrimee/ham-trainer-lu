@@ -96,7 +96,7 @@ echo "pushed $image:latest and $image:$sha"
 '''
 
 [tasks.deploy]
-description = "Deploy the image CI last pushed to Docker Hub: checks that run succeeded, then pulls and recreates the server's containers"
+description = "Deploy the image CI last pushed to Docker Hub: checks that run succeeded, then pulls it and recreates the server's containers if it changed"
 # The host and directory are private: DEPLOY_SSH_HOST and DEPLOY_DIR in .env
 # (see .env.example). The latest CI run on main must have finished
 # successfully and actually pushed the image (a pull request run pushes nothing).
@@ -123,7 +123,9 @@ if [ "$pushed" != success ]; then
 fi
 echo "CI run for $sha ($event) succeeded and pushed sgrimee/examen-ilr:$sha; deploying"
 # Non-interactive ssh on the Synology leaves /usr/local/bin (docker) off PATH.
-ssh "$host" "cd '$dir' && PATH=/usr/local/bin:\$PATH docker compose up -d --pull always --force-recreate"
+# No --force-recreate: compose recreates the container only when the pulled
+# image differs, so deploying after a docs-only push leaves the app running.
+ssh "$host" "cd '$dir' && PATH=/usr/local/bin:\$PATH docker compose up -d --pull always"
 '''
 
 [tasks.eval-grader]
