@@ -21,8 +21,8 @@ sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent))
 
 from app import awards
 from app import course as course_module
-from app.main import COURSE_PREFIX, LEARNER_COOKIE, PREFS_COOKIE, cat
 from app.store import Store
+from app.web import COURSE_PREFIX, LEARNER_COOKIE, PREFS_COOKIE, cat
 
 COURSE = course_module.load(questions=cat.questions)
 REAL_COURSE_DIR = course_module.COURSE_DIR
@@ -471,10 +471,10 @@ def test_answer_note_shows_once_answered_correctly(client, store: Store, learner
 
 def test_practice_shows_the_question_figure(client, store: Store, learner, monkeypatch):
     """Like question.html: the stem's own images (none of today's 44 have one)."""
-    from app import main
+    from app.routes import learn
 
     figure = {**cat.get(QID), "assets": [{"path": "assets/fig.png", "option_letter": None}]}
-    monkeypatch.setattr(main, "_question", lambda step: figure)
+    monkeypatch.setattr(learn, "_question", lambda step: figure)
     seed(store, learner, steps_before(Q2))
     assert '<img src="/data/assets/fig.png"' in client.get(url(Q2)).text
 
@@ -814,7 +814,8 @@ class FakeGrader:
 
 @pytest.fixture
 def grader(client) -> FakeGrader:
-    from app.main import app, get_llm_grader
+    from app.main import app
+    from app.web import get_llm_grader
 
     fake = FakeGrader()
     app.dependency_overrides[get_llm_grader] = lambda: fake
@@ -999,7 +1000,7 @@ def test_the_switch_changes_only_the_language_and_writes_nothing(client, store: 
 
 
 def test_the_switch_without_a_cookie_writes_the_defaults(client):
-    from app.main import DEFAULT_PREFS
+    from app.web import DEFAULT_PREFS
 
     assert prefs_cookie(switch(client, "de", "/learn")) == {**DEFAULT_PREFS, "lang": "de"}
 

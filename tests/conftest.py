@@ -11,8 +11,9 @@ from starlette.testclient import TestClient
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent))
 
 from app import course as course_module
-from app.main import app, cat, get_llm_grader, get_store
+from app.main import app
 from app.store import Store
+from app.web import cat, get_llm_grader, get_store
 
 # The real course is loaded once per run, not once per test client: the app's
 # lifespan loads it at every TestClient start, and so would every test that

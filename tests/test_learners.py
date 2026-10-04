@@ -14,8 +14,8 @@ import pytest
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent))
 
 from app import admin, learners
-from app.main import LEARNER_COOKIE
 from app.store import AccountExists, Store
+from app.web import LEARNER_COOKIE
 
 PASSWORD = "s3cret-é"  # non-ASCII on purpose: compare_digest on str would raise
 

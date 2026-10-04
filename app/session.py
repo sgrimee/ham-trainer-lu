@@ -1,7 +1,7 @@
 """Session logic: sampling, presentation order, grading orchestration.
 
-Keeps `app/main.py` to routing and rendering; everything here is pure enough
-to unit-test without a running server.
+Keeps the routes (`app/routes/`) to routing and rendering; everything here is
+pure enough to unit-test without a running server.
 """
 
 from __future__ import annotations
@@ -344,7 +344,7 @@ async def submit_exam(store: Store, grader: LLMGrader | None, cat: Catalogue, at
     across the whole paper (specs/TRAINER.md §7.2) -- serial calls on a 100-item
     HAREC sitting would take minutes."""
     attempt = store.get_attempt(attempt_id)
-    assert attempt is not None, "caller already validated attempt_id (main._load_attempt_or_404)"
+    assert attempt is not None, "caller already validated attempt_id (routes.exam._load_attempt_or_404)"
     responses = store.responses(attempt_id)
     weights = question_weights(cat, attempt)
     open_tasks, open_qids = [], []

@@ -8,8 +8,8 @@ from datetime import UTC, datetime, timedelta
 
 import pytest
 
-from app.main import LEARNER_COOKIE
 from app.store import SEED_PATH, Store
+from app.web import LEARNER_COOKIE
 
 
 @pytest.fixture

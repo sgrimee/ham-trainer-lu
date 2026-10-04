@@ -366,7 +366,7 @@ reorders, re-splits, or re-scopes anything defined in §3. `sources` and
 German equivalent for `de` — since they are pointers, not translated content.
 
 **One effective language per page.** The course reads the exam trainer's
-existing `lang` preference (the preferences cookie, `app/main.py`) rather
+existing `lang` preference (the preferences cookie, `app/web.py`) rather
 than adding a second one, and derives a single effective language from it:
 `de` only if the preference is `de` *and* the page's module offers German,
 otherwise `fr`. That one value drives everything on the page — lesson prose,

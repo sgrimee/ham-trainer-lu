@@ -25,7 +25,7 @@ German speaker comes later (§7).
   sibling. Its per-module all-or-nothing rule counts pages, answer notes and
   the module title; §2.3 takes the notes out of it.
 - **One effective language per page.** `Course.effective_lang` and
-  `course_ui` (`app/main.py`) derive it from the trainer's `lang` preference
+  `course_ui` (`app/web.py`) derive it from the trainer's `lang` preference
   in the `ilr_session_prefs` cookie: `de` only where the page's module offers
   German, or, off-module, where some module does. `app/i18n.py` has the
   German interface text; `base.html` sets `<html lang>` from it.
@@ -438,7 +438,7 @@ translating a learner's own answers or the grader's past comments.
    Ships with `off`. **Done 2026-09-27**: `COURSE_DE` is read by
    `app/course.py` (`de_setting`), CI validates with `preview`; the switch
    is `POST /learn/lang`; the 499a override is `DE_OPTION_DISPLAY` in
-   `app/main.py`; `scripts/course_tools.py` applies French typography to
+   `app/routes/learn.py`; `scripts/course_tools.py` applies French typography to
    `.fr.md` only (German gets the digit groups) and takes `--lang de`.
 2. **Audit** (§3.1). The table of German findings and their decisions,
    notes and neutral cells included; filling the German grading entries,

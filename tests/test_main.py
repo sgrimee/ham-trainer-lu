@@ -9,8 +9,8 @@ import sys
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent))
 
-from app.main import cat
 from app.store import Store
+from app.web import cat
 
 
 def _create_study_attempt(client, **overrides) -> str:
@@ -138,7 +138,7 @@ def _resume_ids(client) -> set[str]:
 
 
 def test_attempts_are_listed_and_reachable_only_by_their_owner(client, store: Store):
-    from app.main import BROWSER_COOKIE, LEARNER_COOKIE
+    from app.web import BROWSER_COOKIE, LEARNER_COOKIE
 
     anonymous = _create_study_attempt(client)
     browser_id = client.cookies.get(BROWSER_COOKIE)
@@ -164,7 +164,7 @@ def test_attempts_are_listed_and_reachable_only_by_their_owner(client, store: St
 
 
 def test_every_attempt_route_refuses_another_owner(client, store: Store):
-    from app.main import LEARNER_COOKIE
+    from app.web import LEARNER_COOKIE
 
     attempt_id = _create_study_attempt(client)
     attempt = store.get_attempt(attempt_id)
@@ -203,7 +203,7 @@ def test_the_grader_charges_each_client_address_separately():
     import httpx2 as httpx
 
     from app.grader import LLMGrader
-    from app.main import get_llm_grader
+    from app.web import get_llm_grader
 
     grader = LLMGrader("http://llm", "key", "fake", 5.0, httpx.AsyncClient())
 
@@ -233,7 +233,7 @@ def test_attempts_from_before_owners_stay_reachable_but_unlisted(client, store: 
 
 
 def test_deleting_a_learner_deletes_their_attempts(client, store: Store):
-    from app.main import LEARNER_COOKIE
+    from app.web import LEARNER_COOKIE
 
     lea = store.create_account("Léa")
     client.cookies.set(LEARNER_COOKIE, lea)
@@ -243,7 +243,7 @@ def test_deleting_a_learner_deletes_their_attempts(client, store: Store):
 
 
 def test_open_answers_are_cut_to_the_maximum_length(client, store: Store):
-    from app.main import MAX_ANSWER_CHARS
+    from app.web import MAX_ANSWER_CHARS
 
     attempt_id = _create_study_attempt(client)
     attempt = store.get_attempt(attempt_id)
