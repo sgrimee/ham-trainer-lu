@@ -15,7 +15,7 @@ import sqlite3
 import uuid
 from collections.abc import Callable, Iterable
 from contextlib import contextmanager
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from typing import Protocol
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
@@ -94,6 +94,15 @@ CREATE TABLE IF NOT EXISTS award (
   seen_at      TEXT,
   PRIMARY KEY (account_id, kind, ref)
 );
+
+-- specs/LEARN.md §8.2. One row per minute in which a learner was active, from
+-- a page load or the page's heartbeat: time spent is the row count.
+CREATE TABLE IF NOT EXISTS activity (
+  account_id TEXT NOT NULL REFERENCES account(id),
+  minute     TEXT NOT NULL,
+  path       TEXT NOT NULL,
+  PRIMARY KEY (account_id, minute)
+);
 """
 
 # Columns added after a table first shipped: (table, column, definition).
@@ -113,7 +122,31 @@ BUSY_TIMEOUT = 10.0
 
 # Everything keyed by account_id that deleting an account must remove too:
 # foreign keys are not enforced (no PRAGMA foreign_keys=ON).
-ACCOUNT_TABLES = ("step_progress", "practice_result", "award")
+ACCOUNT_TABLES = ("step_progress", "practice_result", "award", "activity")
+
+# Activity (specs/LEARN.md §8.2): idle minutes that end a session, the minutes
+# credited after a seeded session's last event, the path of a seeded minute,
+# and the longest path kept.
+SESSION_GAP_MINUTES = 15
+SEED_TAIL_MINUTES = 2
+SEED_PATH = "(estimate)"
+ACTIVITY_PATH_MAX = 200
+
+# Every timestamp that shows an existing learner was there, for the one-off
+# seed: (account_id, timestamp) rows. Exam attempts count when a learner owns
+# them.
+SEED_EVENTS = """
+SELECT e.account_id, e.at FROM (
+  SELECT account_id, completed_at AS at FROM step_progress
+  UNION ALL SELECT account_id, updated_at FROM practice_result
+  UNION ALL SELECT account_id, awarded_at FROM award
+  UNION ALL SELECT account_id, seen_at FROM award
+  UNION ALL SELECT owner, started_at FROM attempt
+  UNION ALL SELECT owner, submitted_at FROM attempt
+  UNION ALL SELECT a.owner, r.updated_at FROM response r JOIN attempt a ON a.id = r.attempt_id
+) e JOIN account ON account.id = e.account_id
+WHERE e.at IS NOT NULL
+"""
 
 DISPLAY_NAME_MAX = 40
 
@@ -141,6 +174,50 @@ def now() -> str:
     return datetime.now(UTC).isoformat()
 
 
+def minute_of(timestamp: str | datetime) -> datetime:
+    """The UTC minute a stored timestamp falls in."""
+    at = datetime.fromisoformat(timestamp) if isinstance(timestamp, str) else timestamp
+    if at.tzinfo is None:
+        at = at.replace(tzinfo=UTC)
+    return at.astimezone(UTC).replace(second=0, microsecond=0)
+
+
+def minute_key(at: datetime) -> str:
+    return at.strftime("%Y-%m-%dT%H:%M")
+
+
+def sessions(minutes: Iterable[datetime]) -> list[list[datetime]]:
+    """Sorted minutes split wherever more than `SESSION_GAP_MINUTES` pass."""
+    runs: list[list[datetime]] = []
+    for m in sorted(minutes):
+        if runs and m - runs[-1][-1] <= timedelta(minutes=SESSION_GAP_MINUTES):
+            runs[-1].append(m)
+        else:
+            runs.append([m])
+    return runs
+
+
+def _seed_activity(con: sqlite3.Connection) -> None:
+    """The time spent before activity was recorded, estimated once, when the
+    table is created (specs/LEARN.md §8.2): each session of stored events
+    counts every minute from its first event to `SEED_TAIL_MINUTES` after
+    its last. The rows are ordinary activity rows, so no total treats them
+    apart."""
+    by_account: dict[str, set[datetime]] = {}
+    for account_id, timestamp in con.execute(SEED_EVENTS):
+        try:
+            minute = minute_of(timestamp)
+        except (TypeError, ValueError):  # never fail startup over one odd value
+            continue
+        by_account.setdefault(account_id, set()).add(minute)
+    rows = []
+    for account_id, minutes in by_account.items():
+        for run in sessions(minutes):
+            span = int((run[-1] - run[0]).total_seconds() // 60) + SEED_TAIL_MINUTES
+            rows += [(account_id, minute_key(run[0] + timedelta(minutes=i)), SEED_PATH) for i in range(span)]
+    con.executemany("INSERT OR IGNORE INTO activity (account_id, minute, path) VALUES (?, ?, ?)", rows)
+
+
 def _items(text: str) -> dict[int, dict]:
     """An open-question column: JSON object keys are strings, item numbers ints."""
     return {int(k): v for k, v in json.loads(text or "{}").items()}
@@ -153,6 +230,9 @@ class Store:
         path.parent.mkdir(parents=True, exist_ok=True)
         self.path = path
         with self._connect() as con:
+            seed = not con.execute(
+                "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'activity'"
+            ).fetchone()
             con.executescript(SCHEMA)
             for table, column, definition in MIGRATIONS:
                 columns = {r["name"] for r in con.execute(f"PRAGMA table_info({table})")}
@@ -160,6 +240,8 @@ class Store:
                     con.execute(f"ALTER TABLE {table} ADD COLUMN {column} {definition}")
             # Persistent in the file: reads never wait on a write (LEARN.md §8.1).
             con.execute("PRAGMA journal_mode=WAL")
+            if seed:
+                _seed_activity(con)
 
     @contextmanager
     def _connect(self):
@@ -255,6 +337,38 @@ class Store:
             con.execute("DELETE FROM attempt WHERE owner = ?", (account_id,))
             cur = con.execute("DELETE FROM account WHERE id = ?", (account_id,))
             return cur.rowcount > 0
+
+    # -- activity (specs/LEARN.md §8.2) ------------------------------------
+
+    def mark_activity(self, account_id: str, path: str, at: datetime | None = None) -> None:
+        """Mark the learner active in the minute of `at` (default now), on
+        `path`. An unknown or deleted account writes nothing."""
+        with self._connect() as con:
+            con.execute(
+                "INSERT INTO activity (account_id, minute, path)"
+                " SELECT ?, ?, ? WHERE EXISTS (SELECT 1 FROM account WHERE id = ?)"
+                " ON CONFLICT (account_id, minute) DO UPDATE SET path = excluded.path",
+                (account_id, minute_key(minute_of(at or now())), path[:ACTIVITY_PATH_MAX], account_id),
+            )
+
+    def activity_summary(self, today: datetime | None = None) -> dict[str, dict]:
+        """Per account with any activity: minutes in all, minutes in the 7
+        days up to `today` (default now), sessions, and the last active
+        minute as 'YYYY-MM-DD HH:MM' UTC."""
+        week_start = minute_key(minute_of(today or now()) - timedelta(days=7))
+        by_account: dict[str, list[str]] = {}
+        with self._connect() as con:
+            for account_id, minute in con.execute("SELECT account_id, minute FROM activity"):
+                by_account.setdefault(account_id, []).append(minute)
+        return {
+            account_id: {
+                "minutes": len(minutes),
+                "week_minutes": sum(m > week_start for m in minutes),
+                "sessions": len(sessions(minute_of(m) for m in minutes)),
+                "last_active": max(minutes).replace("T", " "),
+            }
+            for account_id, minutes in by_account.items()
+        }
 
     # -- course progress (specs/LEARN.md §7, §8) ---------------------------
 

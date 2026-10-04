@@ -825,6 +825,52 @@ Phase 4 tests cover guard 1 directly: two concurrent submissions for the same
 learner and question — one wrong, one right — must never produce first-try
 XP.
 
+### 8.2 Activity: time spent
+
+The operator wants to know how long each learner studies. Container logs
+can't answer that: they are lost on every recreate, and every request comes
+from the same proxy address. Progress timestamps miss reading time. So the app
+records, per learner, the minutes in which they were active:
+
+```sql
+CREATE TABLE IF NOT EXISTS activity (
+  account_id TEXT NOT NULL REFERENCES account(id),
+  minute     TEXT NOT NULL,   -- UTC, 'YYYY-MM-DDTHH:MM'
+  path       TEXT NOT NULL,   -- the last page seen in that minute
+  PRIMARY KEY (account_id, minute)
+);
+```
+
+**Time spent is the row count.** A minute is marked in two ways, both as an
+upsert on the primary key, so a minute is never counted twice:
+
+- **Every request from the current learner** (`ilr_learner` cookie, existing
+  account), through a dependency on every route. That includes exam attempts.
+  It excludes `/admin`, `/healthz` and the static mounts. Anonymous exam use
+  is not recorded.
+- **The page heartbeat** in `app/static/app.js`: once a minute it sends
+  `POST /activity/ping` with the page's path, but only while the page is
+  visible and the learner has scrolled, typed, pointed or touched it in the
+  last 3 minutes. Reading a long lesson therefore counts, and a tab left open
+  stops counting after 3 minutes.
+
+**Sessions** are runs of active minutes with no gap longer than 15 minutes.
+The admin learners page (§6.1.1) shows each learner's total, the last 7 days,
+their sessions, and when they were last active. Only the operator sees it: it
+is not on the shared progress page. The name picker tells learners that time
+spent is recorded. The rows are in `ACCOUNT_TABLES`, so deleting a learner
+deletes them (§6.1).
+
+**The time spent before this existed is seeded once,** when the table is
+created on a database that lacks it. The seed takes every stored timestamp
+of an existing learner (completed steps, practice results, awards and
+when they were seen, and attempts the learner owns with their responses),
+groups each learner's timestamps into sessions, and counts every minute from
+a session's first event to 2 minutes after its last. These rows have path
+`(estimate)`, and no total treats them apart. The seed is a lower bound:
+reading with no answer left no trace, and practice results keep only the last
+try.
+
 ## 9. Gamification (MVP scope)
 
 Resolved: **XP and badges only for the first version**; streaks, confetti and

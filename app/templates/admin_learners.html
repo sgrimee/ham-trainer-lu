@@ -12,6 +12,11 @@
     <li class="resume-item">
       <span class="learner-name">{{ a.display_name }}</span>
       <span class="hint">{{ t(ui, 'created_on') }} {{ a.created_at[:10] }}</span>
+      {% set act = activity.get(a.id) %}
+      <span class="hint">{% if act %}{{ t(ui, 'time_spent') }} {{ duration(act.minutes) }}
+        ({{ t(ui, 'time_spent_week') }} {{ duration(act.week_minutes) }}),
+        {{ t(ui, 'sessions_count', n=act.sessions) }}, {{ t(ui, 'last_active') }} {{ act.last_active }} UTC
+        {%- else %}{{ t(ui, 'no_activity') }}{% endif %}</span>
       <a class="link-button" href="/admin/learners/{{ a.id }}/delete">{{ t(ui, 'delete') }}</a>
     </li>
     {% endfor %}

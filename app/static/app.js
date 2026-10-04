@@ -51,3 +51,23 @@ document.querySelectorAll("form.open-answer").forEach((form) => {
     }
   });
 });
+
+// Time spent (specs/LEARN.md §8.2): while the page is visible and the learner
+// has touched it in the last few minutes, tell the server once a minute that
+// they are still here. Reading a long lesson leaves no other trace.
+{
+  const PING_MS = 60 * 1000;
+  const IDLE_MS = 3 * 60 * 1000;
+  let lastInput = Date.now();
+  const touched = () => { lastInput = Date.now(); };
+  ["keydown", "pointerdown", "pointermove", "wheel", "scroll", "touchstart"].forEach((type) =>
+    window.addEventListener(type, touched, { passive: true, capture: true }));
+  setInterval(() => {
+    if (document.visibilityState !== "visible" || Date.now() - lastInput > IDLE_MS) return;
+    fetch("/activity/ping", {
+      method: "POST",
+      body: new URLSearchParams({ path: location.pathname }),
+      keepalive: true,
+    }).catch(() => {});
+  }, PING_MS);
+}

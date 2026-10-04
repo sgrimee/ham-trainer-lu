@@ -62,7 +62,28 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         yield
 
 
-app = FastAPI(title="ILR exam trainer", lifespan=lifespan)
+def get_store(request: Request) -> Store:
+    return request.app.state.store
+
+
+# Paths whose requests never count as a learner's activity: the operator's,
+# the container's health check, and the heartbeat, which marks its own path.
+UNTRACKED_PATHS = ("/admin", "/healthz", "/activity/ping")
+
+
+def record_activity(request: Request, store: Store = Depends(get_store)) -> None:
+    """Every route's dependency: a request from the current learner marks
+    this minute active (specs/LEARN.md §8.2). The /static and /data mounts
+    are not routes, so assets never count."""
+    path = request.url.path
+    if any(path == p or path.startswith(p + "/") for p in UNTRACKED_PATHS):
+        return
+    account_id = request.cookies.get(LEARNER_COOKIE)
+    if account_id:
+        store.mark_activity(account_id, path)
+
+
+app = FastAPI(title="ILR exam trainer", lifespan=lifespan, dependencies=[Depends(record_activity)])
 app.mount("/data", StaticFiles(directory=ROOT / "data"), name="data")
 app.mount("/static", StaticFiles(directory=ROOT / "app" / "static"), name="static")
 templates = Jinja2Templates(directory=ROOT / "app" / "templates")
@@ -77,8 +98,13 @@ MAX_ANSWER_CHARS = grader.MAX_ANSWER_CHARS
 templates.env.globals["max_answer_chars"] = MAX_ANSWER_CHARS  # type: ignore
 
 
-def get_store(request: Request) -> Store:
-    return request.app.state.store
+def duration(minutes: int) -> str:
+    """Time spent as the admin page shows it: '35 min', '2 h 10 min'."""
+    hours, rest = divmod(minutes, 60)
+    return f"{hours} h {rest:02d} min" if hours else f"{rest} min"
+
+
+templates.env.globals["duration"] = duration  # type: ignore
 
 
 def get_llm_grader(request: Request) -> LLMGrader | None:
@@ -162,6 +188,16 @@ def healthz(llm_grader: LLMGrader | None = Depends(get_llm_grader)):
         "questions": len(cat.questions),
         "model": llm_grader.model if llm_grader else None,
     }
+
+
+@app.post("/activity/ping", status_code=204)
+def activity_ping(request: Request, path: str = Form(""), store: Store = Depends(get_store)):
+    """The page heartbeat (app/static/app.js): the learner is still on
+    `path`, the page it was sent from (specs/LEARN.md §8.2)."""
+    account_id = request.cookies.get(LEARNER_COOKIE)
+    if account_id and path.startswith("/"):
+        store.mark_activity(account_id, path)
+    return Response(status_code=204)
 
 
 def attempt_owner(request: Request, store: Store) -> str | None:
@@ -1306,7 +1342,9 @@ def _admin_redirect(url: str) -> Response:
 
 def _learners_page(request: Request, store: Store, error: str | None = None, name: str = "") -> Response:
     return _admin_page(
-        request, "admin_learners.html", {"accounts": store.accounts(), "error": error, "name": name}
+        request,
+        "admin_learners.html",
+        {"accounts": store.accounts(), "activity": store.activity_summary(), "error": error, "name": name},
     )
 
 
