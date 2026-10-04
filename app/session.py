@@ -11,7 +11,7 @@ import random
 from typing import Any
 
 from . import official_wordings, scoring, spelling
-from .catalogue import BLUEPRINT, Catalogue, localized, part_of
+from .catalogue import BLUEPRINT, Catalogue, correct_letter, localized, part_of
 from .grader import LLMGrader, SelfGrader
 from .store import Store
 
@@ -159,8 +159,7 @@ def ref_text(value: dict, lang: str) -> str:
 
 
 def grade_mcq(weight: float, q: dict, answer: str | None) -> tuple[str, float]:
-    correct_letter = next(o["letter"] for o in q["options"] if o["is_correct"])
-    is_correct = answer == correct_letter
+    is_correct = answer == correct_letter(q)
     return ("correct" if is_correct else "incorrect", weight if is_correct else 0.0)
 
 

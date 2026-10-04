@@ -464,9 +464,7 @@ def show_question(request: Request, attempt_id: str, n: int, store: Store = Depe
         counts = session.part_counts_for_ids(cat, attempt["question_ids"])
         weight = scoring.question_weight(counts[catalogue.part_of(q["section"])])
 
-    correct_letter = (
-        next((o["letter"] for o in q["options"] if o["is_correct"]), None) if q["kind"] == "mcq" else None
-    )
+    correct_letter = catalogue.correct_letter(q)
 
     ui = ui_lang(attempt["lang"])
     return templates.TemplateResponse(
@@ -597,9 +595,7 @@ def results(request: Request, attempt_id: str, store: Store = Depends(get_store)
     for qid in attempt["question_ids"]:
         q = cat.get(qid)
         option_order = attempt["spec"].get("option_order", {}).get(str(qid))
-        correct_letter = (
-            next((o["letter"] for o in q["options"] if o["is_correct"]), None) if q["kind"] == "mcq" else None
-        )
+        correct_letter = catalogue.correct_letter(q)
         rows_for_q = grades.get(qid, [])
         resp = responses.get(qid)
         weight = (
@@ -1099,7 +1095,7 @@ def learn_step(
     done = step.id in completed
     if q["kind"] == "open":
         return _render_open_practice(request, store, course, context, step, q, done)
-    correct_letter = next(o["letter"] for o in q["options"] if o["is_correct"])
+    correct_letter = catalogue.correct_letter(q)
     if done:
         # A revisit stores nothing, so the redirect's `picked` is the only
         # record of the answer just given (§5.1).
@@ -1238,7 +1234,7 @@ async def learn_answer(
     answer = form_str(form, "answer")
     if answer not in {o["letter"] for o in q["options"]}:
         return RedirectResponse(here, status_code=303)  # nothing picked (or a forged value)
-    correct = next(o["letter"] for o in q["options"] if o["is_correct"])
+    correct = catalogue.correct_letter(q)
     result = store.answer_practice(
         learner["id"],
         step.id,

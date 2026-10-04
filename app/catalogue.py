@@ -35,6 +35,13 @@ def part_of(section: str) -> str:
     return PART_NAMES[section.split(".", 1)[0]]
 
 
+def correct_letter(q: dict) -> str | None:
+    """An MCQ's one right option (a boot invariant); None for an open question."""
+    if q["kind"] != "mcq":
+        return None
+    return next((o["letter"] for o in q["options"] if o["is_correct"]), None)
+
+
 def localized(value: dict, lang: str) -> list[dict]:
     """Render a bilingual cell for the requested language(s).
 
