@@ -6,6 +6,7 @@ One FastAPI process, server-rendered templates, no build step. Run with
 
 from __future__ import annotations
 
+import functools
 import json
 import logging
 import pathlib
@@ -221,10 +222,12 @@ def _load_attempt_or_404(request: Request, store: Store, attempt_id: str) -> dic
     return attempt
 
 
+@functools.cache
 def _section_options() -> list[dict]:
     """Sections grouped by exam part, so the home form can offer either a
     whole part (section='1', matched as a prefix by Catalogue.filter) or one
-    of its subsections (section='1.2')."""
+    of its subsections (section='1.2'). Built once from the fixed catalogue
+    and shared, so callers must not change it."""
     parts: dict[str, dict] = {}
     subsections: dict[str, dict[str, dict]] = {}
     for q in cat.questions:
@@ -840,7 +843,7 @@ def badge_label(course: course_module.Course, ref: str, ui: str) -> str | None:
         p = course.part(ref.removeprefix(awards.PART_PREFIX))
         return t(ui, "badge_part", n=p.number) if p else None
     m = course.module(ref.removeprefix("module:"))
-    return t(ui, "badge_module", title=m.title.get(ui, m.title["fr"])) if m else None
+    return t(ui, "badge_module", title=m.title_in(ui)) if m else None
 
 
 def _render_learn(request: Request, store: Store, name: str, context: dict) -> Response:
@@ -926,7 +929,7 @@ def _module_progress(module: course_module.Module, completed: set[str], ui: str)
     state = "completed" if done == total else "in-progress" if done else "not-started"
     return {
         "module": module,
-        "title": module.title.get(ui, module.title["fr"]),
+        "title": module.title_in(ui),
         "state": state,
         "done": done,
         "total": total,
@@ -943,7 +946,7 @@ def _learner_progress(course: course_module.Course, completed: set[str], ui: str
         "parts": [
             {
                 "part": p,
-                "title": p.title.get(ui, p.title["fr"]),
+                "title": p.title_in(ui),
                 "modules": [_module_progress(m, completed, ui) for m in p.modules],
             }
             for p in course.parts
@@ -1053,7 +1056,7 @@ def learn_module(
             **lang,
             "learner": learner,
             "module": module,
-            "title": module.title.get(ui, module.title["fr"]),
+            "title": module.title_in(ui),
             "steps": steps,
         },
     )
@@ -1083,7 +1086,7 @@ def learn_step(
         "learner": learner,
         "step": step,
         "module": module,
-        "module_title": module.title.get(ui, module.title["fr"]),
+        "module_title": module.title_in(ui),
         "position": module.steps.index(step) + 1,
         "module_total": len(module.steps),
         "course_position": course.steps.index(step) + 1,

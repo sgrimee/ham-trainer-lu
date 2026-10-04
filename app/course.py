@@ -129,6 +129,9 @@ class Module:
     steps: tuple[Step, ...]
     part: str = ""  # part slug
 
+    def title_in(self, lang: str) -> str:
+        return self.title.get(lang, self.title["fr"])
+
     @property
     def offers_de(self) -> bool:
         """German is offered module by module (§4.3). Once the course has
@@ -142,6 +145,9 @@ class Part:
     title: dict[str, str]
     modules: tuple[Module, ...]
     number: str = ""  # "1" to "3", its place in the course (LEARN-2-3 §2.2)
+
+    def title_in(self, lang: str) -> str:
+        return self.title.get(lang, self.title["fr"])
 
 
 @dataclass(frozen=True)
