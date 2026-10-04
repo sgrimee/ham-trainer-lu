@@ -223,6 +223,11 @@ def _items(text: str) -> dict[int, dict]:
     return {int(k): v for k, v in json.loads(text or "{}").items()}
 
 
+def _attempt(row: sqlite3.Row) -> dict:
+    """An attempt row, its JSON columns decoded."""
+    return {**dict(row), "spec": json.loads(row["spec"]), "question_ids": json.loads(row["question_ids"])}
+
+
 class Store:
     def __init__(self, path: str | pathlib.Path | None = None):
         path = path or os.environ.get("ATTEMPTS_DB") or ROOT / "var" / "attempts.db"
@@ -421,6 +426,21 @@ class Store:
                 (account_id, a.kind, a.ref, a.amount, now()),
             )
 
+    def _first_pass(
+        self, account_id: str, step_id: str, record: Callable[[sqlite3.Connection, set[str]], str]
+    ) -> str | None:
+        """Run `record(con, done)` in one `BEGIN IMMEDIATE` transaction (§8.1),
+        on the step's first pass only. None: no such account. "revisit": the
+        step was already completed, so nothing is written. Otherwise what
+        `record` returns."""
+        with self._write_tx() as con:
+            if not self._account_exists(con, account_id):
+                return None
+            done = self._completed_in(con, account_id)
+            if step_id in done:
+                return "revisit"
+            return record(con, done)
+
     def complete_step(self, account_id: str, step_id: str, awards: Awards | None = None) -> bool | None:
         """Record a lesson or learn-more step as completed, with its awards,
         in one `BEGIN IMMEDIATE` transaction (§8.1). None: no such account;
@@ -453,12 +473,8 @@ class Store:
         answer -- completion, attempts and XP are decided by the first pass
         only. "wrong" / "correct": recorded; a correct answer completes the
         step, and earns first-try XP only if no wrong option was tried."""
-        with self._write_tx() as con:
-            if not self._account_exists(con, account_id):
-                return None
-            done = self._completed_in(con, account_id)
-            if step_id in done:
-                return "revisit"
+
+        def record(con: sqlite3.Connection, done: set[str]) -> str:
             row = con.execute(
                 "SELECT wrong_letters FROM practice_result WHERE account_id = ? AND question_id = ?",
                 (account_id, question_id),
@@ -478,6 +494,8 @@ class Store:
                 return "wrong"
             self._complete(con, account_id, step_id, done, not wrong, awards)
             return "correct"
+
+        return self._first_pass(account_id, step_id, record)
 
     def answer_open(
         self,
@@ -499,12 +517,8 @@ class Store:
         first-try XP only if this was the first submission and no field was
         self-graded. "pending": some field awaits the learner's own verdict
         (no grader, or the call failed). "wrong": otherwise."""
-        with self._write_tx() as con:
-            if not self._account_exists(con, account_id):
-                return None
-            done = self._completed_in(con, account_id)
-            if step_id in done:
-                return "revisit"
+
+        def record(con: sqlite3.Connection, done: set[str]) -> str:
             solved, _, submissions = self._open_state(con, account_id, question_id)
             last_try = {}
             for item_no, grade in graded.items():
@@ -522,6 +536,8 @@ class Store:
                 return "correct"
             return "pending" if any(g["verdict"] == "ungraded" for g in last_try.values()) else "wrong"
 
+        return self._first_pass(account_id, step_id, record)
+
     def self_grade_open(
         self,
         account_id: str,
@@ -538,12 +554,8 @@ class Store:
 
         None: no such account. "revisit", "correct" or "wrong" as in
         `answer_open`; "wrong" also when nothing was awaiting a verdict."""
-        with self._write_tx() as con:
-            if not self._account_exists(con, account_id):
-                return None
-            done = self._completed_in(con, account_id)
-            if step_id in done:
-                return "revisit"
+
+        def record(con: sqlite3.Connection, done: set[str]) -> str:
             solved, last_try, submissions = self._open_state(con, account_id, question_id)
             pending = [n for n, g in last_try.items() if g["verdict"] == "ungraded"]
             if not pending:
@@ -558,6 +570,8 @@ class Store:
                 self._complete(con, account_id, step_id, done, False, awards)
                 return "correct"
             return "wrong"
+
+        return self._first_pass(account_id, step_id, record)
 
     @staticmethod
     def _open_state(
@@ -666,12 +680,7 @@ class Store:
     def get_attempt(self, attempt_id: str) -> dict | None:
         with self._connect() as con:
             row = con.execute("SELECT * FROM attempt WHERE id = ?", (attempt_id,)).fetchone()
-        if row is None:
-            return None
-        d = dict(row)
-        d["spec"] = json.loads(d["spec"])
-        d["question_ids"] = json.loads(d["question_ids"])
-        return d
+        return _attempt(row) if row else None
 
     def in_progress_attempts(self, owner: str, limit: int = 10) -> list[dict]:
         """`owner`'s unsubmitted attempts, newest first."""
@@ -681,13 +690,7 @@ class Store:
                 "ORDER BY started_at DESC LIMIT ?",
                 (owner, limit),
             ).fetchall()
-        out = []
-        for row in rows:
-            d = dict(row)
-            d["spec"] = json.loads(d["spec"])
-            d["question_ids"] = json.loads(d["question_ids"])
-            out.append(d)
-        return out
+        return [_attempt(row) for row in rows]
 
     def submit_attempt(self, attempt_id: str) -> None:
         with self._connect() as con:
