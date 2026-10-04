@@ -23,7 +23,7 @@ from fastapi.responses import RedirectResponse, Response
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
-from . import admin, awards, catalogue, grader, scoring, session, spelling
+from . import admin, awards, catalogue, grader, session, spelling
 from . import annotations as annotations_module
 from . import course as course_module
 from .catalogue import BLUEPRINT
@@ -429,63 +429,78 @@ def create_attempt(
 # -- one question -------------------------------------------------------------
 
 
-@app.get("/attempts/{attempt_id}/q/{n}")
-def show_question(request: Request, attempt_id: str, n: int, store: Store = Depends(get_store)):
-    attempt = _load_attempt_or_404(request, store, attempt_id)
-    total = len(attempt["question_ids"])
-    if not 1 <= n <= total:
+def _question_at(attempt: dict, n: int) -> int:
+    """The id of the attempt's `n`th question (1-based); 404 past either end."""
+    if not 1 <= n <= len(attempt["question_ids"]):
         raise not_found("no such question in this attempt")
-    qid = attempt["question_ids"][n - 1]
-    q = cat.get(qid)
-    option_order = attempt["spec"].get("option_order", {}).get(str(qid))
-    view = session.localize_question(q, attempt["lang"], option_order)
+    return attempt["question_ids"][n - 1]
 
-    responses = store.responses(attempt_id)
-    grades = store.grades(attempt_id)
+
+def _question_review(
+    attempt: dict,
+    qid: int,
+    responses: dict[int, dict],
+    grades: dict[int, list[dict]],
+    weight: float,
+    annotations: dict[int, dict],
+) -> dict:
+    """One question as the question page and the results page show it: the
+    localized view, the answer, its grade rows, and whether it awaits the
+    candidate's own verdict."""
+    q = cat.get(qid)
     resp = responses.get(qid)
     rows = grades.get(qid, [])
-    graded = bool(rows)
-
+    option_order = attempt["spec"].get("option_order", {}).get(str(qid))
     # Not "and llm_grader is None": an answered open question with no grade
     # rows also means the call failed (specs/TRAINER.md §7.3 -- "request failed"
     # is a survivable state, not just "no key"). Either way, self-grade it.
     pending_self = (
-        not graded
+        not rows
         and q["kind"] == "open"
         and attempt["mode"] == "study"
         and resp is not None
         and resp.get("answer") is not None
     )
-    read_only = graded or pending_self
-    show_self_grade = pending_self or (graded and any(r["verdict"] == "ungraded" for r in rows))
+    return {
+        "q": session.localize_question(q, attempt["lang"], option_order),
+        "response": resp,
+        "grades": rows,
+        "grades_by_item": {r["item_no"]: r for r in rows},
+        "correct_letter": catalogue.correct_letter(q),
+        "annotation": annotations.get(qid, {}),
+        "weight": weight,
+        "pending_self": pending_self,
+        "show_self_grade": pending_self or any(r["verdict"] == "ungraded" for r in rows),
+    }
 
-    weight = 1.0
-    if attempt["mode"] == "exam":
-        counts = session.part_counts_for_ids(cat, attempt["question_ids"])
-        weight = scoring.question_weight(counts[catalogue.part_of(q["section"])])
 
-    correct_letter = catalogue.correct_letter(q)
-
-    ui = ui_lang(attempt["lang"])
+@app.get("/attempts/{attempt_id}/q/{n}")
+def show_question(request: Request, attempt_id: str, n: int, store: Store = Depends(get_store)):
+    attempt = _load_attempt_or_404(request, store, attempt_id)
+    qid = _question_at(attempt, n)
+    responses = store.responses(attempt_id)
+    grades = store.grades(attempt_id)
+    review = _question_review(
+        attempt,
+        qid,
+        responses,
+        grades,
+        session.question_weights(cat, attempt)[qid],
+        annotations_module.load(),
+    )
+    graded = bool(review["grades"])
     return templates.TemplateResponse(
         request=request,
         name="question.html",
         context={
-            "ui": ui,
+            **review,
+            "ui": ui_lang(attempt["lang"]),
             "attempt": attempt,
             "n": n,
-            "total": total,
-            "q": view,
-            "response": resp,
-            "grades": rows,
-            "grades_by_item": {r["item_no"]: r for r in rows},
+            "total": len(attempt["question_ids"]),
             "graded": graded,
-            "read_only": read_only,
-            "show_self_grade": show_self_grade,
-            "weight": weight,
-            "correct_letter": correct_letter,
+            "read_only": graded or review["pending_self"],
             "grid": session.grid_status(cat, attempt["question_ids"], responses, grades),
-            "annotation": annotations_module.load().get(qid, {}),
             "submitted": bool(attempt["submitted_at"]),
             "saved": request.query_params.get("saved") == "1",
         },
@@ -501,12 +516,9 @@ async def submit_answer(
     llm_grader: LLMGrader | None = Depends(get_llm_grader),
 ):
     attempt = _load_attempt_or_404(request, store, attempt_id)
-    total = len(attempt["question_ids"])
-    if not 1 <= n <= total:
-        raise not_found("no such question in this attempt")
+    qid = _question_at(attempt, n)
     if attempt["submitted_at"]:  # a stale tab re-posting after submission
         return RedirectResponse(f"/attempts/{attempt_id}/results", status_code=303)
-    qid = attempt["question_ids"][n - 1]
     q = cat.get(qid)
 
     if attempt["mode"] == "study" and store.grade_for(attempt_id, qid):
@@ -532,7 +544,7 @@ async def submit_answer(
         await session.submit_exam(store, llm_grader, cat, attempt_id)
         return RedirectResponse(f"/attempts/{attempt_id}/results", status_code=303)
     goto = form_str(form, "goto")
-    if goto.isdigit() and 1 <= int(goto) <= total:
+    if goto.isdigit() and 1 <= int(goto) <= len(attempt["question_ids"]):
         return RedirectResponse(f"/attempts/{attempt_id}/q/{goto}", status_code=303)
     return RedirectResponse(f"/attempts/{attempt_id}/q/{n}?saved=1", status_code=303)
 
@@ -540,9 +552,7 @@ async def submit_answer(
 @app.post("/attempts/{attempt_id}/q/{n}/flag")
 async def toggle_flag(request: Request, attempt_id: str, n: int, store: Store = Depends(get_store)):
     attempt = _load_attempt_or_404(request, store, attempt_id)
-    if not 1 <= n <= len(attempt["question_ids"]):
-        raise not_found("no such question in this attempt")
-    qid = attempt["question_ids"][n - 1]
+    qid = _question_at(attempt, n)
     form = await request.form()
     store.set_flag(attempt_id, qid, form.get("flagged") == "1")
     return RedirectResponse(f"/attempts/{attempt_id}/q/{n}", status_code=303)
@@ -555,11 +565,7 @@ async def self_grade(request: Request, attempt_id: str, qid: int, store: Store =
         raise not_found("no such question in this attempt")
     form = await request.form()
     correct = form.get("correct") == "1"
-    q = cat.get(qid)
-    weight = 1.0
-    if attempt["mode"] == "exam":
-        counts = session.part_counts_for_ids(cat, attempt["question_ids"])
-        weight = scoring.question_weight(counts[catalogue.part_of(q["section"])])
+    weight = session.question_weights(cat, attempt)[qid]
     session.self_grade_question(store, attempt_id, qid, weight, correct)
     n = attempt["question_ids"].index(qid) + 1
     return RedirectResponse(f"/attempts/{attempt_id}/q/{n}", status_code=303)
@@ -589,39 +595,11 @@ def results(request: Request, attempt_id: str, store: Store = Depends(get_store)
     ann = annotations_module.load()
     grades = store.grades(attempt_id)
     responses = store.responses(attempt_id)
-
-    counts = session.part_counts_for_ids(cat, attempt["question_ids"]) if attempt["mode"] == "exam" else {}
-    rows = []
-    for qid in attempt["question_ids"]:
-        q = cat.get(qid)
-        option_order = attempt["spec"].get("option_order", {}).get(str(qid))
-        correct_letter = catalogue.correct_letter(q)
-        rows_for_q = grades.get(qid, [])
-        resp = responses.get(qid)
-        weight = (
-            scoring.question_weight(counts[catalogue.part_of(q["section"])])
-            if attempt["mode"] == "exam"
-            else 1.0
-        )
-        pending_self = (
-            not rows_for_q
-            and q["kind"] == "open"
-            and attempt["mode"] == "study"
-            and resp is not None
-            and resp.get("answer")
-        )
-        rows.append(
-            {
-                "q": session.localize_question(q, attempt["lang"], option_order),
-                "response": resp,
-                "grades": rows_for_q,
-                "grades_by_item": {r["item_no"]: r for r in rows_for_q},
-                "correct_letter": correct_letter,
-                "annotation": ann.get(qid, {}),
-                "weight": weight,
-                "show_self_grade": pending_self or any(r["verdict"] == "ungraded" for r in rows_for_q),
-            }
-        )
+    weights = session.question_weights(cat, attempt)
+    rows = [
+        _question_review(attempt, qid, responses, grades, weights[qid], ann)
+        for qid in attempt["question_ids"]
+    ]
 
     extra = {}
     if attempt["mode"] == "exam":

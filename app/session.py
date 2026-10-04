@@ -64,6 +64,18 @@ def part_counts_for_ids(cat: Catalogue, question_ids: list[int]) -> dict[str, in
     return counts
 
 
+def question_weights(cat: Catalogue, attempt: dict) -> dict[int, float]:
+    """Each question's points: in an exam, its share of its part's
+    (specs/TRAINER.md §2.3); in study mode a flat 1.0 (§9)."""
+    if attempt["mode"] != "exam":
+        return dict.fromkeys(attempt["question_ids"], 1.0)
+    counts = part_counts_for_ids(cat, attempt["question_ids"])
+    return {
+        qid: scoring.question_weight(counts[part_of(cat.get(qid)["section"])])
+        for qid in attempt["question_ids"]
+    }
+
+
 # -- presentation -------------------------------------------------------------
 
 
@@ -340,11 +352,11 @@ async def submit_exam(store: Store, grader: LLMGrader | None, cat: Catalogue, at
     attempt = store.get_attempt(attempt_id)
     assert attempt is not None, "caller already validated attempt_id (main._load_attempt_or_404)"
     responses = store.responses(attempt_id)
-    counts = part_counts_for_ids(cat, attempt["question_ids"])
+    weights = question_weights(cat, attempt)
     open_tasks, open_qids = [], []
     for qid in attempt["question_ids"]:
         q = cat.get(qid)
-        weight = scoring.question_weight(counts[part_of(q["section"])])
+        weight = weights[qid]
         resp = responses.get(qid)
         answer = resp["answer"] if resp else None
         if q["kind"] == "mcq":
