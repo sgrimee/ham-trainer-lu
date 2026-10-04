@@ -93,6 +93,7 @@ templates.env.globals["doc_files"] = annotations_module.documents()  # type: ign
 PREFS_COOKIE = "ilr_session_prefs"
 LEARNER_COOKIE = "ilr_learner"  # the current course learner's account.id (specs/LEARN.md §6.1)
 BROWSER_COOKIE = "ilr_browser"  # owns the attempts started with no learner picked
+COOKIE_MAX_AGE = 60 * 60 * 24 * 365
 GITHUB_REPO = "sgrimee/ham-trainer-lu"
 MAX_ANSWER_CHARS = grader.MAX_ANSWER_CHARS
 templates.env.globals["max_answer_chars"] = MAX_ANSWER_CHARS  # type: ignore
@@ -264,16 +265,27 @@ DEFAULT_PREFS = {
 }
 
 
-def _read_prefs(request: Request) -> dict:
+def _stored_prefs(request: Request) -> dict | None:
+    """The preferences cookie as stored, unvalidated; None if absent or not
+    a JSON object."""
     raw = request.cookies.get(PREFS_COOKIE)
+    if not raw:
+        return None
+    try:
+        stored = json.loads(raw)
+    except json.JSONDecodeError:
+        return None
+    return stored if isinstance(stored, dict) else None
+
+
+def _set_prefs(response: Response, prefs: dict) -> None:
+    response.set_cookie(PREFS_COOKIE, json.dumps(prefs), max_age=COOKIE_MAX_AGE, samesite="lax")
+
+
+def _read_prefs(request: Request) -> dict:
     prefs = dict(DEFAULT_PREFS)
-    if raw:
-        try:
-            stored = json.loads(raw)
-        except json.JSONDecodeError:
-            stored = {}
-        if isinstance(stored, dict):
-            prefs.update({k: v for k, v in stored.items() if k in DEFAULT_PREFS})
+    stored = _stored_prefs(request) or {}
+    prefs.update({k: v for k, v in stored.items() if k in DEFAULT_PREFS})
     if prefs["tag"] not in catalogue.TAGS:
         prefs["tag"] = DEFAULT_PREFS["tag"]
     if prefs["mode"] not in ("study", "exam"):
@@ -413,7 +425,7 @@ def create_attempt(
     )
     response = RedirectResponse(f"/attempts/{attempt_id}/q/1", status_code=303)
     if new_browser:
-        response.set_cookie(BROWSER_COOKIE, owner, max_age=60 * 60 * 24 * 365, httponly=True, samesite="lax")
+        response.set_cookie(BROWSER_COOKIE, owner, max_age=COOKIE_MAX_AGE, httponly=True, samesite="lax")
     prefs = {
         "tag": tag,
         "mode": mode,
@@ -422,7 +434,7 @@ def create_attempt(
         "count": count,
         "shuffle_options": shuffle_options,
     }
-    response.set_cookie(PREFS_COOKIE, json.dumps(prefs), max_age=60 * 60 * 24 * 365, samesite="lax")
+    _set_prefs(response, prefs)
     return response
 
 
@@ -947,9 +959,7 @@ def progress(
 def learn_pick(account_id: str = Form(""), store: Store = Depends(get_store)):
     response = _to_dashboard()
     if store.get_account(account_id) is not None:
-        response.set_cookie(
-            LEARNER_COOKIE, account_id, max_age=60 * 60 * 24 * 365, httponly=True, samesite="lax"
-        )
+        response.set_cookie(LEARNER_COOKIE, account_id, max_age=COOKIE_MAX_AGE, httponly=True, samesite="lax")
     return response
 
 
@@ -969,17 +979,10 @@ def learn_lang(request: Request, lang: str = Form(""), next: str = Form("/learn"
     response = RedirectResponse(safe_learn_path(next), status_code=303)
     if lang not in ("fr", "de"):
         return response
-    prefs: dict = dict(DEFAULT_PREFS)
-    raw = request.cookies.get(PREFS_COOKIE)
-    if raw:
-        try:
-            stored = json.loads(raw)
-        except json.JSONDecodeError:
-            stored = None
-        if isinstance(stored, dict):
-            prefs = stored
+    stored = _stored_prefs(request)
+    prefs = dict(DEFAULT_PREFS) if stored is None else stored
     prefs["lang"] = lang
-    response.set_cookie(PREFS_COOKIE, json.dumps(prefs), max_age=60 * 60 * 24 * 365, samesite="lax")
+    _set_prefs(response, prefs)
     return response
 
 
