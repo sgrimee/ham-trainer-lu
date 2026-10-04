@@ -796,11 +796,3 @@ class Store:
 
     def grade_for(self, attempt_id: str, question_id: int) -> list[dict]:
         return self.grades(attempt_id).get(question_id, [])
-
-    def clear_grade(self, attempt_id: str, question_id: int) -> None:
-        """Used before a self-grade replaces per-item placeholder rows with
-        one aggregate verdict (specs/TRAINER.md §7.3)."""
-        with self._connect() as con:
-            con.execute(
-                "DELETE FROM grade WHERE attempt_id = ? AND question_id = ?", (attempt_id, question_id)
-            )

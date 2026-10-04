@@ -321,22 +321,28 @@ async def grade_study_answer(
         store.put_grade(attempt["id"], qid, item["item_no"], **(result or UNGRADED))
 
 
-def self_grade_question(store: Store, attempt_id: str, qid: int, weight: float, correct: bool) -> None:
-    """Replaces any placeholder rows (e.g. per-item 'ungraded' from a
-    submitted exam) with a single aggregate verdict for the whole question."""
-    store.clear_grade(attempt_id, qid)
+def self_grade_question(store: Store, attempt_id: str, q: dict, weight: float, correct: bool) -> None:
+    """The candidate's verdict for the sub-items still awaiting one: the
+    'ungraded' placeholders, or every item when none was graded. Items the
+    model or the rules graded (a blank one is wrong without a call) keep
+    their grade, each worth its share of `weight` as at submission."""
+    graded = {r["item_no"] for r in store.grade_for(attempt_id, q["id"]) if r["verdict"] != "ungraded"}
+    item_weight = weight / len(q["answer"])
     result = SelfGrader.self_result(correct)
-    store.put_grade(
-        attempt_id,
-        qid,
-        0,
-        **grade_row(
-            "correct" if correct else "incorrect",
-            weight if correct else 0.0,
-            "self",
-            detail={"elements": result.elements, "incorrect": result.incorrect},
-        ),
-    )
+    for item in q["answer"]:
+        if item["item_no"] in graded:
+            continue
+        store.put_grade(
+            attempt_id,
+            q["id"],
+            item["item_no"],
+            **grade_row(
+                "correct" if correct else "incorrect",
+                item_weight if correct else 0.0,
+                "self",
+                detail={"elements": result.elements, "incorrect": result.incorrect},
+            ),
+        )
 
 
 async def submit_exam(store: Store, grader: LLMGrader | None, cat: Catalogue, attempt_id: str) -> None:

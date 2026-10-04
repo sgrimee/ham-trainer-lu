@@ -13,6 +13,8 @@ specs/LEARN-2-3.md §4.2 and §4.5: its first, broader wording flagged plain
 rewording in 469-SIX and 471-seven; its examples are 449.3-near and 459-near.
 """
 
+import html
+
 SYSTEM = """You grade answers to the Luxembourg ILR amateur-radio examination.
 
 You are given an exam question, the official reference answer (the rubric, verbatim
@@ -115,7 +117,9 @@ def build_messages(
             "content": f'<question lang="{lang}">{question}</question>\n'
             f"<reference_answer>{reference}</reference_answer>\n"
             f"{others}"
-            f"<candidate>{candidate}</candidate>",
+            # Escaped so an answer can't close <candidate> and add tags of its
+            # own, e.g. a <grading_note> the system prompt says must be applied.
+            f"<candidate>{html.escape(candidate, quote=False)}</candidate>",
         },
     ]
 

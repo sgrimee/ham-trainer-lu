@@ -75,3 +75,13 @@ def test_exam_outcome_retake_all_when_two_parts_fail():
         "reglementation": scoring.PartResult(name="reglementation", points=20.0),
     }
     assert scoring.ExamResult(parts=parts).outcome == "retake_all"
+
+
+def test_a_part_of_exactly_30_passes_despite_float_drift():
+    """Seven of fourteen procedures questions, each 60 / 14, add up to
+    29.999999999999996 when summed one by one, as exam_result does."""
+    points = 0.0
+    for _ in range(7):
+        points += scoring.question_weight(14)
+    assert points < 30.0
+    assert scoring.PartResult(name="procedures", points=points).passed

@@ -12,6 +12,10 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 PASS_THRESHOLD = 30.0
+RETAKE_PART_AVERAGE = 36.0
+# Weights like 60 / 14 don't add up exactly: seven of fourteen sum to
+# 29.999999999999996, not 30. Threshold compares allow for that drift.
+EPSILON = 1e-9
 PART_MAX = 60.0
 
 
@@ -59,7 +63,7 @@ class PartResult:
 
     @property
     def passed(self) -> bool:
-        return self.points >= PASS_THRESHOLD
+        return self.points >= PASS_THRESHOLD - EPSILON
 
 
 @dataclass
@@ -74,7 +78,7 @@ class ExamResult:
             return "pass"
         if len(failed) == 1:
             others = [p for p in self.parts.values() if p is not failed[0]]
-            if sum(p.points for p in others) / len(others) > 36.0:
+            if sum(p.points for p in others) / len(others) > RETAKE_PART_AVERAGE + EPSILON:
                 return "retake_part"
         return "retake_all"
 

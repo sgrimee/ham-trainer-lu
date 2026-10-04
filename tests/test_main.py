@@ -114,6 +114,52 @@ def test_open_answer_partly_blank_without_grader_waits_for_a_self_verdict(client
     assert 'class="self-grade"' in client.get(f"/attempts/{attempt_id}/q/{n}").text
 
 
+def test_a_self_verdict_leaves_the_blank_sub_item_wrong(client, store: Store):
+    """Only the ungraded sub-item takes the candidate's verdict, at its share
+    of the weight; the blank one stays wrong."""
+    attempt_id = _create_study_attempt(client)
+    attempt = store.get_attempt(attempt_id)
+    assert attempt is not None
+    n = attempt["question_ids"].index(448) + 1
+    client.post(f"/attempts/{attempt_id}/q/{n}/answer", data={"item_1": "Dois-je arrêter ?"})
+    client.post(f"/attempts/{attempt_id}/questions/448/self-grade", data={"correct": "1"})
+    items = [item["item_no"] for item in cat.get(448)["answer"]]
+    rows = {r["item_no"]: (r["verdict"], r["points"]) for r in store.grades(attempt_id)[448]}
+    assert rows == {i: ("correct", 1.0 / len(items)) if i == 1 else ("incorrect", 0.0) for i in items}
+    assert 'class="self-grade"' not in client.get(f"/attempts/{attempt_id}/q/{n}").text
+
+
+def test_a_self_verdict_with_nothing_pending_changes_nothing(client, store: Store):
+    attempt_id = _create_study_attempt(client)
+    attempt = store.get_attempt(attempt_id)
+    assert attempt is not None
+    mcq_qid = next(qid for qid in attempt["question_ids"] if cat.get(qid)["kind"] == "mcq")
+    n = attempt["question_ids"].index(mcq_qid) + 1
+    wrong = next(o["letter"] for o in cat.get(mcq_qid)["options"] if not o["is_correct"])
+    client.post(f"/attempts/{attempt_id}/q/{n}/answer", data={"answer": wrong})
+    resp = client.post(
+        f"/attempts/{attempt_id}/questions/{mcq_qid}/self-grade",
+        data={"correct": "1"},
+        follow_redirects=False,
+    )
+    assert resp.status_code == 303
+    assert [r["verdict"] for r in store.grades(attempt_id)[mcq_qid]] == ["incorrect"]
+
+
+def test_a_running_exam_hides_its_review_and_refuses_self_verdicts(client, store: Store):
+    attempt_id = _create_study_attempt(client, mode="exam")
+    attempt = store.get_attempt(attempt_id)
+    assert attempt is not None
+    resp = client.get(f"/attempts/{attempt_id}/results", follow_redirects=False)
+    assert (resp.status_code, resp.headers["location"]) == (303, f"/attempts/{attempt_id}/q/1")
+    open_qid = next(qid for qid in attempt["question_ids"] if cat.get(qid)["kind"] == "open")
+    client.post(f"/attempts/{attempt_id}/questions/{open_qid}/self-grade", data={"correct": "1"})
+    assert store.grades(attempt_id) == {}
+
+    client.post(f"/attempts/{attempt_id}/submit")
+    assert client.get(f"/attempts/{attempt_id}/results").status_code == 200
+
+
 def test_spelling_is_graded_by_rule_without_a_model(client, store: Store):
     """specs/LEARN-2-3.md §4.3: the trainer grades 440-446 with the string
     matcher, offline, and a near form is accepted with the catalogue's form."""

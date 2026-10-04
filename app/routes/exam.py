@@ -162,6 +162,26 @@ def _question_at(attempt: dict, n: int) -> int:
     return attempt["question_ids"][n - 1]
 
 
+def _pending_self(attempt: dict, q: dict, resp: dict | None, rows: list[dict]) -> bool:
+    """An answered study question with no grade rows at all. Not "and
+    llm_grader is None": no rows also means the call failed (specs/TRAINER.md
+    §7.3 -- "request failed" is a survivable state, not just "no key"). Either
+    way, self-grade it."""
+    return (
+        not rows
+        and q["kind"] == "open"
+        and attempt["mode"] == "study"
+        and resp is not None
+        and resp.get("answer") is not None
+    )
+
+
+def _awaits_self_grade(attempt: dict, q: dict, resp: dict | None, rows: list[dict]) -> bool:
+    """Whether the candidate's own verdict is wanted. Ungraded rows exist only
+    once an exam is submitted or a study answer is committed."""
+    return _pending_self(attempt, q, resp, rows) or any(r["verdict"] == "ungraded" for r in rows)
+
+
 def _question_review(
     attempt: dict,
     qid: int,
@@ -177,16 +197,7 @@ def _question_review(
     resp = responses.get(qid)
     rows = grades.get(qid, [])
     option_order = attempt["spec"].get("option_order", {}).get(str(qid))
-    # Not "and llm_grader is None": an answered open question with no grade
-    # rows also means the call failed (specs/TRAINER.md §7.3 -- "request failed"
-    # is a survivable state, not just "no key"). Either way, self-grade it.
-    pending_self = (
-        not rows
-        and q["kind"] == "open"
-        and attempt["mode"] == "study"
-        and resp is not None
-        and resp.get("answer") is not None
-    )
+    pending_self = _pending_self(attempt, q, resp, rows)
     return {
         "q": session.localize_question(q, attempt["lang"], option_order),
         "response": resp,
@@ -196,7 +207,7 @@ def _question_review(
         "annotation": annotations.get(qid, {}),
         "weight": weight,
         "pending_self": pending_self,
-        "show_self_grade": pending_self or any(r["verdict"] == "ungraded" for r in rows),
+        "show_self_grade": _awaits_self_grade(attempt, q, resp, rows),
     }
 
 
@@ -289,11 +300,17 @@ async def self_grade(request: Request, attempt_id: str, qid: int, store: Store =
     attempt = _load_attempt_or_404(request, store, attempt_id)
     if qid not in attempt["question_ids"]:
         raise not_found("no such question in this attempt")
+    n = attempt["question_ids"].index(qid) + 1
+    q = cat.get(qid)
+    resp = store.responses(attempt_id).get(qid)
+    if not _awaits_self_grade(attempt, q, resp, store.grade_for(attempt_id, qid)):
+        # Nothing pending (a stale tab, or a forged post): a verdict already
+        # given, by the model, the rules or the candidate, stands.
+        return RedirectResponse(f"/attempts/{attempt_id}/q/{n}", status_code=303)
     form = await request.form()
     correct = form.get("correct") == "1"
     weight = session.question_weights(cat, attempt)[qid]
-    session.self_grade_question(store, attempt_id, qid, weight, correct)
-    n = attempt["question_ids"].index(qid) + 1
+    session.self_grade_question(store, attempt_id, q, weight, correct)
     return RedirectResponse(f"/attempts/{attempt_id}/q/{n}", status_code=303)
 
 
@@ -318,6 +335,10 @@ async def submit_exam(
 @router.get("/attempts/{attempt_id}/results")
 def results(request: Request, attempt_id: str, store: Store = Depends(get_store)):
     attempt = _load_attempt_or_404(request, store, attempt_id)
+    if attempt["mode"] == "exam" and not attempt["submitted_at"]:
+        # The review marks the right options and shows the reference answers:
+        # not while the candidate can still change theirs.
+        return RedirectResponse(f"/attempts/{attempt_id}/q/1", status_code=303)
     ann = annotations_module.load()
     grades = store.grades(attempt_id)
     responses = store.responses(attempt_id)
@@ -329,7 +350,7 @@ def results(request: Request, attempt_id: str, store: Store = Depends(get_store)
 
     extra = {}
     if attempt["mode"] == "exam":
-        extra["result"] = session.exam_result(store, cat, attempt) if attempt["submitted_at"] else None
+        extra["result"] = session.exam_result(store, cat, attempt)
     else:
         extra["recap"] = session.recap_study(store, cat, attempt)
 
