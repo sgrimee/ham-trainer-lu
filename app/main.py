@@ -11,7 +11,7 @@ import logging
 import pathlib
 import re
 import uuid
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Callable
 from contextlib import asynccontextmanager
 from typing import Any
 from urllib.parse import unquote, urlencode, urlsplit
@@ -763,8 +763,30 @@ def _to_dashboard() -> Response:
     return RedirectResponse("/learn", status_code=303)
 
 
-def _to_next_up(course: course_module.Course, completed: set[str]) -> Response:
-    return RedirectResponse(step_url(course.next_up(completed)), status_code=303)
+class _Redirect(Exception):
+    """Leaves a course route with a 303 to `url` instead of its page: there
+    is no current learner, or the address names no step the route serves."""
+
+    def __init__(self, url: str):
+        super().__init__(url)
+        self.url = url
+
+
+@app.exception_handler(_Redirect)
+async def _follow_redirect(request: Request, exc: _Redirect) -> Response:
+    return RedirectResponse(exc.url, status_code=303)
+
+
+def _learner(request: Request, store: Store) -> dict:
+    """The current learner; with none, off to the dashboard to pick one."""
+    learner = current_learner(request, store)
+    if learner is None:
+        raise _Redirect("/learn")
+    return learner
+
+
+def _next_up(course: course_module.Course, completed: set[str]) -> _Redirect:
+    return _Redirect(step_url(course.next_up(completed)))
 
 
 def _question(step: course_module.Step) -> dict:
@@ -987,11 +1009,20 @@ def learn_lang(request: Request, lang: str = Form(""), next: str = Form("/learn"
 
 
 def _step(
-    course: course_module.Course, part_slug: str, module_slug: str, step_slug: str
-) -> course_module.Step | None:
-    """The step at that address; None unless all three segments agree."""
+    course: course_module.Course,
+    store: Store,
+    learner: dict,
+    part_slug: str,
+    module_slug: str,
+    step_slug: str,
+    serves: Callable[[course_module.Step], bool] = lambda step: True,
+) -> course_module.Step:
+    """The step at that address, if all three segments agree and the route
+    `serves` it; otherwise off to the learner's next up."""
     step = course.step(module_slug, step_slug)
-    return step if step is not None and step.part == part_slug else None
+    if step is None or step.part != part_slug or not serves(step):
+        raise _next_up(course, store.completed_steps(learner["id"]))
+    return step
 
 
 @app.get(COURSE_PREFIX + "/{part_slug}/{module_slug}")
@@ -1002,13 +1033,11 @@ def learn_module(
     store: Store = Depends(get_store),
     course: course_module.Course = Depends(get_course),
 ):
-    learner = current_learner(request, store)
-    if learner is None:
-        return _to_dashboard()
+    learner = _learner(request, store)
     completed = store.completed_steps(learner["id"])
     module = course.module(module_slug)
     if module is None or module.part != part_slug:
-        return _to_next_up(course, completed)
+        raise _next_up(course, completed)
     lang = course_lang(request, module)
     ui = lang["ui"]
     next_up = course.next_up(completed)
@@ -1040,13 +1069,9 @@ def learn_step(
     store: Store = Depends(get_store),
     course: course_module.Course = Depends(get_course),
 ):
-    learner = current_learner(request, store)
-    if learner is None:
-        return _to_dashboard()
+    learner = _learner(request, store)
+    step = _step(course, store, learner, part_slug, module_slug, step_slug)
     completed = store.completed_steps(learner["id"])
-    step = _step(course, part_slug, module_slug, step_slug)
-    if step is None:
-        return _to_next_up(course, completed)
     module = course.module(module_slug)
     assert module is not None
     lang = course_lang(request, module)
@@ -1174,12 +1199,8 @@ def learn_next(
 ):
     """Completes a lesson or learn-more step (§5.1) and moves on. A practice
     step is completed by its answer instead; its "Next" is a plain link."""
-    learner = current_learner(request, store)
-    if learner is None:
-        return _to_dashboard()
-    step = _step(course, part_slug, module_slug, step_slug)
-    if step is None or step.kind == "practice":
-        return _to_next_up(course, store.completed_steps(learner["id"]))
+    learner = _learner(request, store)
+    step = _step(course, store, learner, part_slug, module_slug, step_slug, lambda s: s.kind != "practice")
     if store.complete_step(learner["id"], step.id, _awards(course, step)) is None:
         return _to_dashboard()
     return RedirectResponse(step_url(course.following(step)), status_code=303)
@@ -1201,12 +1222,8 @@ async def learn_answer(
     nothing stored and travels in the query string instead. Reading,
     deciding and writing happen in one transaction (§8.1). An open question:
     see `_answer_open`."""
-    learner = current_learner(request, store)
-    if learner is None:
-        return _to_dashboard()
-    step = _step(course, part_slug, module_slug, step_slug)
-    if step is None or step.kind != "practice":
-        return _to_next_up(course, store.completed_steps(learner["id"]))
+    learner = _learner(request, store)
+    step = _step(course, store, learner, part_slug, module_slug, step_slug, lambda s: s.kind == "practice")
     q = _question(step)
     here = step_url(step)
     form = await request.form()
@@ -1280,12 +1297,16 @@ def learn_self_grade(
 ):
     """The learner's own verdict on fields no grader could grade
     (specs/LEARN-2-3.md §4.4): it can complete the step, never with XP."""
-    learner = current_learner(request, store)
-    if learner is None:
-        return _to_dashboard()
-    step = _step(course, part_slug, module_slug, step_slug)
-    if step is None or step.kind != "practice" or _question(step)["kind"] != "open":
-        return _to_next_up(course, store.completed_steps(learner["id"]))
+    learner = _learner(request, store)
+    step = _step(
+        course,
+        store,
+        learner,
+        part_slug,
+        module_slug,
+        step_slug,
+        lambda s: s.kind == "practice" and _question(s)["kind"] == "open",
+    )
     q = _question(step)
     items = [item["item_no"] for item in q["answer"]]
     if (
