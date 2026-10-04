@@ -49,13 +49,15 @@ wieder die Vorsilben, die du schon kennst:
 - 1 **kHz** (Kilohertz) = 1000 Hz;
 - 1 **MHz** (Megahertz) = 1 000 000 Hz = **1000 kHz**.
 
-Dieselbe Frequenz kann man in kHz oder in MHz schreiben. Von kHz zu MHz
-**teilt man durch 1000** (das Komma rückt drei Stellen nach links):
+Dieselbe Frequenz kann man in kHz oder in MHz schreiben. Das MHz ist eine
+1000-mal **größere** Einheit als das kHz: Für dieselbe Frequenz braucht man
+1000-mal weniger davon. Um eine Frequenz in kHz in MHz zu schreiben,
+**teilt man also die Zahl** durch 1000 (das Komma rückt drei Stellen nach
+links):
 
 7100 kHz = 7100 : 1000 = **7,1 MHz**
 
-Prüf nach: Ein MHz ist tausendmal größer als ein kHz, also muss die Zahl
-**kleiner** werden. Das ist logisch!
+Wie 500 Cent, die 5 Euro sind: größere Einheit, kleinere Zahl.
 
 > **Nicht verwechseln:** das **Hertz (Hz)**, das Wiederholungen pro Sekunde
 > zählt, und das **Henry (H)**, eine ganz andere Einheit der Elektrizität,

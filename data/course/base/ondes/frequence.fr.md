@@ -49,13 +49,14 @@ retrouve donc les préfixes que tu connais :
 - 1 **kHz** (kilohertz) = 1000 Hz ;
 - 1 **MHz** (mégahertz) = 1 000 000 Hz = **1000 kHz**.
 
-La même fréquence peut s'écrire en kHz ou en MHz. Pour passer des kHz aux
-MHz, on **divise par 1000** (la virgule recule de trois rangs) :
+La même fréquence peut s'écrire en kHz ou en MHz. Le MHz est une unité
+1000 fois plus **grande** que le kHz : il en faut 1000 fois moins pour la
+même fréquence. Pour écrire en MHz une fréquence donnée en kHz, on
+**divise donc le nombre** par 1000 (la virgule recule de trois rangs) :
 
 7100 kHz = 7100 ÷ 1000 = **7,1 MHz**
 
-Vérifie : des MHz sont mille fois plus gros que des kHz, donc le nombre doit
-devenir plus **petit**. C'est logique !
+Comme 500 centimes font 5 euros : unité plus grande, nombre plus petit.
 
 > **Ne confonds pas :** le **hertz (Hz)**, qui compte des répétitions par
 > seconde, et le **henry (H)**, une autre unité de l'électricité qui n'a rien

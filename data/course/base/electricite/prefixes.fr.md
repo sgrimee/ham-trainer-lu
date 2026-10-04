@@ -28,21 +28,28 @@ ce n'est pas du tout la même chose — un milliard de fois de différence !
 Pour faire un calcul, il faut presque toujours revenir à l'unité « nue »
 (A, V, W…), sans préfixe.
 
-**Des milli vers l'unité : on divise par 1000.**
+Changer d'unité ne change pas la quantité : c'est le **nombre** qui change.
+Comme avec l'argent : 500 centimes font 5 euros. Unité plus **grande**, il en
+faut moins : nombre plus **petit**. Et inversement.
+
+**Des mA vers les A :** l'ampère est 1000 fois plus grand que le
+milliampère, donc on divise le nombre par 1000.
 
 250 mA = 250 ÷ 1000 = **0,25 A**
 
 Astuce : diviser par 1000, c'est décaler la virgule de **trois rangs vers la
 gauche**. 250 → 25,0 → 2,50 → 0,250.
 
-**Des kilo vers l'unité : on multiplie par 1000.**
+**Des kW vers les W :** le watt est 1000 fois plus petit que le kilowatt,
+donc on multiplie le nombre par 1000.
 
 2 kW = 2 × 1000 = **2000 W**
 
 Astuce : multiplier par 1000, c'est décaler la virgule de **trois rangs vers
 la droite**.
 
-**Et dans l'autre sens :** 1500 W = 1500 ÷ 1000 = **1,5 kW**.
+**Et dans l'autre sens :** le kilowatt est plus grand, donc 1500 W =
+1500 ÷ 1000 = **1,5 kW**.
 
 ## Vérifie avec ton bon sens
 

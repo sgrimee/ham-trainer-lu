@@ -28,21 +28,28 @@ Achtung bei Groß- und Kleinschreibung: kleines **m** (Milli) und großes
 Zum Rechnen muss man fast immer zur „nackten“ Einheit zurück (A, V, W …),
 ohne Vorsilbe.
 
-**Von Milli zur Einheit: durch 1000 teilen.**
+Beim Umrechnen bleibt die Menge gleich: Nur die **Zahl** ändert sich. Wie
+beim Geld: 500 Cent sind 5 Euro. **Größere** Einheit, man braucht weniger
+davon: **kleinere** Zahl. Und umgekehrt.
+
+**Von mA zu A:** Das Ampere ist 1000-mal größer als das Milliampere, also
+teilt man die Zahl durch 1000.
 
 250 mA = 250 : 1000 = **0,25 A**
 
 Trick: Durch 1000 teilen heißt, das Komma um **drei Stellen nach links** zu
 schieben. 250 → 25,0 → 2,50 → 0,250.
 
-**Von Kilo zur Einheit: mit 1000 malnehmen.**
+**Von kW zu W:** Das Watt ist 1000-mal kleiner als das Kilowatt, also nimmt
+man die Zahl mit 1000 mal.
 
 2 kW = 2 · 1000 = **2000 W**
 
 Trick: Mit 1000 malnehmen heißt, das Komma um **drei Stellen nach rechts**
 zu schieben.
 
-**Und in die andere Richtung:** 1500 W = 1500 : 1000 = **1,5 kW**.
+**Und in die andere Richtung:** Das Kilowatt ist größer, also 1500 W =
+1500 : 1000 = **1,5 kW**.
 
 ## Prüf es mit gesundem Menschenverstand
 
