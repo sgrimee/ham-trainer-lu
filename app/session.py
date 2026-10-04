@@ -170,9 +170,33 @@ def ref_text(value: dict, lang: str) -> str:
     return localized(value, "fr" if lang == "both" else lang)[0]["text"]
 
 
-def grade_mcq(weight: float, q: dict, answer: str | None) -> tuple[str, float]:
+def grade_row(
+    verdict: str,
+    points: float,
+    source: str,
+    *,
+    detail=None,
+    comment: str | None = None,
+    model: str | None = None,
+) -> dict[str, Any]:
+    """One grade as `Store.put_grade` takes it."""
+    return {
+        "verdict": verdict,
+        "points": points,
+        "detail": detail,
+        "comment": comment,
+        "source": source,
+        "model": model,
+    }
+
+
+# An open sub-item no grader could grade, awaiting the candidate's own verdict.
+UNGRADED = grade_row("ungraded", 0.0, "self")
+
+
+def grade_mcq(weight: float, q: dict, answer: str | None) -> dict[str, Any]:
     is_correct = answer == correct_letter(q)
-    return ("correct" if is_correct else "incorrect", weight if is_correct else 0.0)
+    return grade_row("correct" if is_correct else "incorrect", weight if is_correct else 0.0, "exact")
 
 
 async def _grade_open_item(
@@ -192,14 +216,7 @@ async def _grade_open_item(
     there as a state the app must survive, not just "no key"."""
     if not candidate.strip():
         # Nothing to grade: wrong, without spending a call on it.
-        return {
-            "verdict": "incorrect",
-            "points": 0.0,
-            "detail": None,
-            "comment": None,
-            "source": "exact",
-            "model": None,
-        }
+        return grade_row("incorrect", 0.0, "exact")
     if grader is None:
         return None
     try:
@@ -219,14 +236,14 @@ async def _grade_open_item(
         # "the call failed" too, not just a transport/HTTP error -- scoring it
         # must not be allowed to crash the request (specs/TRAINER.md §7.3).
         return None
-    return {
-        "verdict": verdict,
-        "points": item_weight * fraction,
-        "detail": {"elements": result.elements, "incorrect": result.incorrect},
-        "comment": result.comment,
-        "source": result.source,
-        "model": result.model,
-    }
+    return grade_row(
+        verdict,
+        item_weight * fraction,
+        result.source,
+        detail={"elements": result.elements, "incorrect": result.incorrect},
+        comment=result.comment,
+        model=result.model,
+    )
 
 
 def _grade_spelling_item(q: dict, candidate: str, item_weight: float, lang: str = "fr") -> dict:
@@ -237,18 +254,16 @@ def _grade_spelling_item(q: dict, candidate: str, item_weight: float, lang: str 
     included for a German answer, is accepted and reported as a hint with
     the catalogue's form."""
     result = spelling.grade(q["text"]["fr"], candidate, lang)
-    return {
-        "verdict": result.verdict,
-        "points": item_weight * (1.0 if result.verdict == "correct" else result.share),
-        "detail": {
+    return grade_row(
+        result.verdict,
+        item_weight * (1.0 if result.verdict == "correct" else result.share),
+        "rule",
+        detail={
             "elements": [{"element": m.upper(), "present": False} for m in result.missing],
             "incorrect": result.extra,
             "hints": [[typed, official] for typed, official in result.near],
         },
-        "comment": None,
-        "source": "rule",
-        "model": None,
-    }
+    )
 
 
 async def grade_open_question(
@@ -294,18 +309,7 @@ async def grade_study_answer(
     store.put_response(attempt["id"], qid, answer)
     q = cat.get(qid)
     if q["kind"] == "mcq":
-        verdict, points = grade_mcq(1.0, q, answer)
-        store.put_grade(
-            attempt["id"],
-            qid,
-            0,
-            verdict=verdict,
-            points=points,
-            detail=None,
-            comment=None,
-            source="exact",
-            model=None,
-        )
+        store.put_grade(attempt["id"], qid, 0, **grade_mcq(1.0, q, answer))
         return
     pairs = await grade_open_question(grader, q, attempt["lang"], 1.0, answer)
     if all(result is None for _, result in pairs):
@@ -326,23 +330,13 @@ def self_grade_question(store: Store, attempt_id: str, qid: int, weight: float, 
         attempt_id,
         qid,
         0,
-        verdict="correct" if correct else "incorrect",
-        points=weight if correct else 0.0,
-        detail={"elements": result.elements, "incorrect": result.incorrect},
-        comment=None,
-        source="self",
-        model=None,
+        **grade_row(
+            "correct" if correct else "incorrect",
+            weight if correct else 0.0,
+            "self",
+            detail={"elements": result.elements, "incorrect": result.incorrect},
+        ),
     )
-
-
-UNGRADED: dict[str, Any] = {
-    "verdict": "ungraded",
-    "points": 0.0,
-    "detail": None,
-    "comment": None,
-    "source": "self",
-    "model": None,
-}
 
 
 async def submit_exam(store: Store, grader: LLMGrader | None, cat: Catalogue, attempt_id: str) -> None:
@@ -360,18 +354,7 @@ async def submit_exam(store: Store, grader: LLMGrader | None, cat: Catalogue, at
         resp = responses.get(qid)
         answer = resp["answer"] if resp else None
         if q["kind"] == "mcq":
-            verdict, points = grade_mcq(weight, q, answer)
-            store.put_grade(
-                attempt_id,
-                qid,
-                0,
-                verdict=verdict,
-                points=points,
-                detail=None,
-                comment=None,
-                source="exact",
-                model=None,
-            )
+            store.put_grade(attempt_id, qid, 0, **grade_mcq(weight, q, answer))
         else:
             open_tasks.append(grade_open_question(grader, q, attempt["lang"], weight, answer))
             open_qids.append(qid)
