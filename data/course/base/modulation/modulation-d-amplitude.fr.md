@@ -8,8 +8,8 @@ radios.
 
 ## La hauteur suit la voix
 
-Souviens-toi : l'**amplitude** d'une onde, c'est de combien elle s'écarte
-de sa position de repos. En **modulation d'amplitude**, la voix fait varier
+Souviens-toi : l'**amplitude** d'une onde, c'est jusqu'où elle s'écarte
+de sa position moyenne. En **modulation d'amplitude**, la voix fait varier
 l'amplitude de la porteuse :
 
 - quand le signal de la voix monte, les vagues de la porteuse deviennent

@@ -9,7 +9,7 @@ gesendet.
 ## Die Höhe folgt der Stimme
 
 Erinnere dich: Die **Amplitude** einer Welle sagt, wie weit sie sich von
-ihrer Ruhelage entfernt. Bei der **Amplitudenmodulation** verändert die
+ihrer Mittellage entfernt. Bei der **Amplitudenmodulation** verändert die
 Stimme die Amplitude des Trägers:
 
 - Wenn das Signal der Stimme steigt, werden die Wellenberge des
