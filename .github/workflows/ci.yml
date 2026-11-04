@@ -87,7 +87,7 @@ jobs:
           cache-to: type=gha,mode=max
 
       - name: Full vulnerability report
-        uses: docker/scout-action@bacf462e8d090c09660de30a6ccc718035f961e3 # v1.20.4
+        uses: docker/scout-action@e7e2a72bf1485d10a58f30696b6c513b261ce4fa # v1.29.0
         with:
           command: cves
           image: local://examen-ilr:scan
@@ -102,7 +102,7 @@ jobs:
           category: docker-scout
 
       - name: Fail on fixable critical or high CVEs
-        uses: docker/scout-action@bacf462e8d090c09660de30a6ccc718035f961e3 # v1.20.4
+        uses: docker/scout-action@e7e2a72bf1485d10a58f30696b6c513b261ce4fa # v1.29.0
         with:
           command: cves
           image: local://examen-ilr:scan
