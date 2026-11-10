@@ -28,6 +28,12 @@ def sample_study(cat: Catalogue, tag: str, section: str | None, count: str | int
         except (TypeError, ValueError):
             n = len(ids)
         ids = ids[: max(0, n)]
+    # Draw across all parts, then present them part by part in exam order,
+    # shuffled within each (the sort is stable). The question grid and the
+    # results review start a new labelled row at every change of part, so an
+    # unsorted draw buried the question under dozens of one-cell rows.
+    order = {part: i for i, part in enumerate(BLUEPRINT[tag])}
+    ids.sort(key=lambda qid: order.get(part_of(cat.get(qid)["section"]), len(order)))
     return ids
 
 

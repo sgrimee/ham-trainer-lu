@@ -242,3 +242,19 @@ def test_a_spent_budget_comes_back_once_the_window_has_passed(monkeypatch):
     clock[0] += 600.0
     budget.take("10.0.0.2")
     assert "10.0.0.1" not in budget._calls  # a caller gone quiet is forgotten
+
+
+def test_study_sessions_run_part_by_part_in_exam_order():
+    # The question grid labels each change of part; a draw shuffled across
+    # parts put dozens of labels, one row each, above the question.
+    from app import catalogue
+    from app.catalogue import BLUEPRINT, part_of
+    from app.session import sample_study
+
+    cat = catalogue.load()
+    for count in ("all", 20):
+        ids = sample_study(cat, "base", None, count)
+        parts = [part_of(cat.get(qid)["section"]) for qid in ids]
+        runs = [p for i, p in enumerate(parts) if i == 0 or p != parts[i - 1]]
+        assert runs == [p for p in BLUEPRINT["base"] if p in parts]
+    assert len(sample_study(cat, "base", None, 20)) == 20
