@@ -95,6 +95,14 @@
 
   {% else %}
     {% include "_feedback.html" %}
+    {#- The answer form, and its flag box, are gone once a question is graded --
+        but seeing the verdict is when a question is most worth marking. #}
+    <form method="post" action="/attempts/{{ attempt.id }}/q/{{ n }}/flag" class="flag-form" id="flag-form">
+      <label class="choice flag-choice">
+        <input type="checkbox" name="flagged" value="1" {% if response and response.flagged %}checked{% endif %}>
+        {{ t(ui, 'flag') }}
+      </label>
+    </form>
   {% endif %}
 
   {{ prev_next() }}

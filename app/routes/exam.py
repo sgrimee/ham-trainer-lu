@@ -292,7 +292,8 @@ async def toggle_flag(request: Request, attempt_id: str, n: int, store: Store = 
     qid = _question_at(attempt, n)
     form = await request.form()
     store.set_flag(attempt_id, qid, form.get("flagged") == "1")
-    return RedirectResponse(f"/attempts/{attempt_id}/q/{n}", status_code=303)
+    # Back to the box, not the top: it sits below the verdict and explanation.
+    return RedirectResponse(f"/attempts/{attempt_id}/q/{n}#flag-form", status_code=303)
 
 
 @router.post("/attempts/{attempt_id}/questions/{qid}/self-grade")

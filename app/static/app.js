@@ -19,13 +19,18 @@ document.addEventListener("keydown", (e) => {
     const link = document.getElementById("next-link");
     if (link) link.click();
   } else if (e.key.toLowerCase() === "f") {
-    const flag = document.querySelector('input[name=flag]');
-    if (flag) flag.checked = !flag.checked;
+    // The answer form's box, or once graded the flag form's (which saves on change).
+    const flag = document.querySelector('input[name=flag], #flag-form input[name=flagged]');
+    if (flag) flag.click();
   } else if (e.key === "Enter") {
     const form = document.querySelector('form[action*="/answer"]');
     if (form) form.requestSubmit();
   }
 });
+
+// A graded question's flag box saves as soon as it changes.
+document.querySelectorAll("#flag-form input[name=flagged]").forEach((box) =>
+  box.addEventListener("change", () => box.form.submit()));
 
 // The section/count choice only applies to study mode -- sample_exam always
 // draws from the full question pool, so hide it once "exam" is selected.

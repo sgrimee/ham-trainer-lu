@@ -101,6 +101,27 @@ def test_toggle_flag_out_of_range_is_404_not_a_crash(client):
     assert client.post(f"/attempts/{attempt_id}/q/9999/flag", data={"flagged": "1"}).status_code == 404
 
 
+def test_a_graded_question_can_still_be_flagged(client, store: Store):
+    """The verdict is when a question is most worth marking, but the answer
+    form and its flag box are gone by then: the graded view has its own."""
+    attempt_id = _create_study_attempt(client)
+    attempt = store.get_attempt(attempt_id)
+    assert attempt is not None
+    mcq_qid = next(qid for qid in attempt["question_ids"] if cat.get(qid)["kind"] == "mcq")
+    n = attempt["question_ids"].index(mcq_qid) + 1
+    client.post(f"/attempts/{attempt_id}/q/{n}/answer", data={"answer": "A"}, follow_redirects=False)
+
+    page = client.get(f"/attempts/{attempt_id}/q/{n}").text
+    assert f'action="/attempts/{attempt_id}/q/{n}/flag"' in page
+
+    resp = client.post(f"/attempts/{attempt_id}/q/{n}/flag", data={"flagged": "1"}, follow_redirects=False)
+    assert resp.headers["location"].endswith("#flag-form")
+    assert store.responses(attempt_id)[mcq_qid]["flagged"]
+    assert store.grades(attempt_id)[mcq_qid]  # the answer and its grade stand
+    client.post(f"/attempts/{attempt_id}/q/{n}/flag", data={}, follow_redirects=False)
+    assert not store.responses(attempt_id)[mcq_qid]["flagged"]
+
+
 def test_open_answer_partly_blank_without_grader_waits_for_a_self_verdict(client, store: Store):
     """A blank sub-item is wrong without a call; the others, ungraded, still
     get the self-verdict."""
