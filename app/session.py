@@ -18,9 +18,12 @@ from .store import Store
 # -- sampling (specs/TRAINER.md §6.1, §2.2) --------------------------------------
 
 
-def sample_study(cat: Catalogue, tag: str, section: str | None, count: str | int) -> list[int]:
+def sample_study(
+    cat: Catalogue, tag: str, section: str | None, count: str | int, only: set[int] | None = None
+) -> list[int]:
+    """`only` narrows the draw to those questions (the flagged or missed ones)."""
     pool = cat.filter(tag, section)
-    ids = [q["id"] for q in pool]
+    ids = [q["id"] for q in pool if only is None or q["id"] in only]
     random.shuffle(ids)
     if count != "all":
         try:
@@ -133,12 +136,17 @@ def next_unanswered_n(attempt: dict, responses: dict[int, dict], grades: dict[in
 
 
 def grid_status(
-    cat: Catalogue, question_ids: list[int], responses: dict[int, dict], grades: dict[int, list[dict]]
+    cat: Catalogue,
+    question_ids: list[int],
+    responses: dict[int, dict],
+    grades: dict[int, list[dict]],
+    flagged: set[int] | None = None,
 ) -> list[dict]:
     """One row per question, tagged with its exam part (specs/TRAINER.md §2.2) so
     the grid can be grouped into the three blocks the real exam is sat as
     separate sessions -- see BLUEPRINT/`sample_exam`, which already samples
-    one contiguous block per part in that order."""
+    one contiguous block per part in that order. `flagged`: questions flagged
+    in other sessions, for those this one hasn't touched yet."""
     out = []
     for i, qid in enumerate(question_ids, start=1):
         resp = responses.get(qid)
@@ -163,7 +171,7 @@ def grid_status(
                 "question_id": qid,
                 "status": status,
                 "part": part_of(cat.get(qid)["section"]),
-                "flagged": bool(resp and resp.get("flagged")),
+                "flagged": bool(resp["flagged"]) if resp else qid in (flagged or ()),
             }
         )
     return out
@@ -414,6 +422,13 @@ def exam_result(store: Store, cat: Catalogue, attempt: dict) -> scoring.ExamResu
         totals[p] = totals.get(p, 0.0) + sum(r["points"] for r in rows)
     parts = {p: scoring.PartResult(name=p, points=totals.get(p, 0.0)) for p in BLUEPRINT[attempt["tag"]]}
     return scoring.ExamResult(parts=parts)
+
+
+def missed_questions(store: Store, owner: str) -> set[int]:
+    """Questions whose latest graded answer, across all of `owner`'s sessions,
+    was not entirely right -- the same rule as `wrong_question_ids`. A right
+    answer later takes a question off the list."""
+    return {qid for qid, verdicts in store.latest_verdicts(owner).items() if verdicts != {"correct"}}
 
 
 def wrong_question_ids(store: Store, attempt: dict) -> list[int]:

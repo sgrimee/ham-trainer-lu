@@ -33,7 +33,8 @@ a:hover { color: var(--accent-hover); }
 .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.25rem; margin-bottom: 1rem; box-shadow: var(--shadow); }
 
 fieldset { border: none; padding: 0; margin: 0 0 1.25rem; }
-legend { font-weight: 600; margin-bottom: 0.4rem; }
+legend, .field-label { font-weight: 600; margin-bottom: 0.4rem; }
+.field-label { margin-top: 0; }
 .choice { display: inline-flex; align-items: center; gap: 0.35rem; margin-right: 1.1rem; margin-bottom: 0.3rem; }
 button {
   padding: 0.55rem 1.1rem; border-radius: 8px; border: 1px solid var(--accent);

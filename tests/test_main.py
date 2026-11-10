@@ -322,3 +322,72 @@ def test_open_answers_are_cut_to_the_maximum_length(client, store: Store):
     client.post(f"/attempts/{attempt_id}/q/{n}/answer", data={f"item_{item_no}": "x" * 5000})
     stored = store.responses(attempt_id)[qid]["answer"][str(item_no)]
     assert stored == "x" * MAX_ANSWER_CHARS
+
+
+def _answer_mcq(client, store: Store, attempt_id: str, qid: int, right: bool, **extra) -> int:
+    """Answer question `qid` of the attempt, rightly or not; its 1-based n."""
+    attempt = store.get_attempt(attempt_id)
+    assert attempt is not None
+    n = attempt["question_ids"].index(qid) + 1
+    letter = next(o["letter"] for o in cat.get(qid)["options"] if o["is_correct"] == right)
+    client.post(
+        f"/attempts/{attempt_id}/q/{n}/answer", data={"answer": letter, **extra}, follow_redirects=False
+    )
+    return n
+
+
+def _first_mcq(store: Store, attempt_id: str) -> int:
+    attempt = store.get_attempt(attempt_id)
+    assert attempt is not None
+    return next(qid for qid in attempt["question_ids"] if cat.get(qid)["kind"] == "mcq")
+
+
+def test_flagged_questions_make_a_session_and_stay_flagged_across_sessions(client, store: Store):
+    """A flag belongs to the question: it shows in later sessions, a
+    'flagged' session draws exactly those, and clearing it anywhere clears it."""
+    first = _create_study_attempt(client)
+    qid = _first_mcq(store, first)
+    _answer_mcq(client, store, first, qid, right=True, flag="on")
+    assert 'value="flagged" ' in client.get("/exam").text  # the choice is offered, enabled
+
+    review = _create_study_attempt(client, pool="flagged")
+    attempt = store.get_attempt(review)
+    assert attempt is not None
+    assert attempt["question_ids"] == [qid]
+    assert attempt["spec"]["pool"] == "flagged"
+
+    page = client.get(f"/attempts/{review}/q/1").text
+    assert re.search(r'name="flag"\s+checked', page)  # pre-checked, not yet answered here
+    assert "flagged current" in page  # and outlined in the grid
+
+    client.post(f"/attempts/{review}/q/1/flag", data={}, follow_redirects=False)
+    assert store.flagged_questions(attempt["owner"]) == set()
+
+
+def test_missed_questions_make_a_session_until_answered_right(client, store: Store):
+    first = _create_study_attempt(client)
+    qid = _first_mcq(store, first)
+    _answer_mcq(client, store, first, qid, right=False)
+
+    retry = _create_study_attempt(client, pool="missed")
+    attempt = store.get_attempt(retry)
+    assert attempt is not None
+    assert attempt["question_ids"] == [qid]
+
+    _answer_mcq(client, store, retry, qid, right=True)
+    resp = client.post(
+        "/attempts",
+        data={"tag": "base", "mode": "study", "lang": "fr", "pool": "missed"},
+        follow_redirects=False,
+    )
+    assert resp.status_code == 400  # nothing missed any more
+
+
+def test_an_empty_pool_is_offered_disabled(client):
+    page = client.get("/exam").text
+    assert re.search(r'value="flagged"\s+disabled', page)
+    assert re.search(r'value="missed"\s+disabled', page)
+    assert (
+        client.post("/attempts", data={"tag": "base", "mode": "study", "lang": "fr", "pool": "x"}).status_code
+        == 400
+    )

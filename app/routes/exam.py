@@ -58,6 +58,21 @@ def _load_attempt_or_404(request: Request, store: Store, attempt_id: str) -> dic
     return attempt
 
 
+# -- which questions a study session draws from ---------------------------------
+
+POOLS = ("all", "flagged", "missed")
+
+
+def _pool_questions(store: Store, owner: str | None, pool: str) -> set[int] | None:
+    """The questions a study session is limited to: every one ("all", None),
+    or the owner's flagged or missed ones, across all their sessions."""
+    if pool == "all":
+        return None
+    if owner is None:  # a browser with no session yet has neither
+        return set()
+    return store.flagged_questions(owner) if pool == "flagged" else session.missed_questions(store, owner)
+
+
 # -- exam trainer home: pick a session, or resume one --------------------------
 
 
@@ -79,6 +94,7 @@ def home(request: Request, lang: str = "fr", store: Store = Depends(get_store)):
                 "total": len(a["question_ids"]),
                 "next_n": session.next_unanswered_n(a, responses, grades),
                 "section_label": section_names.get(section) or t(ui, "all_sections"),
+                "pool": a["spec"].get("pool"),
             }
         )
     return templates.TemplateResponse(
@@ -91,6 +107,7 @@ def home(request: Request, lang: str = "fr", store: Store = Depends(get_store)):
             "counts": {tg: len(cat.filter(tg)) for tg in catalogue.TAGS},
             "sections": section_options(),
             "resumes": resumes,
+            "pool_counts": {p: len(_pool_questions(store, owner, p) or ()) for p in POOLS[1:]},
             "blueprint": BLUEPRINT,
             "prefs": read_prefs(request),
             "learner": current_learner(request, store),
@@ -107,14 +124,19 @@ def create_attempt(
     section: str = Form(""),
     count: str = Form("all"),
     shuffle_options: str = Form(""),
+    pool: str = Form("all"),
     store: Store = Depends(get_store),
 ):
     if tag not in catalogue.TAGS:
         raise HTTPException(400, "unknown tag")
+    if pool not in POOLS:
+        raise HTTPException(400, "unknown pool")
     section_filter = section or None
     shuffle = shuffle_options == "on"
+    owner = attempt_owner(request, store)
     if mode == "study":
-        question_ids = session.sample_study(cat, tag, section_filter, count)
+        only = _pool_questions(store, owner, pool)
+        question_ids = session.sample_study(cat, tag, section_filter, count, only)
     elif mode == "exam":
         question_ids = session.sample_exam(cat, tag)
     else:
@@ -124,7 +146,7 @@ def create_attempt(
     option_order = session.build_option_order(cat, question_ids, shuffle)
     # sample_exam ignores section, so don't record one the exam never applied.
     stored_section = section_filter if mode == "study" else None
-    owner = attempt_owner(request, store)
+    stored_pool = pool if mode == "study" and pool != "all" else None
     new_browser = owner is None
     if new_browser:
         owner = uuid.uuid4().hex
@@ -133,7 +155,12 @@ def create_attempt(
         tag=tag,
         mode=mode,
         lang=lang,
-        spec={"section": stored_section, "shuffle_options": shuffle, "option_order": option_order},
+        spec={
+            "section": stored_section,
+            "shuffle_options": shuffle,
+            "option_order": option_order,
+            "pool": stored_pool,
+        },
         question_ids=question_ids,
         owner=owner,
     )
@@ -226,6 +253,9 @@ def show_question(request: Request, attempt_id: str, n: int, store: Store = Depe
         annotations_module.load(),
     )
     graded = bool(review["grades"])
+    # A flag belongs to the question: one set in another session shows here too
+    # (pre-checked box, outlined grid cell) until this session touches it.
+    flagged = store.flagged_questions(attempt["owner"]) if attempt["owner"] else set()
     return templates.TemplateResponse(
         request=request,
         name="question.html",
@@ -237,7 +267,8 @@ def show_question(request: Request, attempt_id: str, n: int, store: Store = Depe
             "total": len(attempt["question_ids"]),
             "graded": graded,
             "read_only": graded or review["pending_self"],
-            "grid": session.grid_status(cat, attempt["question_ids"], responses, grades),
+            "grid": session.grid_status(cat, attempt["question_ids"], responses, grades, flagged),
+            "flag_checked": bool(review["response"]["flagged"]) if review["response"] else qid in flagged,
             "submitted": bool(attempt["submitted_at"]),
             "saved": request.query_params.get("saved") == "1",
         },

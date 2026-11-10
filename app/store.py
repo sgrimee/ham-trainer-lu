@@ -745,6 +745,38 @@ class Store:
     def response(self, attempt_id: str, question_id: int) -> dict | None:
         return self.responses(attempt_id).get(question_id)
 
+    def flagged_questions(self, owner: str) -> set[int]:
+        """The questions `owner` has flagged. A flag belongs to the question,
+        not the session: the most recently touched response row decides, so
+        clearing the box in any later session clears it everywhere."""
+        with self._connect() as con:
+            rows = con.execute(
+                "SELECT r.question_id, r.flagged FROM response r JOIN attempt a ON a.id = r.attempt_id "
+                "WHERE a.owner = ? ORDER BY r.updated_at",
+                (owner,),
+            ).fetchall()
+        latest = {row["question_id"]: bool(row["flagged"]) for row in rows}
+        return {qid for qid, flagged in latest.items() if flagged}
+
+    def latest_verdicts(self, owner: str) -> dict[int, set[str]]:
+        """Each question's verdicts in `owner`'s most recent attempt that graded
+        it. A question appears once per attempt, so the attempt's start orders
+        them."""
+        with self._connect() as con:
+            rows = con.execute(
+                "SELECT g.question_id, g.attempt_id, g.verdict "
+                "FROM grade g JOIN attempt a ON a.id = g.attempt_id "
+                "WHERE a.owner = ? ORDER BY a.started_at",
+                (owner,),
+            ).fetchall()
+        latest: dict[int, tuple[str, set[str]]] = {}
+        for row in rows:
+            qid, attempt_id = row["question_id"], row["attempt_id"]
+            if qid not in latest or latest[qid][0] != attempt_id:
+                latest[qid] = (attempt_id, set())
+            latest[qid][1].add(row["verdict"])
+        return {qid: verdicts for qid, (_, verdicts) in latest.items()}
+
     # -- grades ---------------------------------------------------------------
 
     def put_grade(

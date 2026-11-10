@@ -23,6 +23,14 @@ MESSAGES = {
         "all_sections": "Toutes les sections",
         "whole_part": "Toute la section",
         "question_count": "Nombre de questions",
+        "choose_pool": "Questions",
+        "pool_all": "Toutes",
+        "pool_flagged": "Marquées",
+        "pool_missed": "Ratées",
+        "pool_missed_hint": (
+            "Ratées : celles dont votre dernière réponse était fausse ; "
+            "une bonne réponse les retire de la liste."
+        ),
         "questions_word": "questions",
         "all_questions": "Toutes ({n})",
         "start": "Commencer",
@@ -193,6 +201,14 @@ MESSAGES = {
         "all_sections": "Alle Abschnitte",
         "whole_part": "Ganzer Abschnitt",
         "question_count": "Anzahl Fragen",
+        "choose_pool": "Fragen",
+        "pool_all": "Alle",
+        "pool_flagged": "Markierte",
+        "pool_missed": "Falsch beantwortete",
+        "pool_missed_hint": (
+            "Falsch beantwortete: deren letzte Antwort falsch war; "
+            "eine richtige Antwort nimmt sie von der Liste."
+        ),
         "questions_word": "Fragen",
         "all_questions": "Alle ({n})",
         "start": "Starten",

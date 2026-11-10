@@ -11,7 +11,7 @@
     <li class="resume-item">
       <a href="/attempts/{{ a.id }}/q/{{ a.next_n }}">
         {{ a.tag|upper }} · {{ t(ui, 'mode_' + a.mode + '_short') }} · {{ a.lang|upper }}
-        · {{ a.section_label }}
+        · {{ a.section_label }}{% if a.pool %} · {{ t(ui, 'pool_' + a.pool) }}{% endif %}
         — {{ a.answered }}/{{ a.total }}
       </a>
       <form method="post" action="/attempts/{{ a.id }}/delete"
@@ -46,7 +46,19 @@
     </fieldset>
 
     <fieldset id="study-only">
-      <legend>{{ t(ui, 'choose_section') }}</legend>
+      <legend>{{ t(ui, 'choose_pool') }}</legend>
+      <div class="pool-choice">
+        <label class="choice"><input type="radio" name="pool" value="all" checked> {{ t(ui, 'pool_all') }}</label>
+        {% for pool in ('flagged', 'missed') %}
+        <label class="choice">
+          <input type="radio" name="pool" value="{{ pool }}" {% if not pool_counts[pool] %}disabled{% endif %}>
+          {{ t(ui, 'pool_' + pool) }} ({{ pool_counts[pool] }})
+        </label>
+        {% endfor %}
+      </div>
+      <p class="hint" style="text-align: left; margin: 0.3rem 0 0.6rem;">{{ t(ui, 'pool_missed_hint') }}</p>
+
+      <p class="field-label">{{ t(ui, 'choose_section') }}</p>
       <select name="section">
         <option value="" {% if not prefs.section %}selected{% endif %}>{{ t(ui, 'all_sections') }}</option>
         {% for part in sections %}
