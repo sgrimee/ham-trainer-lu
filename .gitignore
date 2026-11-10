@@ -3,7 +3,11 @@ __pycache__/
 .env
 .venv/
 *.pyc
-var/
+# Local state (attempts.db, generated PDFs). The directory itself is tracked so
+# it exists, owned by you, before `docker compose` bind-mounts it -- a missing
+# bind-mount source is created by the Docker daemon as root.
+var/*
+!var/.gitkeep
 
 # Downloaded by `mise run download-refs` (reference/documents.yaml), not vendored.
 reference/*.pdf

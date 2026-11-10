@@ -15,5 +15,10 @@ services:
       - COURSE_DE
     # The repo's var/ is the data directory, so the container shares
     # var/attempts.db with `mise run serve`. Don't run both at once.
+    # Run as the host user, not the image's `examen`, so both can write the
+    # bind-mounted var/. `mise run serve-docker` sets these from `id`; plain
+    # `docker compose up` falls back to 1000. (Not UID/GID: bash's UID is
+    # readonly and not exported.)
+    user: "${HOST_UID:-1000}:${HOST_GID:-1000}"
     volumes:
       - ./var:/var/lib/examen
