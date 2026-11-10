@@ -6,6 +6,7 @@ navigation depends only on its structure, never on the prose."""
 
 from __future__ import annotations
 
+import contextlib
 import html
 import pathlib
 import re
@@ -146,6 +147,10 @@ def german(tmp_path, monkeypatch, german_variants):
     from app import main
 
     factory, dirs, courses = german_variants
+    # Restored by hand, not by monkeypatch: whether the lifespan has put a
+    # course there yet, or the client has torn down first, depends on the test
+    # and on pytest's fixture order, and monkeypatch's undo assumes neither.
+    original = getattr(main.app.state, "course", None)
 
     def make(slugs, mode: str, notes: bool = True, private: bool = False) -> pathlib.Path:
         if private:
@@ -164,10 +169,15 @@ def german(tmp_path, monkeypatch, german_variants):
                 courses[(*key, mode)] = course_module.load(d, cat.questions, mode)
             course = courses[(*key, mode)]
         monkeypatch.setattr(course_module, "COURSE_DIR", d)
-        monkeypatch.setattr(main.app.state, "course", course)
+        main.app.state.course = course
         return d
 
-    return make
+    yield make
+    if original is None:
+        with contextlib.suppress(AttributeError, KeyError):
+            del main.app.state.course
+    else:
+        main.app.state.course = original
 
 
 @pytest.fixture

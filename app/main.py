@@ -9,7 +9,7 @@ the routers of app/routes/; what they share is in app/web.py.
 from __future__ import annotations
 
 import logging
-from collections.abc import AsyncIterator
+from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 
 import httpx2 as httpx
@@ -40,7 +40,7 @@ log = logging.getLogger(__name__)
 
 
 @asynccontextmanager
-async def lifespan(app: FastAPI) -> AsyncIterator[None]:
+async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
     problems = cat.check_invariants()
     if problems:
         raise RuntimeError("catalogue failed boot invariants:\n" + "\n".join(problems))
