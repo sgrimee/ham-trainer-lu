@@ -47,6 +47,7 @@ All are optional.
 | `ADMIN_PASSWORD`      | —                              | Enables the unlinked `/admin/learners` page for managing course learners. If unset, `/admin` returns 404. |
 | `ADMIN_PASSWORD_FILE` | —                              | Path to a file holding the admin password; preferred over `ADMIN_PASSWORD` |
 | `COURSE_DE`           | `off`                          | German version of the course: `off`, `preview` (modules that are already translated) or `on` (the full German course; the app refuses to start if any translation is missing) |
+| `EXAM_DATE`           | —                              | Exam date as `YYYY-MM-DD`. While it is ahead, spaced repetition brings every question seen back by the day before. |
 | `ATTEMPTS_DB`         | `/var/lib/examen/attempts.db`  | SQLite database with attempts, learners and progress. Leave the default so the data stays in the volume. |
 
 LLM grading is enabled only when `LLM_BASE_URL`, `LLM_MODEL` and a key are all

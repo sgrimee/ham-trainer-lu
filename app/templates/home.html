@@ -49,14 +49,16 @@
       <legend>{{ t(ui, 'choose_pool') }}</legend>
       <div class="pool-choice">
         <label class="choice"><input type="radio" name="pool" value="all" checked> {{ t(ui, 'pool_all') }}</label>
-        {% for pool in ('flagged', 'missed') %}
+        {% for pool in ('due', 'flagged', 'missed') %}
         <label class="choice">
           <input type="radio" name="pool" value="{{ pool }}" {% if not pool_counts[pool] %}disabled{% endif %}>
           {{ t(ui, 'pool_' + pool) }} ({{ pool_counts[pool] }})
         </label>
         {% endfor %}
       </div>
-      <p class="hint" style="text-align: left; margin: 0.3rem 0 0.6rem;">{{ t(ui, 'pool_missed_hint') }}</p>
+      <p class="hint pool-hint">{{ t(ui, 'pool_due_hint') }}
+        {% if exam_date and exam_date > today %}{{ t(ui, 'exam_date_hint', date=exam_date.strftime('%d/%m/%Y' if ui == 'fr' else '%d.%m.%Y')) }}{% endif %}</p>
+      <p class="hint pool-hint">{{ t(ui, 'pool_missed_hint') }}</p>
 
       <p class="field-label">{{ t(ui, 'choose_section') }}</p>
       <select name="section">

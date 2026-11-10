@@ -536,6 +536,7 @@ a study session free and offline.
 | `LLM_MODEL` | model identifier |
 | `LLM_TIMEOUT_S` | per-request timeout in seconds, default 30 |
 | `ATTEMPTS_DB` | candidate store, default `var/attempts.db` (§5.1) |
+| `EXAM_DATE` | `YYYY-MM-DD`; caps spaced-repetition delays at the day before (§10); unset, no cap |
 
 The grader is enabled only when URL, model and key are all present. Locally these
 come from `.env`, which mise autoloads; `.env.example` documents them and is
@@ -681,8 +682,26 @@ your last n attempts, these are the documents and pages to re-read*. Group the
 wrong answers by section and topic, collect their references, rank by frequency.
 It degrades gracefully, naming sections when references are thin.
 
-Those are specified here and not yet built (§12.7). The per-attempt versions — the
-section breakdown and retry-wrong — are.
+**Built across attempts.** A study session can draw from every question, or —
+across all the owner's attempts, with certificate, section and count still
+applying — from the questions:
+
+- **due for review** (`app/review.py`): a Leitner schedule replayed from the
+  grade history, nothing stored. Boxes wait 1, 3, 7, 14 and 30 days. A wrong
+  answer sends a question back to box 1; a right one moves it up a box, but
+  only once it is due; a partly right one keeps its box. A self-grade still
+  pending does not count. While `EXAM_DATE` is ahead, no question is due later
+  than the day before it. A short session takes the longest overdue first.
+  Questions never answered are not "due": "every question" introduces them.
+  `grade.graded_at` dates each verdict; older grades fall back to their
+  attempt's start.
+- **flagged**: a flag belongs to the question, the latest response row
+  deciding; it shows pre-checked in later attempts until one clears it.
+- **missed**: the latest graded answer was not entirely right (retry-wrong's
+  rule); a right answer takes it off the list.
+
+The weak-section view and the re-read report are not yet built (§12.7). The
+per-attempt versions — the section breakdown and retry-wrong — are.
 
 ## 11. Toolchain and packaging
 
@@ -781,8 +800,7 @@ Items 1–6 are implemented. They make a usable trainer for all three certificat
 
 Specified or requested, not yet built:
 
-7. **Study loop.** Cross-attempt history, a wrong-only drill across attempts, the
-   weak-section view, the "documents and pages to re-read" report (§10), and
+7. **Study loop.** The weak-section view, the "documents and pages to re-read" report (§10), and
    displaying annotation topics and notes (§4.4).
 8. **Hosted and multi-user.** Real accounts, per-user attempt ownership, and a
    policy for who pays for grading (§13).

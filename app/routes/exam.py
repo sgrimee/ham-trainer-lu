@@ -6,6 +6,7 @@ from __future__ import annotations
 import json
 import re
 import uuid
+from collections.abc import Collection
 
 from fastapi import APIRouter, Depends, Form, HTTPException, Request
 from fastapi.responses import RedirectResponse
@@ -15,6 +16,7 @@ from .. import catalogue, session
 from ..catalogue import BLUEPRINT
 from ..grader import LLMGrader
 from ..i18n import t
+from ..review import BOX_DAYS, due_questions, exam_date, schedule, today
 from ..store import Store
 from ..web import (
     BROWSER_COOKIE,
@@ -60,16 +62,19 @@ def _load_attempt_or_404(request: Request, store: Store, attempt_id: str) -> dic
 
 # -- which questions a study session draws from ---------------------------------
 
-POOLS = ("all", "flagged", "missed")
+POOLS = ("all", "due", "flagged", "missed")
 
 
-def _pool_questions(store: Store, owner: str | None, pool: str) -> set[int] | None:
+def _pool_questions(store: Store, owner: str | None, pool: str) -> Collection[int] | None:
     """The questions a study session is limited to: every one ("all", None),
-    or the owner's flagged or missed ones, across all their sessions."""
+    or, across all the owner's sessions, the ones due for review (with their
+    due date, app/review.py), flagged or missed."""
     if pool == "all":
         return None
-    if owner is None:  # a browser with no session yet has neither
+    if owner is None:  # a browser with no session yet has none of them
         return set()
+    if pool == "due":
+        return due_questions(store, owner, exam=exam_date())
     return store.flagged_questions(owner) if pool == "flagged" else session.missed_questions(store, owner)
 
 
@@ -108,6 +113,8 @@ def home(request: Request, lang: str = "fr", store: Store = Depends(get_store)):
             "sections": section_options(),
             "resumes": resumes,
             "pool_counts": {p: len(_pool_questions(store, owner, p) or ()) for p in POOLS[1:]},
+            "exam_date": exam_date(),
+            "today": today(),
             "blueprint": BLUEPRINT,
             "prefs": read_prefs(request),
             "learner": current_learner(request, store),
@@ -136,7 +143,8 @@ def create_attempt(
     owner = attempt_owner(request, store)
     if mode == "study":
         only = _pool_questions(store, owner, pool)
-        question_ids = session.sample_study(cat, tag, section_filter, count, only)
+        first = only if isinstance(only, dict) else None  # due: the longest overdue first
+        question_ids = session.sample_study(cat, tag, section_filter, count, only, first)
     elif mode == "exam":
         question_ids = session.sample_exam(cat, tag)
     else:
@@ -256,6 +264,10 @@ def show_question(request: Request, attempt_id: str, n: int, store: Store = Depe
     # A flag belongs to the question: one set in another session shows here too
     # (pre-checked box, outlined grid cell) until this session touches it.
     flagged = store.flagged_questions(attempt["owner"]) if attempt["owner"] else set()
+    # Once graded: which box it is in now, and when it comes back (app/review.py).
+    card = (
+        schedule(store, attempt["owner"], exam=exam_date()).get(qid) if graded and attempt["owner"] else None
+    )
     return templates.TemplateResponse(
         request=request,
         name="question.html",
@@ -268,6 +280,9 @@ def show_question(request: Request, attempt_id: str, n: int, store: Store = Depe
             "graded": graded,
             "read_only": graded or review["pending_self"],
             "grid": session.grid_status(cat, attempt["question_ids"], responses, grades, flagged),
+            "card": card,
+            "box_count": len(BOX_DAYS),
+            "days_until": (card.due - today()).days if card else None,
             "flag_checked": bool(review["response"]["flagged"]) if review["response"] else qid in flagged,
             "submitted": bool(attempt["submitted_at"]),
             "saved": request.query_params.get("saved") == "1",

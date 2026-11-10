@@ -114,6 +114,9 @@ MIGRATIONS = (
     # the browser that started it. NULL on attempts from before owners, which
     # no list shows.
     ("attempt", "owner", "TEXT"),
+    # When the verdict was given, for spaced repetition (app/review.py). NULL
+    # on grades from before it, which fall back to their attempt's start.
+    ("grade", "graded_at", "TEXT"),
 )
 
 # Seconds a connection waits on another writer's lock before failing with
@@ -758,6 +761,23 @@ class Store:
         latest = {row["question_id"]: bool(row["flagged"]) for row in rows}
         return {qid for qid, flagged in latest.items() if flagged}
 
+    def graded_history(self, owner: str) -> list[tuple[int, set[str], datetime]]:
+        """`owner`'s graded answers, oldest first: one (question, verdicts,
+        when) per attempt that graded the question. A grade from before
+        graded_at was recorded counts as given when its attempt started."""
+        with self._connect() as con:
+            rows = con.execute(
+                "SELECT g.question_id, group_concat(g.verdict) AS verdicts, "
+                "max(coalesce(g.graded_at, a.started_at)) AS at "
+                "FROM grade g JOIN attempt a ON a.id = g.attempt_id WHERE a.owner = ? "
+                "GROUP BY g.attempt_id, g.question_id ORDER BY at",
+                (owner,),
+            ).fetchall()
+        return [
+            (row["question_id"], set(row["verdicts"].split(",")), datetime.fromisoformat(row["at"]))
+            for row in rows
+        ]
+
     def latest_verdicts(self, owner: str) -> dict[int, set[str]]:
         """Each question's verdicts in `owner`'s most recent attempt that graded
         it. A question appears once per attempt, so the attempt's start orders
@@ -795,11 +815,11 @@ class Store:
         with self._connect() as con:
             con.execute(
                 "INSERT INTO grade (attempt_id, question_id, item_no, verdict, points, "
-                "detail, comment, source, model) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) "
+                "detail, comment, source, model, graded_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?) "
                 "ON CONFLICT(attempt_id, question_id, item_no) DO UPDATE SET "
                 "verdict = excluded.verdict, points = excluded.points, "
                 "detail = excluded.detail, comment = excluded.comment, "
-                "source = excluded.source, model = excluded.model",
+                "source = excluded.source, model = excluded.model, graded_at = excluded.graded_at",
                 (
                     attempt_id,
                     question_id,
@@ -810,6 +830,7 @@ class Store:
                     comment,
                     source,
                     model,
+                    now(),
                 ),
             )
 

@@ -17,7 +17,7 @@ from fastapi import Depends, FastAPI, Form, Request
 from fastapi.responses import RedirectResponse, Response
 from fastapi.staticfiles import StaticFiles
 
-from . import admin, grader
+from . import admin, grader, review
 from . import course as course_module
 from .grader import LLMGrader
 from .routes import admin as admin_routes
@@ -56,6 +56,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     # A configured but unreadable ADMIN_PASSWORD_FILE fails here, like a bad
     # LLM_API_KEY_FILE does, rather than as a 500 on every /admin request.
     admin.admin_password()
+    review.exam_date()  # a malformed EXAM_DATE stops the start, not a page
     async with httpx.AsyncClient() as client:
         app.state.store = Store()
         app.state.llm_grader = grader.from_env(client)

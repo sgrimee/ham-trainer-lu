@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import asyncio
 import random
+from collections.abc import Collection, Mapping
 from typing import Any
 
 from . import official_wordings, scoring, spelling
@@ -19,12 +20,21 @@ from .store import Store
 
 
 def sample_study(
-    cat: Catalogue, tag: str, section: str | None, count: str | int, only: set[int] | None = None
+    cat: Catalogue,
+    tag: str,
+    section: str | None,
+    count: str | int,
+    only: Collection[int] | None = None,
+    first: Mapping[int, Any] | None = None,
 ) -> list[int]:
-    """`only` narrows the draw to those questions (the flagged or missed ones)."""
+    """`only` narrows the draw to those questions (the flagged, missed or due
+    ones). `first` ranks them, lowest first, for a count that keeps only some:
+    the questions due longest come before the others, ties drawn at random."""
     pool = cat.filter(tag, section)
     ids = [q["id"] for q in pool if only is None or q["id"] in only]
     random.shuffle(ids)
+    if first is not None:
+        ids.sort(key=lambda qid: first[qid])
     if count != "all":
         try:
             n = int(count)

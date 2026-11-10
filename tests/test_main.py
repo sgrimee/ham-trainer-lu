@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import pathlib
 import re
+import sqlite3
 import sys
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent))
@@ -391,3 +392,20 @@ def test_an_empty_pool_is_offered_disabled(client):
         client.post("/attempts", data={"tag": "base", "mode": "study", "lang": "fr", "pool": "x"}).status_code
         == 400
     )
+
+
+def test_a_question_due_for_review_makes_a_session_and_shows_its_box(client, store: Store):
+    first = _create_study_attempt(client)
+    qid = _first_mcq(store, first)
+    n = _answer_mcq(client, store, first, qid, right=False)
+    assert "Boîte 1/5 · à revoir demain" in client.get(f"/attempts/{first}/q/{n}").text
+    assert re.search(r'value="due"\s+disabled', client.get("/exam").text)  # due tomorrow, not today
+
+    with sqlite3.connect(store.path) as con:  # answered three days ago instead
+        con.execute("UPDATE grade SET graded_at = '2026-01-01T09:00:00+00:00' WHERE attempt_id = ?", (first,))
+    assert "À revoir (1)" in client.get("/exam").text
+    due = _create_study_attempt(client, pool="due")
+    attempt = store.get_attempt(due)
+    assert attempt is not None
+    assert attempt["question_ids"] == [qid]
+    assert attempt["spec"]["pool"] == "due"

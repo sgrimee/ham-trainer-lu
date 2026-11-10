@@ -95,6 +95,12 @@
 
   {% else %}
     {% include "_feedback.html" %}
+    {% if card %}
+      <p class="review-card">{{ t(ui, 'review_card', box=card.box, max=box_count, when=(
+        t(ui, 'when_today') if days_until <= 0 else
+        t(ui, 'when_tomorrow') if days_until == 1 else
+        t(ui, 'when_days', n=days_until))) }}</p>
+    {% endif %}
     {#- The answer form, and its flag box, are gone once a question is graded --
         but seeing the verdict is when a question is most worth marking. #}
     <form method="post" action="/attempts/{{ attempt.id }}/q/{{ n }}/flag" class="flag-form" id="flag-form">

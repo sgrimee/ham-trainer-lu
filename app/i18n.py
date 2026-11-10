@@ -25,6 +25,16 @@ MESSAGES = {
         "question_count": "Nombre de questions",
         "choose_pool": "Questions",
         "pool_all": "Toutes",
+        "pool_due": "À revoir",
+        "pool_due_hint": (
+            "À revoir : les questions déjà vues dont c'est le jour, revues 1, 3, 7, 14 puis "
+            "30 jours après chaque bonne réponse, le lendemain après une erreur."
+        ),
+        "exam_date_hint": "Examen le {date} : tout ce que vous avez vu revient au plus tard la veille.",
+        "review_card": "Boîte {box}/{max} · à revoir {when}",
+        "when_today": "aujourd'hui",
+        "when_tomorrow": "demain",
+        "when_days": "dans {n} jours",
         "pool_flagged": "Marquées",
         "pool_missed": "Ratées",
         "pool_missed_hint": (
@@ -203,6 +213,16 @@ MESSAGES = {
         "question_count": "Anzahl Fragen",
         "choose_pool": "Fragen",
         "pool_all": "Alle",
+        "pool_due": "Zu wiederholen",
+        "pool_due_hint": (
+            "Zu wiederholen: bereits gesehene Fragen, die heute fällig sind, wiederholt 1, 3, 7, 14, "
+            "dann 30 Tage nach jeder richtigen Antwort, am nächsten Tag nach einem Fehler."
+        ),
+        "exam_date_hint": "Prüfung am {date}: alles Gesehene kommt spätestens am Vortag wieder.",
+        "review_card": "Fach {box}/{max} · wieder {when}",
+        "when_today": "heute",
+        "when_tomorrow": "morgen",
+        "when_days": "in {n} Tagen",
         "pool_flagged": "Markierte",
         "pool_missed": "Falsch beantwortete",
         "pool_missed_hint": (
