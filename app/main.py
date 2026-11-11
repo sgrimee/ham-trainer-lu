@@ -135,6 +135,9 @@ def landing(
     switch, the current learner's "not you? change" line when there is one,
     and the leaderboard."""
     ui = ui_lang(read_prefs(request)["lang"])
+    # The countdown shows only while EXAM_DATE is set and still ahead.
+    exam_on = review.exam_date()
+    days_left = (exam_on - review.today()).days if exam_on else None
     return templates.TemplateResponse(
         request=request,
         name="landing.html",
@@ -146,6 +149,8 @@ def landing(
             "untranslated": False,
             "learner": current_learner(request, store),
             "leaderboard": _leaderboard(store, course),
+            "exam_on": exam_on,
+            "days_left": days_left if days_left and days_left > 0 else None,
         },
     )
 

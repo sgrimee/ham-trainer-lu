@@ -4,6 +4,15 @@
 {% block content %}
 {{ lang_bar(ui, lang_switch, here, untranslated, lang_chosen) }}
 {% if learner %}{{ not_you(ui, learner) }}{% endif %}
+{% if days_left %}
+<section class="card countdown" aria-label="{{ t(ui, 'countdown_label') }}">
+  <span class="countdown-num">{{ days_left }}</span>
+  <span class="countdown-text">
+    <strong>{{ t(ui, 'countdown_day' if days_left == 1 else 'countdown_days') }}</strong>
+    <span class="countdown-date">{{ t(ui, 'countdown_date', date=exam_on.strftime('%d/%m/%Y' if ui == 'fr' else '%d.%m.%Y')) }}</span>
+  </span>
+</section>
+{% endif %}
 <section class="card landing-intro">
   <h1>{{ t(ui, 'landing_heading') }}</h1>
   <p>{{ t(ui, 'landing_intro') }}</p>

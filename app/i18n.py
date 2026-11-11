@@ -109,6 +109,10 @@ MESSAGES = {
         "not_you": "Ce n'est pas toi ?",
         "change_learner": "Changer",
         "nav_exam": "S'entraîner",
+        "countdown_label": "Compte à rebours de l'examen",
+        "countdown_day": "jour avant l'examen",
+        "countdown_days": "jours avant l'examen",
+        "countdown_date": "le {date}",
         "landing_heading": "Prépare ton examen de radioamateur",
         "landing_intro": (
             "Ce site aide à préparer l'examen de radioamateur de l'ILR, au Luxembourg : "
@@ -297,6 +301,10 @@ MESSAGES = {
         "not_you": "Nicht du?",
         "change_learner": "Wechseln",
         "nav_exam": "Üben",
+        "countdown_label": "Countdown bis zur Prüfung",
+        "countdown_day": "Tag bis zur Prüfung",
+        "countdown_days": "Tage bis zur Prüfung",
+        "countdown_date": "am {date}",
         "landing_heading": "Bereite dich auf deine Amateurfunkprüfung vor",
         "landing_intro": (
             "Diese Seite hilft bei der Vorbereitung auf die Amateurfunkprüfung des ILR in "

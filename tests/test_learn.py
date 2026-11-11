@@ -215,6 +215,32 @@ def test_landing_follows_the_language_preference(client):
     assert "Amateurfunkprüfung" in resp.text and '<html lang="de">' in resp.text
 
 
+def _on(monkeypatch, day: str, exam: str | None) -> None:
+    from datetime import date
+
+    from app import review
+
+    monkeypatch.setattr(review, "today", lambda: date.fromisoformat(day))
+    if exam:
+        monkeypatch.setenv("EXAM_DATE", exam)
+    else:
+        monkeypatch.delenv("EXAM_DATE", raising=False)
+
+
+def test_landing_counts_down_to_the_exam(client, monkeypatch):
+    _on(monkeypatch, "2026-11-11", "2026-11-24")
+    text = client.get("/").text
+    assert '<span class="countdown-num">13</span>' in text and "24/11/2026" in text
+    _on(monkeypatch, "2026-11-23", "2026-11-24")
+    assert "jour avant l&#39;examen" in client.get("/").text
+
+
+@pytest.mark.parametrize("exam", [None, "2026-11-11", "2026-11-01"])
+def test_landing_has_no_countdown_without_an_exam_ahead(client, monkeypatch, exam):
+    _on(monkeypatch, "2026-11-11", exam)
+    assert "countdown" not in client.get("/").text
+
+
 def test_landing_and_trainer_home_show_the_current_learner(client, learner):
     for path in ("/", "/exam"):
         text = client.get(path).text
