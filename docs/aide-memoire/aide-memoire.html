@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Aide-mémoire – Certificat de BASE (radioamateur, Luxembourg)</title>
+<style>
+@page { size: A4; margin: 8mm 9mm 8mm 9mm; }
+* { box-sizing: border-box; }
+html { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+body { font-family: "DejaVu Sans", "Liberation Sans", Arial, sans-serif; font-size: 11pt; line-height: 1.2; color: #111; margin: 0; }
+.page { column-count: 2; column-gap: 6mm; column-rule: 0.4pt solid #bbb; column-fill: balance; }
+.page + .page { margin-top: 3mm; }
+header { column-span: all; display: flex; justify-content: space-between; align-items: baseline; border-bottom: 1.2pt solid #1f4fbf; margin-bottom: 1.2mm; padding-bottom: 0.4mm; }
+header h1 { font-size: 16pt; margin: 0; color: #1f4fbf; }
+header span { font-size: 9pt; color: #444; }
+section { margin-bottom: 2mm; } h2 { break-after: avoid; } .q, tr, svg, .row, p { break-inside: avoid; }
+h2 { font-size: 13pt; margin: 0 0 0.5mm; padding: 0.3mm 1mm; background: #1f4fbf; color: #fff; border-radius: 1pt; }
+h2 small { font-weight: normal; opacity: .85; font-size: 9pt; }
+p { margin: 0.6mm 0; }
+ul { margin: 0.2mm 0; padding-left: 3mm; }
+li { margin: 0; }
+table { border-collapse: collapse; width: 100%; margin: 0.5mm 0; }
+td, th { border: 0.4pt solid #aaa; padding: 0.4mm 1mm; vertical-align: top; text-align: left; }
+th { background: #e6ecfa; font-weight: bold; }
+b { color: #000; }
+.q { background: #fff4c2; border-left: 1.6pt solid #e0a800; padding: 0.2mm 0.8mm; margin: 0.4mm 0; }
+.q::before { content: "➜ "; font-weight: bold; color: #b07d00; }
+.trap { color: #b00020; }
+.trap::before { content: "⚠ "; }
+.f { font-family: "DejaVu Serif", Georgia, serif; font-size: 13pt; font-weight: bold; white-space: nowrap; }
+.frac { display: inline-flex; flex-direction: column; vertical-align: middle; text-align: center; line-height: 1.05; }
+.frac > span:first-child { border-bottom: 0.6pt solid #000; padding: 0 0.6mm; }
+.row { display: flex; gap: 1.5mm; align-items: center; }
+.row > svg { flex: 0 0 auto; } .row > div { flex: 1 1 auto; min-width: 0; }
+svg { display: block; }
+.small { font-size: 9.8pt; color: #333; }
+.b10 { font-weight: bold; background: #dff3df; }
+.alpha { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0 1mm; }
+.alpha span b { display: inline-block; width: 4.5mm; color: #1f4fbf; }
+</style>
+</head>
+<body>
+
+<!-- ===================================================== PAGE 1 : TECHNIQUE -->
+<div class="page">
+<header><h1>Aide-mémoire BASE — 1. Technique</h1><span>Radioamateur Luxembourg · ILR · catalogue 2024 · ➜ = réponse attendue à l'examen</span></header>
+
+<section>
+<h2>Grandeurs et unités <small>Q1–5, 6</small></h2>
+<table>
+<tr><th>Grandeur</th><th>Lettre</th><th>Unité</th><th>Mesurée par</th></tr>
+<tr><td>Tension (pousse)</td><td>U</td><td><b>volt V</b></td><td>voltmètre</td></tr>
+<tr><td>Courant (coule)</td><td>I</td><td><b>ampère A</b></td><td>ampèremètre</td></tr>
+<tr><td>Résistance (freine)</td><td>R</td><td><b>ohm Ω</b></td><td>ohmmètre</td></tr>
+<tr><td>Puissance (vitesse du travail)</td><td>P</td><td><b>watt W</b></td><td>—</td></tr>
+<tr><td>Travail / énergie</td><td>W</td><td><b>kWh</b>, J</td><td>compteur</td></tr>
+<tr><td>Fréquence (cycles/s)</td><td>f</td><td><b>hertz Hz</b></td><td>—</td></tr>
+<tr><td>Longueur d'onde</td><td>λ</td><td>mètre m</td><td>—</td></tr>
+<tr><td>Impédance (en AC)</td><td>Z</td><td>ohm Ω</td><td>—</td></tr>
+</table>
+<p class="q">Travail électrique = <b>kilowattheure (kWh)</b> (celle qui contient « heure »). kW = puissance, kWh = énergie.</p>
+<p class="trap">hertz (Hz) ≠ henry (H).</p>
+</section>
+
+<section>
+<h2>Préfixes et conversions</h2>
+<p><b>m</b> milli = ÷1000 · <b>k</b> kilo = ×1000 · <b>M</b> méga = ×10<sup>6</sup> · <b>G</b> giga = ×10<sup>9</sup> &nbsp;(m ≠ M !)</p>
+<p>250 mA = <b>0,25 A</b> · 7100 kHz = <b>7,1 MHz</b> · 28376 kHz = 28,376 MHz. Unité plus grande → nombre plus petit.</p>
+<p class="trap">Notation anglaise : « 7.050 MHz » = 7,05 MHz.</p>
+</section>
+
+<section>
+<h2>Loi d'Ohm · Puissance · Énergie <small>Q15, 16</small></h2>
+<div class="row">
+<svg width="89" height="77" viewBox="0 0 60 52"><path d="M30 2 L58 50 H2 Z" fill="#eef2ff" stroke="#1f4fbf" stroke-width="1.6"/><path d="M14 30 H46 M30 30 V50" stroke="#1f4fbf" stroke-width="1.6"/><text x="30" y="25" text-anchor="middle" font-size="14" font-weight="bold">U</text><text x="19" y="46" text-anchor="middle" font-size="13" font-weight="bold">R</text><text x="41" y="46" text-anchor="middle" font-size="13" font-weight="bold">I</text></svg>
+<div>
+<div class="f">U = R × I</div>
+<div class="f">I = <span class="frac"><span>U</span><span>R</span></span> &nbsp; R = <span class="frac"><span>U</span><span>I</span></span></div>
+</div>
+<svg width="89" height="77" viewBox="0 0 60 52"><path d="M30 2 L58 50 H2 Z" fill="#fff0e6" stroke="#c25400" stroke-width="1.6"/><path d="M14 30 H46 M30 30 V50" stroke="#c25400" stroke-width="1.6"/><text x="30" y="25" text-anchor="middle" font-size="14" font-weight="bold">P</text><text x="19" y="46" text-anchor="middle" font-size="13" font-weight="bold">U</text><text x="41" y="46" text-anchor="middle" font-size="13" font-weight="bold">I</text></svg>
+<div><div class="f">P = U × I</div><div class="f">E = P × t</div><span class="small">kW × h = kWh</span></div>
+</div>
+<p>Méthode : <b>convertir</b> (mA → A) · <b>calculer</b> · <b>vérifier</b> le bon sens.</p>
+<p class="q">13,8 V × 350 mA = 13,8 × 0,35 = <b>4,8 W</b> (réception)</p>
+<p class="q">13,8 V × 9,5 A = <b>131 W</b> (émission)</p>
+<p class="trap">Pièges : 4830 W (oubli de convertir), 4,8 mW, 1,45 W (U÷I).</p>
+</section>
+
+<section>
+<h2>Piles · Conducteurs · Résistance d'un fil <small>Q17, 25</small></h2>
+<div class="row">
+<svg width="162" height="53" viewBox="0 0 92 30"><g stroke="#000" stroke-width="1" fill="none"><rect x="2" y="9" width="16" height="10"/><rect x="22" y="9" width="16" height="10"/><path d="M18 14 H22"/></g><text x="10" y="17" font-size="7" text-anchor="middle">+ −</text><text x="30" y="17" font-size="7" text-anchor="middle">+ −</text><text x="20" y="28" font-size="6.5" text-anchor="middle">série : U + U</text>
+<g stroke="#000" stroke-width="1" fill="none"><rect x="56" y="2" width="16" height="9"/><rect x="56" y="14" width="16" height="9"/><path d="M56 6 H52 V18 H56 M72 6 H76 V18 H72"/></g><text x="64" y="29" font-size="6.5" text-anchor="middle">parallèle : U</text></svg>
+<div><p class="q">Plus de <b>tension</b> → piles <b>en série</b> (+ sur −)</p><p>Parallèle : même U, plus d'autonomie.</p></div>
+</div>
+<p>Conducteurs : <b>cuivre &gt; aluminium &gt; fer</b>. Isolants : plastique, caoutchouc, verre, céramique, air sec. Corps humain et eau conduisent.</p>
+<p><span class="f">R ∝ <span class="frac"><span>longueur</span><span>section</span></span></span> × matériau. Fil long, fin, en fer → R grande.</p>
+<p class="q">Réduire R d'un long fil : <b>augmenter la section</b> (fil plus épais) ; ou meilleur conducteur, plus court.</p>
+</section>
+
+<section>
+<h2>Ondes · Fréquence · Longueur d'onde <small>Q38, 54–58</small></h2>
+<p><b>DC</b> continu = même sens (pile). <b>AC</b> alternatif = va-et-vient (secteur 50 Hz → 100 changements de sens/s).</p>
+<p>Onde = vibration qui voyage (transporte l'énergie, pas la matière). <b>Amplitude</b> = écart max depuis la position moyenne. λ = distance entre deux crêtes.</p>
+<p><b>Transversale</b> : vibre en travers (corde). <b>Longitudinale</b> : vibre dans le sens de la marche (son dans l'air, 340 m/s).</p>
+<p class="q">Ondes radio = ondes <b>électromagnétiques transversales</b> (champs E et H ⊥ entre eux et ⊥ à la direction), pas besoin d'air.</p>
+<div class="row">
+<svg width="89" height="77" viewBox="0 0 60 52"><path d="M30 2 L58 50 H2 Z" fill="#eaf7ea" stroke="#1d7a33" stroke-width="1.6"/><path d="M14 30 H46 M30 30 V50" stroke="#1d7a33" stroke-width="1.6"/><text x="30" y="25" text-anchor="middle" font-size="12" font-weight="bold">300</text><text x="19" y="46" text-anchor="middle" font-size="13" font-weight="bold">λ</text><text x="41" y="46" text-anchor="middle" font-size="13" font-weight="bold">f</text></svg>
+<div><div class="f">λ [m] = <span class="frac"><span>300</span><span>f [MHz]</span></span> &nbsp; f = <span class="frac"><span>300</span><span>λ</span></span></div>
+<span class="small">c = 300 000 km/s = 3·10<sup>8</sup> m/s · repère : 300 MHz = 1 m</span></div>
+</div>
+<p>f ↑ ⇔ λ ↓ (toujours en sens inverse).</p>
+<p class="q">λ de 145,500 MHz : 300 ÷ 145,5 = <b>2,06 m</b></p>
+<p class="q">f pour λ = 2 m : 300 ÷ 2 = <b>150 MHz</b> (calculer, ne pas choisir 145 !)</p>
+<p class="q">24,930 MHz vs 10 m (= 30 MHz) → <b>fréquence plus basse</b> (donc λ plus longue)</p>
+</section>
+
+<section>
+<h2>Bandes et familles UIT <small>Q55, 460–462, 466</small></h2>
+<table>
+<tr><th>Famille</th><th>Fréquences</th><th>λ</th></tr>
+<tr><td><b>HF</b> (OC)</td><td>3–30 MHz</td><td>100–10 m</td></tr>
+<tr><td><b>VHF</b></td><td>30–300 MHz</td><td>10–1 m</td></tr>
+<tr><td><b>UHF</b></td><td>300–3000 MHz</td><td>1 m–10 cm</td></tr>
+<tr><td>SHF</td><td>3–30 GHz</td><td>10–1 cm</td></tr>
+</table>
+<table>
+<tr><th>Bande</th><th>Fréquences</th><th>Famille</th></tr>
+<tr><td>80 m</td><td>3,5–3,8 MHz</td><td>HF</td></tr>
+<tr><td>40 m</td><td>7–7,2 MHz</td><td>HF</td></tr>
+<tr><td>20 m</td><td>14–14,35 MHz</td><td>HF</td></tr>
+<tr class="b10"><td>10 m</td><td>28–29,7 MHz</td><td>HF</td></tr>
+<tr class="b10"><td>2 m</td><td>144–146 MHz</td><td>VHF</td></tr>
+<tr class="b10"><td>70 cm</td><td>430–440 MHz</td><td>UHF</td></tr>
+</table>
+<p class="q">BASE : <b>10 m (HF), 2 m (VHF), 70 cm (UHF)</b> (en vert). Dans la bande 10 m : <b>28376 kHz</b>.</p>
+<p class="trap">Nom de bande arrondi : λ exacte 40 m = 7,5 MHz, hors bande 40 m.</p>
+</section>
+
+<section>
+<h2>Modulation <small>Q83, 87–92, 294, 295</small></h2>
+<p>Voix = <b>BF</b> (300 Hz–3 kHz, signal utile) portée par une <b>porteuse HF</b> : on la <b>module</b>.</p>
+<svg width="100%" viewBox="0 0 186 66">
+<text x="0" y="9" font-size="7" font-weight="bold">AM</text>
+<g transform="translate(30,0)"><path d="M0.0 14.0 L1.0 6.9 L2.0 9.4 L3.0 18.8 L4.0 22.2 L5.0 14.0 L6.0 5.1 L7.0 8.3 L8.0 19.9 L9.0 23.9 L10.0 14.0 L11.0 3.6 L12.0 7.4 L13.0 20.7 L14.0 25.0 L15.0 14.0 L16.0 2.7 L17.0 7.0 L18.0 21.0 L19.0 25.4 L20.0 14.0 L21.0 2.7 L22.0 7.1 L23.0 20.9 L24.0 25.0 L25.0 14.0 L26.0 3.4 L27.0 7.6 L28.0 20.2 L29.0 23.8 L30.0 14.0 L31.0 4.9 L32.0 8.6 L33.0 19.2 L34.0 22.0 L35.0 14.0 L36.0 6.7 L37.0 9.8 L38.0 18.0 L39.0 20.1 L40.0 14.0 L41.0 8.7 L42.0 11.0 L43.0 16.8 L44.0 18.2 L45.0 14.0 L46.0 10.4 L47.0 12.0 L48.0 15.9 L49.0 16.8 L50.0 14.0 L51.0 11.6 L52.0 12.6 L53.0 15.3 L54.0 16.0 L55.0 14.0 L56.0 12.1 L57.0 12.8 L58.0 15.2 L59.0 16.0 L60.0 14.0 L61.0 11.7 L62.0 12.5 L63.0 15.6 L64.0 16.9 L65.0 14.0 L66.0 10.6 L67.0 11.7 L68.0 16.5 L69.0 18.4 L70.0 14.0 L71.0 8.9 L72.0 10.6 L73.0 17.6 L74.0 20.3 L75.0 14.0 L76.0 6.9 L77.0 9.4 L78.0 18.8 L79.0 22.2 L80.0 14.0 L81.0 5.1 L82.0 8.3 L83.0 19.9 L84.0 23.9 L85.0 14.0 L86.0 3.6 L87.0 7.4 L88.0 20.7 L89.0 25.0 L90.0 14.0 L91.0 2.7 L92.0 7.0 L93.0 21.0 L94.0 25.4 L95.0 14.0 L96.0 2.7 L97.0 7.1 L98.0 20.9 L99.0 25.0 L100.0 14.0 L101.0 3.4 L102.0 7.6 L103.0 20.2 L104.0 23.8 L105.0 14.0 L106.0 4.9 L107.0 8.6 L108.0 19.2 L109.0 22.0 L110.0 14.0 L111.0 6.7 L112.0 9.8 L113.0 18.0 L114.0 20.1 L115.0 14.0 L116.0 8.7 L117.0 11.0 L118.0 16.8 L119.0 18.2 L120.0 14.0 L121.0 10.4 L122.0 12.0 L123.0 15.9 L124.0 16.8 L125.0 14.0 L126.0 11.6 L127.0 12.6 L128.0 15.3 L129.0 16.0 L130.0 14.0 L131.0 12.1 L132.0 12.8 L133.0 15.2 L134.0 16.0 L135.0 14.0 L136.0 11.7 L137.0 12.5 L138.0 15.6 L139.0 16.9 L140.0 14.0 L141.0 10.6 L142.0 11.7 L143.0 16.5 L144.0 18.4 L145.0 14.0 L146.0 8.9 L147.0 10.6 L148.0 17.6 L149.0 20.3 L150.0 14.0" fill="none" stroke="#1f4fbf" stroke-width="0.7"/><path d="M0.0 7.0 L3.8 5.5 L7.5 4.1 L11.2 3.0 L15.0 2.2 L18.8 2.0 L22.5 2.2 L26.2 3.0 L30.0 4.1 L33.8 5.5 L37.5 7.0 L41.2 8.5 L45.0 9.9 L48.8 11.0 L52.5 11.8 L56.2 12.0 L60.0 11.8 L63.8 11.0 L67.5 9.9 L71.2 8.5 L75.0 7.0 L78.8 5.5 L82.5 4.1 L86.2 3.0 L90.0 2.2 L93.8 2.0 L97.5 2.2 L101.2 3.0 L105.0 4.1 L108.8 5.5 L112.5 7.0 L116.2 8.5 L120.0 9.9 L123.8 11.0 L127.5 11.8 L131.2 12.0 L135.0 11.8 L138.8 11.0 L142.5 9.9 L146.2 8.5 L150.0 7.0" fill="none" stroke="#c25400" stroke-width="0.9" stroke-dasharray="2 1"/></g>
+<text x="0" y="20" font-size="5.5">amplitude</text><text x="0" y="26" font-size="5.5">varie</text>
+<text x="0" y="43" font-size="7" font-weight="bold">FM</text>
+<g transform="translate(30,34)"><path d="M0.0 24.5 L0.5 24.7 L1.0 22.0 L1.5 16.7 L2.0 10.5 L2.5 5.3 L3.0 3.0 L3.5 4.7 L4.0 9.9 L4.5 16.8 L5.0 22.7 L5.5 25.0 L6.0 22.4 L6.5 16.0 L7.0 8.5 L7.5 3.6 L8.0 3.9 L8.5 9.5 L9.0 17.6 L9.5 23.8 L10.0 24.5 L10.5 19.2 L11.0 10.8 L11.5 4.2 L12.0 3.6 L12.5 9.5 L13.0 18.3 L13.5 24.4 L14.0 23.7 L14.5 16.5 L15.0 7.6 L15.5 3.1 L16.0 6.0 L16.5 14.4 L17.0 22.6 L17.5 24.8 L18.0 19.4 L18.5 10.2 L19.0 3.7 L19.5 4.4 L20.0 11.9 L20.5 20.8 L21.0 25.0 L21.5 21.5 L22.0 12.9 L22.5 5.0 L23.0 3.3 L23.5 8.7 L24.0 17.6 L24.5 24.1 L25.0 24.0 L25.5 17.6 L26.0 9.0 L26.5 3.5 L27.0 4.3 L27.5 10.8 L28.0 19.1 L28.5 24.4 L29.0 24.0 L29.5 18.3 L30.0 10.5 L30.5 4.5 L31.0 3.2 L31.5 6.9 L32.0 13.8 L32.5 20.7 L33.0 24.6 L33.5 24.2 L34.0 19.8 L34.5 13.4 L35.0 7.3 L35.5 3.6 L36.0 3.3 L36.5 6.4 L37.0 11.6 L37.5 17.4 L38.0 22.1 L38.5 24.7 L39.0 24.7 L39.5 22.2 L40.0 18.2 L40.5 13.4 L41.0 8.8 L41.5 5.3 L42.0 3.4 L42.5 3.1 L43.0 4.4 L43.5 6.9 L44.0 10.3 L44.5 14.0 L45.0 17.5 L45.5 20.6 L46.0 22.9 L46.5 24.4 L47.0 25.0 L47.5 24.7 L48.0 23.7 L48.5 22.1 L49.0 20.0 L49.5 17.6 L50.0 15.1 L50.5 12.7 L51.0 10.4 L51.5 8.3 L52.0 6.5 L52.5 5.0 L53.0 4.0 L53.5 3.3 L54.0 3.0 L54.5 3.1 L55.0 3.6 L55.5 4.4 L56.0 5.5 L56.5 7.0 L57.0 8.6 L57.5 10.4 L58.0 12.4 L58.5 14.4 L59.0 16.5 L59.5 18.5 L60.0 20.4 L60.5 22.0 L61.0 23.4 L61.5 24.4 L62.0 24.9 L62.5 24.9 L63.0 24.4 L63.5 23.2 L64.0 21.5 L64.5 19.2 L65.0 16.5 L65.5 13.5 L66.0 10.4 L66.5 7.6 L67.0 5.2 L67.5 3.6 L68.0 3.0 L68.5 3.6 L69.0 5.6 L69.5 8.6 L70.0 12.6 L70.5 16.8 L71.0 20.8 L71.5 23.7 L72.0 25.0 L72.5 24.2 L73.0 21.3 L73.5 16.7 L74.0 11.4 L74.5 6.6 L75.0 3.5 L75.5 3.3 L76.0 6.0 L76.5 11.3 L77.0 17.5 L77.5 22.7 L78.0 25.0 L78.5 23.3 L79.0 18.1 L79.5 11.2 L80.0 5.3 L80.5 3.0 L81.0 5.6 L81.5 12.0 L82.0 19.5 L82.5 24.4 L83.0 24.1 L83.5 18.5 L84.0 10.4 L84.5 4.2 L85.0 3.5 L85.5 8.8 L86.0 17.2 L86.5 23.8 L87.0 24.4 L87.5 18.5 L88.0 9.7 L88.5 3.6 L89.0 4.3 L89.5 11.5 L90.0 20.4 L90.5 24.9 L91.0 22.0 L91.5 13.6 L92.0 5.4 L92.5 3.2 L93.0 8.6 L93.5 17.8 L94.0 24.3 L94.5 23.6 L95.0 16.1 L95.5 7.2 L96.0 3.0 L96.5 6.5 L97.0 15.1 L97.5 23.0 L98.0 24.7 L98.5 19.3 L99.0 10.4 L99.5 3.9 L100.0 4.0 L100.5 10.4 L101.0 19.0 L101.5 24.5 L102.0 23.7 L102.5 17.2 L103.0 8.9 L103.5 3.6 L104.0 4.0 L104.5 9.7 L105.0 17.5 L105.5 23.5 L106.0 24.8 L106.5 21.1 L107.0 14.2 L107.5 7.3 L108.0 3.4 L108.5 3.8 L109.0 8.2 L109.5 14.6 L110.0 20.7 L110.5 24.4 L111.0 24.7 L111.5 21.6 L112.0 16.4 L112.5 10.6 L113.0 5.9 L113.5 3.3 L114.0 3.3 L114.5 5.8 L115.0 9.8 L115.5 14.6 L116.0 19.2 L116.5 22.7 L117.0 24.6 L117.5 24.9 L118.0 23.6 L118.5 21.1 L119.0 17.7 L119.5 14.0 L120.0 10.5 L120.5 7.4 L121.0 5.1 L121.5 3.6 L122.0 3.0 L122.5 3.3 L123.0 4.3 L123.5 5.9 L124.0 8.0 L124.5 10.4 L125.0 12.9 L125.5 15.3 L126.0 17.6 L126.5 19.7 L127.0 21.5 L127.5 23.0 L128.0 24.0 L128.5 24.7 L129.0 25.0 L129.5 24.9 L130.0 24.4 L130.5 23.6 L131.0 22.5 L131.5 21.0 L132.0 19.4 L132.5 17.6 L133.0 15.6 L133.5 13.6 L134.0 11.5 L134.5 9.5 L135.0 7.6 L135.5 6.0 L136.0 4.6 L136.5 3.6 L137.0 3.1 L137.5 3.1 L138.0 3.6 L138.5 4.8 L139.0 6.5 L139.5 8.8 L140.0 11.5 L140.5 14.5 L141.0 17.6 L141.5 20.4 L142.0 22.8 L142.5 24.4 L143.0 25.0 L143.5 24.4 L144.0 22.4 L144.5 19.4 L145.0 15.4 L145.5 11.2 L146.0 7.2 L146.5 4.3 L147.0 3.0 L147.5 3.8 L148.0 6.7 L148.5 11.3 L149.0 16.6 L149.5 21.4 L150.0 24.5" fill="none" stroke="#1d7a33" stroke-width="0.7"/></g>
+<text x="0" y="54" font-size="5.5">fréquence</text><text x="0" y="60" font-size="5.5">varie</text>
+</svg>
+<p><b>AM</b> : l'amplitude suit la voix (enveloppe), f fixe ; sensible aux parasites ; 2 bandes latérales, largeur = 2 × 3 kHz = 6 kHz.</p>
+<p><b>FM (F3E)</b> : amplitude constante, la fréquence suit la voix.</p>
+<p class="q">FM : porteuse HF modulée en fréquence par le signal utile BF ; <b>la fréquence du signal modulé n'est pas constante</b>.</p>
+<p class="q">Intensité sonore (fort) en FM → <b>grandeur de la déviation de fréquence (Hub)</b>. Aigu → fréquence de modulation.</p>
+<p class="q">Parler plus fort en FM : <b>la puissance reste la même</b>.</p>
+<p class="q">Largeur de bande FM dépend de la <b>fréquence de modulation et de la déviation</b>. <span class="small">B ≈ 2(Δf + f<sub>mod</sub>) = 2(2,5+3) = 11 kHz ; pas de la puissance ni de la porteuse.</span></p>
+<svg width="100%" viewBox="0 0 186 36">
+<g font-size="6"><text x="0" y="8" font-weight="bold">AM</text>
+<rect x="18" y="14" width="22" height="12" fill="#cfdcf7"/><rect x="42" y="2" width="2" height="24" fill="#1f4fbf"/><rect x="46" y="14" width="22" height="12" fill="#cfdcf7"/><path d="M14 26 H72" stroke="#000" stroke-width="0.6"/><text x="22" y="34">BLI</text><text x="40" y="34">f₀</text><text x="50" y="34">BLS</text>
+<text x="96" y="8" font-weight="bold">BLU / SSB (USB)</text>
+<rect x="142" y="2" width="1" height="24" fill="none" stroke="#999" stroke-dasharray="1 1"/><rect x="145" y="14" width="22" height="12" fill="#cfdcf7"/><path d="M112 26 H172" stroke="#000" stroke-width="0.6"/><text x="112" y="20" fill="#888">supprimés</text><text x="140" y="34">f₀</text><text x="149" y="34">BLS</text></g>
+</svg>
+<p><b>BLU = SSB</b> (USB/BLS ou LSB/BLI) : ni porteuse ni 2ᵉ bande ; 2× moins large ; silence = rien d'émis.</p>
+<p class="q">Signal SSB : <b>1 bande latérale</b>. Parler plus fort en SSB : <b>la puissance augmente</b>.</p>
+<p class="q">SSB : <b>puissance de crête de l'enveloppe (PEP) &gt; puissance moyenne</b> (égales seulement pour un son pur constant).</p>
+<p class="q">Signal FM : « <b>pas de bandes latérales</b> » (réponse attendue ; en réalité une infinité).</p>
+</section>
+
+<section>
+<h2>Antennes <small>Q314, 315, 320, 321, 341, 368</small></h2>
+<svg width="100%" viewBox="0 0 186 52">
+<g font-size="6">
+<path d="M4 14 H56 M60 14 H112" stroke="#000" stroke-width="1.6"/>
+<path d="M4 14 Q58 -6 112 14" fill="none" stroke="#1f4fbf" stroke-width="0.8"/><text x="50" y="5" fill="#1f4fbf">I max</text>
+<path d="M4 4 Q30 24 58 14 Q86 4 112 24" fill="none" stroke="#c25400" stroke-width="0.8" stroke-dasharray="2 1"/><text x="0" y="28" fill="#c25400">U max</text>
+<rect x="53" y="17" width="10" height="7" fill="#fff" stroke="#000" stroke-width="0.6"/><text x="52" y="31">balun 1:1</text>
+<path d="M58 24 V44" stroke="#555" stroke-width="1.4"/><text x="61" y="42">coax 50 Ω</text>
+<text x="14" y="49">λ/4</text><text x="88" y="49">λ/4</text><path d="M4 45 H56 M60 45 H112" stroke="#999" stroke-width="0.4"/>
+<text x="118" y="10" font-weight="bold">Z au centre ≈ 50–75 Ω</text>
+<text x="118" y="19" font-weight="bold">Z au bout : milliers Ω</text>
+<text x="118" y="30">bout → circuit</text><text x="118" y="37">résonant parallèle</text>
+<g transform="translate(160,40)" stroke="#000" stroke-width="0.7" fill="none"><path d="M0 -8 V8 M-3 -8 H3 M-3 8 H3"/><path d="M8 -8 q3 2 0 4 q3 2 0 4 q3 2 0 4 q3 2 0 4"/><path d="M0 -8 H8 M0 8 H8"/></g>
+<text x="171" y="44">LC</text>
+</g></svg>
+<p><b>Dipôle demi-onde</b> : longueur λ/2 (2 brins λ/4) ; 145 MHz → ≈ 1 m.</p>
+<p class="q">Alimenté <b>au centre</b> → via un <b>balun 1:1</b> (dipôle symétrique, coax asymétrique ; Z ≈ 50 Ω déjà).</p>
+<p class="q">Alimenté <b>à une extrémité</b> (Z très haute) → <b>circuit résonant parallèle</b> (bobine ∥ condensateur).</p>
+<p class="small">Balun 1:4 : 50 → 200 Ω. Filtre passe-bas = contre les harmoniques, pas pour alimenter.</p>
+<p><b>Polarisation</b> = direction du <b>champ électrique</b> = direction de l'antenne ; H ⊥ E (90°).</p>
+<p class="q">Verticale : champ électrique <b>perpendiculaire</b> à la surface de la terre. Horizontale : champ électrique <b>horizontal</b> (parallèle) à la surface.</p>
+<p class="q">Câble coaxial : conducteur <b>intérieur</b> à distance constante d'un conducteur <b>extérieur cylindrique creux</b>, <b>isolant</b> entre les deux.</p>
+<p class="small">Âme · isolant · tresse (blindage) · gaine. 50 Ω (TV 75 Ω), indépendant de la longueur.</p>
+<table>
+<tr><th>dB</th><td>0</td><td>+3</td><td>+6</td><td>+10</td><td>+13</td><td>+20</td><td>−3</td><td>−10</td></tr>
+<tr><th>× P</th><td>1</td><td>2</td><td>4</td><td>10</td><td>20</td><td>100</td><td>÷2</td><td>÷10</td></tr>
+</table>
+<p>Ajouter des dB = multiplier les puissances. dB = rapport, pas une puissance.</p>
+<p class="q">Gain d'antenne directive (Yagi) : rapport de la puissance par rapport à un <b>dipôle</b>, <b>dans la direction principale</b>, en <b>dB</b>. <span class="small">dBi = dBd + 2,15. ≠ rapport avant/arrière.</span></p>
+</section>
+
+<section>
+<h2>Propagation <small>Q376, 377</small></h2>
+<div class="row">
+<svg width="135" height="72" viewBox="0 0 76 40"><path d="M0 38 Q38 30 76 38" fill="#d9ead3" stroke="#1d7a33" stroke-width="0.6"/><path d="M0 10 Q38 2 76 10" fill="none" stroke="#c25400" stroke-width="2.6" opacity=".45"/><text x="2" y="7" font-size="5.5">F</text><path d="M6 36 L24 9 L44 36 L62 9" fill="none" stroke="#1f4fbf" stroke-width="0.8"/><path d="M38 33 L50 0" stroke="#1d7a33" stroke-width="0.8" stroke-dasharray="2 1"/><text x="50" y="22" font-size="5" fill="#1f4fbf">HF</text><text x="52" y="5" font-size="5" fill="#1d7a33">VHF/UHF</text></svg>
+<div><b>Ionosphère</b> (air ionisé par le Soleil) : couches <b>D</b> 60–90 km (jour), <b>E</b> ~100 km, <b>F</b> 150–500 km. Réfléchit les <b>HF</b> → longues distances.</div>
+</div>
+<p class="q">2 m et 70 cm : propagation <b>semblable à la lumière dans des conditions normales</b> (vue directe, horizon ; points hauts).</p>
+<p>Cycle solaire ≈ <b>11 ans</b> (max ~2024) ; taches solaires ↑ → ionisation ↑.</p>
+<p class="q">Forte activité solaire → conditions de propagation <b>OC (HF) s'améliorent</b> (10 m s'ouvre). VHF/UHF : presque aucun effet.</p>
+</section>
+
+<section>
+<h2>Mesures <small>Q394, 395, 400, 404</small></h2>
+<div class="row">
+<svg width="181" height="81" viewBox="0 -3 96 43"><g stroke="#000" stroke-width="0.8" fill="none"><rect x="6" y="6" width="84" height="28"/><circle cx="34" cy="6" r="5" fill="#fff"/><circle cx="66" cy="20" r="5" fill="#fff"/><path d="M58 12 H74"/></g><path d="M3 14 H9 M4 20 H8" stroke="#000" stroke-width="1"/><g font-size="6" font-weight="bold" text-anchor="middle"><text x="34" y="8.3">A</text><text x="66" y="22.3">V</text></g><rect x="40" y="31" width="14" height="6" fill="#fff" stroke="#000" stroke-width="0.8"/><path d="M47 34 V20 H61 M71 20 H82 V34" stroke="#000" stroke-width="0.6" fill="none"/><text x="10" y="2.5" font-size="5">A : en série</text><text x="56" y="2.5" font-size="5">V : en parallèle</text></svg>
+<div class="small">Ampèremètre dans la boucle ; voltmètre sur les bornes de l'élément.</div>
+</div>
+<p class="q">Ampèremètre : <b>en série</b>, résistance <b>la plus petite possible</b>.</p>
+<p class="q">Voltmètre : <b>en parallèle</b> sur l'élément, résistance <b>la plus grande possible</b>.</p>
+<p class="q">Résistance d'un composant → <b>ohmmètre</b> (hors circuit, sans alimentation).</p>
+<p class="q">DC (~1 A) mesuré en réglage AC : l'ampèremètre affiche <b>0 A</b>.</p>
+<p class="small">Multimètre = V + A + Ω ; fusible sur la borne A. « Mesureur de trempage de grille » = grid-dip, hors sujet.</p>
+</section>
+
+<section>
+<h2>Perturbations <small>Q415, 419</small></h2>
+<p>Brouillage causé par : puissance trop forte près du voisin · rayonnement dans le réseau électrique · ligne d'alimentation qui rayonne (pas de balun, tresse abîmée).</p>
+<p class="q">Ne peut <b>pas</b> venir d'un radioamateur : <b>trop faible sensibilité du système de réception</b>.</p>
+<p><span class="f">ERP = P<sub>antenne</sub> × gain (dBd)</span> <span class="small">ex. 50 W − 3 dB = 25 W ; +6 dBd ×4 → 100 W ERP. PIRE (dBi) = ERP + 2,15 dB.</span></p>
+<p class="q">Côté émetteur : <b>diminuer la puissance apparente rayonnée (ERP)</b> (moins de puissance, moins de gain, ne pas viser le voisin).</p>
+<p class="trap">N'aide pas : changer de mode (FM), remplacer le coax par du câble plat.</p>
+</section>
+
+<section>
+<h2>Sécurité <small>Q426, 427, 432–436</small></h2>
+<p class="q">Secteur Luxembourg : <b>230/400 V, 50 Hz</b> (230 V phase–neutre, 400 V entre phases ; crête ≈ 325 V).</p>
+<p>Corps ≈ 1000 Ω : 230 V → I = 230 ÷ 1000 = 230 mA, mortel.</p>
+<p class="q">Tension de contact maximale autorisée : <b>50 V</b> <span class="small">(AC, local sec ; DC 120 V ; mouillé 25 V)</span>.</p>
+<p class="q">Scier la terre d'une fiche 3 pôles pour une prise 2 pôles ? <b>Non</b>, jamais : la terre fait fondre le fusible en cas de défaut.</p>
+<p class="q">Bâtiment <b>avec</b> paratonnerre : relier le mât au paratonnerre <b>par le chemin le plus court</b> (pas d'éclateur, pas de terre séparée).</p>
+<p class="q">Bâtiment <b>sans</b> paratonnerre : <b>oui</b>, relier à la terre du bâtiment, à un <b>piquet</b> ou à un <b>ruban de terre</b> (jamais une conduite d'eau).</p>
+<p class="q">Entrée du bâtiment (câbles HF, lignes de commande) : <b>protection contre les surtensions</b>.</p>
+<p class="q">Câble d'antenne dans un local à risque d'incendie/explosion : <b>non, jamais</b>.</p>
+</section>
+</div>
+
+<!-- ===================================================== PAGE 2 : RÉGLEMENTATION & PROCÉDURES -->
+<div class="page">
+<header><h1>Aide-mémoire BASE — 2. Réglementation et procédures</h1><span>➜ = réponse attendue à l'examen · formulations du catalogue</span></header>
+
+<section>
+<h2>Institutions <small>Q459, 464, 476, 477, 489</small></h2>
+<p>Spectre = <b>ressource rare</b>, sans frontières → règles internationales puis nationales.</p>
+<svg width="100%" viewBox="0 0 186 26"><g font-size="6.2" text-anchor="middle"><rect x="1" y="3" width="56" height="20" rx="2" fill="#e6ecfa" stroke="#1f4fbf" stroke-width="0.6"/><text x="29" y="11" font-weight="bold">UIT (monde)</text><text x="29" y="19">RR (traité)</text><path d="M58 13 H66" stroke="#000" stroke-width="0.7"/><path d="M63 10 L67 13 L63 16" fill="none" stroke="#000" stroke-width="0.7"/><rect x="68" y="3" width="56" height="20" rx="2" fill="#fff4c2" stroke="#e0a800" stroke-width="0.6"/><text x="96" y="11" font-weight="bold">Ministre</text><text x="96" y="19">responsable</text><path d="M125 13 H133" stroke="#000" stroke-width="0.7"/><path d="M130 10 L134 13 L130 16" fill="none" stroke="#000" stroke-width="0.7"/><rect x="135" y="3" width="50" height="20" rx="2" fill="#dff3df" stroke="#1d7a33" stroke-width="0.6"/><text x="160" y="11" font-weight="bold">ILR « l'Institut »</text><text x="160" y="19">travail quotidien</text></g></svg>
+<p class="q">UIT = <b>Union internationale des télécommunications</b> (ITU, 1865, ONU, Genève). Site : <b>www.itu.org</b> (catalogue ; vraie adresse itu.int).</p>
+<p class="q">Attribution des bandes <b>internationale : UIT</b> · <b>nationale : ILR (Institut Luxembourgeois de Régulation)</b>.</p>
+<p class="q">Responsable de la gestion des ondes au niveau national : <b>le ministre ayant dans ses attributions la gestion des ondes radioélectriques</b> (pas l'ILR).</p>
+<p class="small">ILR : plan des fréquences, surveillance, licences, examens, certificats, indicatifs. HF/VHF/UHF/SHF = désignations UIT.</p>
+</section>
+
+<section>
+<h2>Certificats, licence, puissance <small>Q467, 468, 490, 495</small></h2>
+<table>
+<tr><th></th><th>Certificat d'opérateur</th><th>Licence</th></tr>
+<tr><td>=</td><td>« permis » : examen réussi</td><td>« plaque » de la station</td></tr>
+<tr><td>donne</td><td>nominatif, à vie</td><td>indicatif, 5 ans, incessible</td></tr>
+</table>
+<p class="q">Certificats établis par l'Institut : <b>BASE, NOVICE et HAREC</b> <span class="small">(HAREC = Harmonised Amateur Radio Examination Certificate)</span>.</p>
+<table>
+<tr><th>Certificat</th><th>Puissance max (PEP, sortie émetteur)</th><th>Indicatif</th></tr>
+<tr class="b10"><td>BASE</td><td><b>25 W PEP</b> · 10 m / 2 m / 70 cm</td><td>LX<b>7</b>…</td></tr>
+<tr><td>NOVICE</td><td><b>100 W PEP</b></td><td>LX<b>6</b>…</td></tr>
+<tr><td>HAREC</td><td><b>1000 W PEP</b> (1ʳᵉ année : 100 W)</td><td>LX<b>1, 2, 3</b>…</td></tr>
+</table>
+<p class="q">BASE : « <b>À la sortie de l'émetteur : puissance de 25 W</b> » (PEP).</p>
+<p class="small">« Licence de base » dans le catalogue = titulaire du certificat de BASE.</p>
+</section>
+
+<section>
+<h2>Indicatif d'appel <small>Q456, 499, 500, 505</small></h2>
+<svg width="100%" viewBox="0 0 186 24"><g font-family="DejaVu Sans Mono, monospace" font-size="11" font-weight="bold"><text x="14" y="12" fill="#1f4fbf">LX</text><text x="46" y="12" fill="#c25400">7</text><text x="68" y="12" fill="#1d7a33">ABC</text><text x="104" y="12" fill="#666">/P</text></g><g font-size="5.6"><text x="8" y="21">pays (UIT)</text><text x="41" y="21">classe</text><text x="64" y="21">≤ 4 lettres</text><text x="100" y="21">suffixe</text><text x="130" y="8">7 BASE · 6 NOVICE</text><text x="130" y="15">1-3 HAREC · 9 club</text><text x="130" y="22">0 auto · 8 réserve</text></g></svg>
+<p class="q">Transmettre l'indicatif <b>au début et à la fin de chaque émission</b>, et <b>au moins une fois toutes les cinq minutes</b> pendant l'émission.</p>
+<p>Suffixes (après) : <b>/P</b> portable (à l'arrêt) · <b>/M</b> mobile (véhicule qui roule) · <b>/MM</b> maritime mobile · <b>/AM</b> aeronautical mobile. Préfixe du pays visité <b>devant</b> : DL/ F/ ON/…</p>
+<p>Ne communiquer <b>qu'avec des stations d'amateur</b>, de tous les pays.</p>
+<p class="q">BASE au Luxembourg ↔ licence française : <b>Oui</b> (communiquer).</p>
+<p class="q">BASE peut émettre en Belgique ? <b>Non, en aucun cas</b> (accords CEPT seulement NOVICE/HAREC).</p>
+<p class="q">Indicatif de groupe <b>LX9</b> : <b>réservé aux titulaires d'une licence HAREC</b> (responsable) ; les membres l'utilisent dans leurs limites.</p>
+</section>
+
+<section>
+<h2>Alphabet international (RR de l'UIT) <small>Q439–446</small></h2>
+<p class="q">Éviter la confusion d'indicatifs : <b>l'alphabet international conformément au RR de l'UIT</b>.</p>
+<div class="alpha">
+<span><b>A</b>Alfa/Alpha</span><span><b>H</b>Hotel</span><span><b>O</b>Oscar</span><span><b>V</b>Victor</span>
+<span><b>B</b>Bravo</span><span><b>I</b>India</span><span><b>P</b>Papa</span><span><b>W</b>Whiskey</span>
+<span><b>C</b>Charlie</span><span><b>J</b>Juliett</span><span><b>Q</b>Quebec</span><span><b>X</b>X-Ray</span>
+<span><b>D</b>Delta</span><span><b>K</b>Kilo</span><span><b>R</b>Romeo</span><span><b>Y</b>Yankee</span>
+<span><b>E</b>Echo</span><span><b>L</b>Lima</span><span><b>S</b>Sierra</span><span><b>Z</b>Zulu</span>
+<span><b>F</b>Foxtrot</span><span><b>M</b>Mike</span><span><b>T</b>Tango</span><span></span>
+<span><b>G</b>Golf</span><span><b>N</b>November</span><span><b>U</b>Uniform</span><span></span>
+</div>
+<p>Chiffres <b>en anglais</b> : ZERO ONE TWO THREE FOUR FIVE SIX SEVEN EIGHT NINE. « / » = <b>SLASH</b>. Suffixe : SLASH PORTABLE / MOBILE / MARITIME MOBILE / AERONAUTICAL MOBILE (ou PAPA, MIKE…).</p>
+<p>Épeler les lettres <b>écrites</b> : sans accents (í → INDIA), lettres doubles et muettes comprises.</p>
+<p class="q">LX1RTGY : LIMA X-RAY ONE ROMEO TANGO GOLF YANKEE</p>
+<p class="q">DL/LX1RTGY/p : DELTA LIMA SLASH LIMA X-RAY ONE ROMEO TANGO GOLF YANKEE SLASH PORTABLE</p>
+<p class="q">LX3RZWY : LIMA X-RAY THREE ROMEO ZULU WHISKEY YANKEE</p>
+<p class="q">LX6JO/MM : LIMA X-RAY SIX JULIETT OSCAR SLASH MARITIME MOBILE</p>
+<p class="q">Barcelona : BRAVO ALPHA ROMEO CHARLIE ECHO LIMA OSCAR NOVEMBER ALPHA</p>
+<p class="q">Reykjavík : ROMEO ECHO YANKEE KILO JULIETT ALPHA VICTOR INDIA KILO</p>
+<p class="q">Zylophon : ZULU YANKEE LIMA OSCAR PAPA HOTEL OSCAR NOVEMBER</p>
+<p class="trap">Pas de Juliette, Charly, Whisky, Zoulou, Roméo.</p>
+</section>
+
+<section>
+<h2>Codes Q <small>Q447–449</small></h2>
+<p class="q">Codes et abréviations : <b>procédures simplifiées</b> et <b>contenu d'information par unité de temps optimisé</b>.</p>
+<p>Seul = réponse/avis · avec « ? » = question (ordre → « Dois-je … ? »). Heures en <b>UTC</b> (Lux : −1 h hiver, −2 h été). Pas secret, ne renforce pas le signal.</p>
+<table>
+<tr><th>Code</th><th>Sans « ? »</th><th>Avec « ? »</th></tr>
+<tr><td><b>QRZ</b></td><td>Vous êtes appelé par …</td><td>Par qui suis-je appelé ?</td></tr>
+<tr><td><b>QTH</b></td><td>Ma position est …</td><td>Quelle est votre position ?</td></tr>
+<tr><td><b>QTR</b></td><td>L'heure exacte est … (maintenant)</td><td>Quelle est l'heure exacte ?</td></tr>
+<tr><td><b>QRX</b></td><td>Je vous rappellerai à … heures</td><td>À quel moment me rappellerez-vous ?</td></tr>
+<tr><td><b>QRL</b></td><td>Je suis occupé. Prière de ne pas brouiller !</td><td>Êtes-vous occupé ?</td></tr>
+<tr><td><b>QSY</b></td><td>Passez à la transmission sur une autre fréquence</td><td>Dois-je passer à la transmission sur une autre fréquence ?</td></tr>
+<tr><td><b>QSL</b></td><td>Je vous donne accusé de réception</td><td>Pouvez-vous me donner accusé de réception ?</td></tr>
+<tr><td><b>QRT</b></td><td>Cessez la transmission</td><td>Dois-je cesser la transmission ?</td></tr>
+<tr><td><b>QRM</b></td><td>Je suis brouillé (autres émetteurs)</td><td>Êtes-vous brouillé ?</td></tr>
+<tr><td><b>QRN</b></td><td>Je suis troublé par des parasites (Nature)</td><td>Êtes-vous troublé par des parasites ?</td></tr>
+<tr><td><b>QSA</b></td><td>La force de vos signaux est … (S1–S9)</td><td>Quelle est la force de mes signaux ?</td></tr>
+<tr><td><b>QSB</b></td><td>La force de vos signaux varie (fading)</td><td>La force de mes signaux varie-t-elle ?</td></tr>
+<tr><td><b>QRO</b></td><td>Augmentez la puissance de transmission</td><td>Dois-je augmenter la puissance ?</td></tr>
+<tr><td><b>QRP</b></td><td>Diminuez la puissance (Petite)</td><td>Dois-je diminuer la puissance ?</td></tr>
+</table>
+<p class="small">Ex. : QRZ LX1SD = Vous êtes appelé par LX1SD · QTR 1630UTC = L'heure exacte est 16:30 UTC · QRX 1845UTC = Je vous rappellerai à 18:45 UTC.</p>
+</section>
+
+<section>
+<h2>Abréviations <small>Q450, 451</small></h2>
+<table>
+<tr><td><b>CQ</b></td><td>appel général</td><td><b>R</b></td><td><b>Reçu</b></td></tr>
+<tr><td><b>DE</b></td><td>de la part de</td><td><b>UR</b></td><td><b>Votre</b></td></tr>
+<tr><td><b>K</b></td><td>invitation à émettre</td><td><b>MSG</b></td><td><b>Messages</b></td></tr>
+<tr><td><b>AR</b></td><td><b>Fin de transmission</b></td><td><b>PSE</b></td><td>s'il vous plaît</td></tr>
+<tr><td><b>VA</b></td><td>fin de vacation</td><td><b>TX / RX</b></td><td>émetteur / <b>récepteur</b></td></tr>
+<tr><td colspan="4"><b>RST</b> = <b>Lisibilité, force du signal, tonalité</b> · ex. CQ CQ DE LX7ABC K</td></tr>
+</table>
+</section>
+
+<section>
+<h2>Contenu des conversations <small>Q469</small></h2>
+<p class="q">6 sujets (parmi) : <b>radioélectricité et électricité</b> (théorie et pratique) · <b>informatique</b> · <b>astronomie</b> · <b>météorologie</b> et bulletin météo local · titre et contenu d'un <b>livre ou revue technique</b> · <b>réglementation amateur</b> · <b>vie associative</b> amateur · <b>adresse et téléphone personnels</b> (jamais ceux d'un tiers, sauf recherche de composants peu courants) · <b>radioguidage sans relais</b> (sur relais : occasionnellement, manifestations radioamateurs).</p>
+<p class="small">Mnémo : technique · ciel · monde radioamateur · se retrouver.</p>
+</section>
+
+<section>
+<h2>Interdit en aucun cas <small>Q471</small></h2>
+<p class="q">a) liaison avec des <b>stations non autorisées</b> · b) communications <b>pour le compte d'un tiers</b> · c/e) <b>publicité commerciale</b> · d) <b>musique</b> ou programme de <b>radiodiffusion</b> · f) dispositif d'<b>encryptage</b> · g) atteinte à la <b>sûreté de l'État</b>, aux bonnes mœurs, aux lois, à l'ordre public · h) <b>signaux de détresse faux</b> ou frauduleux · (i) connecter la station à un réseau de télécom autre qu'Internet).</p>
+</section>
+
+<section>
+<h2>Détresse <small>Q452</small></h2>
+<p class="q">Radiotéléphonie (voix) : <b>MAYDAY</b> (×3, de « m'aider »). Radiotélégraphie (morse) : <b>SOS</b> ···−−−···</p>
+<p>Si on l'entend : se taire, écouter, libérer la fréquence ; noter qui/où/quoi, prévenir le <b>112</b>.</p>
+</section>
+
+</div>
+
+</body>
+</html>

@@ -44,6 +44,10 @@ description = "Rebuild data/ from the source PDFs and check it"
 depends = ["extract", "appendix"]
 run = "mise run verify"
 
+[tasks.aide-memoire]
+description = "Print docs/aide-memoire/: the BASE cheat sheet and the BASE question/answer list (needs Chrome)"
+run = "uv run python -m scripts.aide_memoire"
+
 [tasks.download-refs]
 description = "Download reference PDFs listed in reference/documents.yaml (skips files already present)"
 run = "./scripts/download-refs.sh"
