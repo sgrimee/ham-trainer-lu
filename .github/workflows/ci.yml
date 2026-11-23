@@ -77,7 +77,8 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      # The scheduled rebuild skips the layer cache, so `apt-get upgrade`
+      # The scheduled rebuild and a manual run (to pick up a security fix now)
+      # skip the layer cache, so `apt-get upgrade`
       # really runs again instead of replaying last week's layer.
       - name: Build for scanning
         uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
@@ -85,7 +86,7 @@ jobs:
           context: .
           load: true
           pull: true
-          no-cache: ${{ github.event_name == 'schedule' }}
+          no-cache: ${{ github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' }}
           tags: examen-ilr:scan
           cache-from: type=gha
           cache-to: type=gha,mode=max
@@ -126,7 +127,7 @@ jobs:
           platforms: linux/amd64,linux/arm64
           push: true
           pull: true
-          no-cache: ${{ github.event_name == 'schedule' }}
+          no-cache: ${{ github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' }}
           tags: |
             sgrimee/examen-ilr:latest
             sgrimee/examen-ilr:${{ steps.sha.outputs.short }}
