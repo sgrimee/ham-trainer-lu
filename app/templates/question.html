@@ -62,7 +62,7 @@
   {% if saved %}<p class="saved-flash" role="status">{{ t(ui, 'saved') }}</p>{% endif %}
 
   {% if not read_only %}
-  <form method="post" action="/attempts/{{ attempt.id }}/q/{{ n }}/answer" id="answer-form">
+  <form method="post" action="/attempts/{{ attempt.id }}/q/{{ n }}/answer" id="answer-form" data-saving="{{ t(ui, 'saving') }}">
     {% if q.kind == 'mcq' %}
       {{ mcq_options(q, response.answer if response else none) }}
     {% else %}

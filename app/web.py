@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import functools
 import json
+import logging
 import pathlib
 from urllib.parse import urlencode
 
@@ -15,6 +16,7 @@ from fastapi import HTTPException, Request
 from fastapi.datastructures import FormData
 from fastapi.responses import Response
 from fastapi.templating import Jinja2Templates
+from starlette.requests import ClientDisconnect
 
 from . import annotations as annotations_module
 from . import catalogue, grader
@@ -50,6 +52,26 @@ templates.env.globals["duration"] = duration  # type: ignore
 
 def get_store(request: Request) -> Store:
     return request.app.state.store
+
+
+log = logging.getLogger(__name__)
+
+
+async def read_form(request: Request, what: str) -> FormData | None:
+    """The posted form, or None when the browser gave up while still sending
+    it (a slow network path, a reload). Handlers read the form before any
+    store write, so returning early on None leaves nothing half-written.
+    `what` names the attempt and question for the log line."""
+    try:
+        return await request.form()
+    except ClientDisconnect:
+        log.info("client disconnected while posting the form: %s %s", request.url.path, what)
+        return None
+
+
+def client_gone() -> Response:
+    """The reply to a request whose client disconnected: nobody reads it."""
+    return Response(status_code=400)
 
 
 def get_llm_grader(request: Request) -> LLMGrader | None:

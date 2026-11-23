@@ -9,6 +9,9 @@ the routers of app/routes/; what they share is in app/web.py.
 from __future__ import annotations
 
 import logging
+import os
+import sys
+import time
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 
@@ -16,6 +19,7 @@ import httpx2 as httpx
 from fastapi import Depends, FastAPI, Form, Request
 from fastapi.responses import RedirectResponse, Response
 from fastapi.staticfiles import StaticFiles
+from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
 from . import admin, grader, review
 from . import course as course_module
@@ -37,6 +41,51 @@ from .web import (
 )
 
 log = logging.getLogger(__name__)
+
+# uvicorn configures only its own loggers, so the app's INFO lines (request
+# timings, LLM call durations, client disconnects) would be dropped without a
+# handler of their own. They still propagate, so pytest's caplog sees them.
+_app_log = logging.getLogger("app")
+if not _app_log.handlers:
+    _handler = logging.StreamHandler(sys.stderr)
+    _handler.setFormatter(logging.Formatter("%(levelname)s: %(name)s %(message)s"))
+    _app_log.addHandler(_handler)
+    _app_log.setLevel(logging.INFO)
+
+
+class RequestTiming:
+    """Logs method, path, status and duration of every request but the
+    health check, at WARNING past SLOW_REQUEST_MS (default 2000). Time spent
+    in the app, as opposed to the network path in front of it.
+
+    Plain ASGI rather than BaseHTTPMiddleware, which can cancel a handler
+    when the client disconnects and so leave a grading half-written."""
+
+    def __init__(self, app: ASGIApp, slow_ms: float | None = None):
+        self.app = app
+        self.slow_ms = slow_ms if slow_ms is not None else float(os.environ.get("SLOW_REQUEST_MS", "2000"))
+        self.log = logging.getLogger("app.timing")
+
+    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+        if scope["type"] != "http" or scope["path"] == "/healthz":
+            await self.app(scope, receive, send)
+            return
+        start = time.perf_counter()
+        status = 0
+
+        async def send_and_note(message: Message) -> None:
+            nonlocal status
+            if message["type"] == "http.response.start":
+                status = message["status"]
+            await send(message)
+
+        try:
+            await self.app(scope, receive, send_and_note)
+        finally:
+            ms = (time.perf_counter() - start) * 1000
+            level = logging.WARNING if ms > self.slow_ms else logging.INFO
+            # status 0: the app raised before replying (a 500 from the server).
+            self.log.log(level, "%s %s %d %.0f ms", scope["method"], scope["path"], status, ms)
 
 
 @asynccontextmanager
@@ -84,6 +133,7 @@ def record_activity(request: Request, store: Store = Depends(get_store)) -> None
 
 
 app = FastAPI(title="ILR exam trainer", lifespan=lifespan, dependencies=[Depends(record_activity)])
+app.add_middleware(RequestTiming)
 app.mount("/data", StaticFiles(directory=ROOT / "data"), name="data")
 app.mount("/static", StaticFiles(directory=ROOT / "app" / "static"), name="static")
 

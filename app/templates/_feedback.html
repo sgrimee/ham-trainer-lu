@@ -43,7 +43,7 @@
   {% endfor %}
 
   {% if show_self_grade %}
-    <form method="post" action="/attempts/{{ attempt.id }}/questions/{{ q.id }}/self-grade" class="self-grade">
+    <form method="post" action="/attempts/{{ attempt.id }}/questions/{{ q.id }}/self-grade" class="self-grade" data-saving="{{ t(ui, 'saving') }}">
       <p>{{ t(ui, 'self_grade_prompt') }}</p>
       <button name="correct" value="1" type="submit">{{ t(ui, 'self_correct') }}</button>
       <button name="correct" value="0" type="submit">{{ t(ui, 'self_incorrect') }}</button>

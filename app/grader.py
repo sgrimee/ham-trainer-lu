@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import copy
 import json
+import logging
 import os
 import pathlib
 import re
@@ -24,6 +25,7 @@ import httpx2 as httpx
 from .grading_prompt import request_body
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
+log = logging.getLogger(__name__)
 
 # Anyone who reaches the server can post an open answer, and each one not
 # already cached is a paid call. A client past its budget is refused a call,
@@ -146,12 +148,27 @@ class LLMGrader:
         # The candidate's text is untrusted input, delimited and never
         # executed (specs/TRAINER.md §7.2); `request_body` wraps it in <candidate>.
         body = request_body(self.model, lang, question, reference, candidate, also_official, notes)
-        resp = await self.client.post(
-            f"{self.base_url}/chat/completions",
-            json=body,
-            headers={"Authorization": f"Bearer {self.api_key}"},
-            timeout=self.timeout,
-        )
+        # How long the model takes, logged apart from the request's own time
+        # (app/main.py RequestTiming), so a slow page can be pinned on the app,
+        # the LLM or the network in front.
+        start = time.perf_counter()
+        outcome = "error"
+        try:
+            resp = await self.client.post(
+                f"{self.base_url}/chat/completions",
+                json=body,
+                headers={"Authorization": f"Bearer {self.api_key}"},
+                timeout=self.timeout,
+            )
+            outcome = str(resp.status_code)
+        finally:
+            log.info(
+                "llm grade q=%s model=%s %s %.0f ms",
+                question_id,
+                self.model,
+                outcome,
+                (time.perf_counter() - start) * 1000,
+            )
         resp.raise_for_status()
         content = resp.json()["choices"][0]["message"]["content"]
         parsed = json.loads(content)

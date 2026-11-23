@@ -23,6 +23,7 @@ from ..web import (
     DEFAULT_PREFS,
     LEARNER_COOKIE,
     cat,
+    client_gone,
     course_lang,
     course_ui,
     current_learner,
@@ -31,6 +32,7 @@ from ..web import (
     get_course,
     get_llm_grader,
     get_store,
+    read_form,
     set_prefs,
     step_url,
     stored_prefs,
@@ -536,7 +538,9 @@ async def learn_answer(
     step = _step(course, store, learner, part_slug, module_slug, step_slug, lambda s: s.kind == "practice")
     q = _question(step)
     here = step_url(step)
-    form = await request.form()
+    form = await read_form(request, f"learner={learner['id']} step={step.id}")
+    if form is None:
+        return client_gone()
     if q["kind"] == "open":
         return await _answer_open(request, store, llm_grader, course, learner, step, q, form)
     answer = form_str(form, "answer")

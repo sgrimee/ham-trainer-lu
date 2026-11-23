@@ -57,6 +57,28 @@ document.querySelectorAll("form.open-answer").forEach((form) => {
   });
 });
 
+// A trainer answer or self-verdict can take a while over a slow network: say
+// "saving…" on the button pressed, so nobody reloads mid-request, and drop
+// any second submit. The buttons are disabled only after the browser has
+// built the form data -- a disabled submitter would lose its goto/finish/
+// correct value.
+document.querySelectorAll("form[data-saving]").forEach((form) => {
+  form.addEventListener("submit", (e) => {
+    if (form.dataset.busy) { e.preventDefault(); return; }
+    form.dataset.busy = "1";
+    form.setAttribute("aria-busy", "true");
+    if (e.submitter) e.submitter.textContent = form.dataset.saving;
+    setTimeout(() => {
+      if (form.id) document.querySelectorAll(`button[form="${form.id}"]`).forEach((b) => { b.disabled = true; });
+      form.querySelectorAll("button").forEach((b) => { b.disabled = true; });
+    }, 0);
+  });
+});
+// Back/forward cache: a page restored mid-save must not stay locked.
+window.addEventListener("pageshow", (e) => {
+  if (e.persisted && document.querySelector("form[data-busy]")) location.reload();
+});
+
 // Time spent (specs/LEARN.md §8.2): while the page is visible and the learner
 // has touched it in the last few minutes, tell the server once a minute that
 // they are still here. Reading a long lesson leaves no other trace.

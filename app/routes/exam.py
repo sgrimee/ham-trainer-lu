@@ -23,12 +23,14 @@ from ..web import (
     COOKIE_MAX_AGE,
     ROOT,
     cat,
+    client_gone,
     current_learner,
     form_answer,
     form_str,
     get_llm_grader,
     get_store,
     not_found,
+    read_form,
     read_prefs,
     section_labels,
     section_options,
@@ -307,7 +309,11 @@ async def submit_answer(
     if attempt["mode"] == "study" and store.grade_for(attempt_id, qid):
         return RedirectResponse(f"/attempts/{attempt_id}/q/{n}", status_code=303)  # already committed
 
-    form = await request.form()
+    # Read in full before any store write: a browser that gives up mid-post
+    # leaves nothing half-written.
+    form = await read_form(request, f"attempt={attempt_id} q={n}")
+    if form is None:
+        return client_gone()
     if q["kind"] == "mcq":
         answer = form.get("answer") or None
     else:
@@ -336,10 +342,42 @@ async def submit_answer(
 async def toggle_flag(request: Request, attempt_id: str, n: int, store: Store = Depends(get_store)):
     attempt = _load_attempt_or_404(request, store, attempt_id)
     qid = _question_at(attempt, n)
-    form = await request.form()
+    form = await read_form(request, f"attempt={attempt_id} q={n}")
+    if form is None:
+        return client_gone()
     store.set_flag(attempt_id, qid, form.get("flagged") == "1")
     # Back to the box, not the top: it sits below the verdict and explanation.
     return RedirectResponse(f"/attempts/{attempt_id}/q/{n}#flag-form", status_code=303)
+
+
+# -- GET on a form's address ------------------------------------------------------
+# A POST whose reply never arrived (a slow network path) can come back as a GET
+# of the same address: a reload, or the browser retrying. The post was saved or
+# it wasn't; either way the page to show is the question, never a 405.
+
+
+@router.get("/attempts/{attempt_id}/q/{n}/answer")
+@router.get("/attempts/{attempt_id}/q/{n}/flag")
+def question_form_fallback(request: Request, attempt_id: str, n: int, store: Store = Depends(get_store)):
+    attempt = _load_attempt_or_404(request, store, attempt_id)
+    _question_at(attempt, n)
+    return RedirectResponse(f"/attempts/{attempt_id}/q/{n}", status_code=303)
+
+
+@router.get("/attempts/{attempt_id}/questions/{qid}/self-grade")
+def self_grade_fallback(request: Request, attempt_id: str, qid: int, store: Store = Depends(get_store)):
+    attempt = _load_attempt_or_404(request, store, attempt_id)
+    if qid not in attempt["question_ids"]:
+        raise not_found("no such question in this attempt")
+    n = attempt["question_ids"].index(qid) + 1
+    return RedirectResponse(f"/attempts/{attempt_id}/q/{n}", status_code=303)
+
+
+@router.get("/attempts/{attempt_id}/submit")
+def submit_fallback(request: Request, attempt_id: str, store: Store = Depends(get_store)):
+    attempt = _load_attempt_or_404(request, store, attempt_id)
+    where = "results" if attempt["submitted_at"] else "q/1"
+    return RedirectResponse(f"/attempts/{attempt_id}/{where}", status_code=303)
 
 
 @router.post("/attempts/{attempt_id}/questions/{qid}/self-grade")
@@ -354,7 +392,9 @@ async def self_grade(request: Request, attempt_id: str, qid: int, store: Store =
         # Nothing pending (a stale tab, or a forged post): a verdict already
         # given, by the model, the rules or the candidate, stands.
         return RedirectResponse(f"/attempts/{attempt_id}/q/{n}", status_code=303)
-    form = await request.form()
+    form = await read_form(request, f"attempt={attempt_id} qid={qid}")
+    if form is None:
+        return client_gone()
     correct = form.get("correct") == "1"
     weight = session.question_weights(cat, attempt)[qid]
     session.self_grade_question(store, attempt_id, q, weight, correct)
